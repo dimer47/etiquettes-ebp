@@ -2,6 +2,10 @@
 
 Tous les modèles reprennent exactement les mêmes champs : catégorie, référence rayon, nom, EAN-13, chiffres du code, référence produit, mention TTC et prix. Les dimensions ci-dessous sont celles du **bitmap imprimé**, pas celles du ticket après découpe.
 
+![Comparaison des quatre formats à la même échelle](formats/comparaison.png)
+
+Ces images sont des **maquettes monochromes de composition**, générées à 384 points de largeur avec un EAN-13 valide. Le format Standard reprend la hiérarchie de l'application actuelle, mais la typographie peut légèrement différer du moteur iOS. Les quatre fichiers à résolution native sont disponibles séparément : [Compact](formats/compact.png), [Standard](formats/standard.png), [Rayon aéré](formats/rayon_aere.png) et [Grand](formats/grand.png).
+
 | Modèle | Bitmap sur la 5890 | Intention | Point à vérifier |
 |---|---:|---|---|
 | Compact rayon | 384 × 208 points ≈ 48 × 26 mm | Réduire la hauteur du contenu pour viser une petite réglette | Tous les champs restent présents ; le code-barres et le prix auront moins de hauteur. Scanner le code réel avant adoption. |
