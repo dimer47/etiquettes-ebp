@@ -112,11 +112,14 @@ struct ContentView: View {
                 }
                 Picker("Avance après impression", selection: $printer.trailingFeedDots) {
                     Text("10 mm").tag(80)
+                    Text("12 mm").tag(96)
+                    Text("13 mm").tag(104)
+                    Text("14 mm").tag(112)
                     Text("15 mm").tag(120)
                     Text("16 mm").tag(128)
                     Text("20 mm").tag(160)
                 }
-                Text("16 mm ajoute environ 6 mm de papier blanc après le prix par rapport au réglage précédent.")
+                Text("13 mm ajoute environ 3 mm de papier blanc après le prix par rapport au réglage initial.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Section("Calibration") {

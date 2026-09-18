@@ -13,9 +13,9 @@ final class PrinterManager: ObservableObject {
     @Published var density: PrintDensity = .medium {
         didSet { UserDefaults.standard.set(Int(density.rawValue), forKey: "density") }
     }
-    /// Paper advanced after the final printed row. 128 dots is roughly 16 mm,
-    /// six millimetres more than the previous 80-dot default.
-    @Published var trailingFeedDots = 128 {
+    /// 104 dots is roughly 13 mm: halfway between the original 10 mm and
+    /// the 16 mm trial that advanced too much paper.
+    @Published var trailingFeedDots = 104 {
         didSet { UserDefaults.standard.set(trailingFeedDots, forKey: "trailingFeedDots") }
     }
     private var cancellables = Set<AnyCancellable>()
@@ -26,8 +26,11 @@ final class PrinterManager: ObservableObject {
     init() {
         if UserDefaults.standard.object(forKey: "density") != nil,
            let saved = PrintDensity(rawValue: UInt8(clamping: UserDefaults.standard.integer(forKey: "density"))) { density = saved }
-        if UserDefaults.standard.object(forKey: "trailingFeedDots") != nil {
-            trailingFeedDots = UserDefaults.standard.integer(forKey: "trailingFeedDots")
+        if let saved = UserDefaults.standard.object(forKey: "trailingFeedDots") as? Int {
+            // The user asked to halve the extra advance from the 16 mm trial.
+            // Migrate that value even if it was explicitly selected in build 4.
+            trailingFeedDots = saved == 128 ? 104 : saved
+            if saved == 128 { UserDefaults.standard.set(104, forKey: "trailingFeedDots") }
         }
         transport.$devices.sink { [weak self] found in
             guard let self else { return }
