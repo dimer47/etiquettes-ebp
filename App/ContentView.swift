@@ -9,6 +9,10 @@ struct ContentView: View {
     @State private var message: String?
 
     private var bitmap: MonochromeBitmap? { try? LabelRenderer.render(label) }
+    private var previewBitmap: MonochromeBitmap? {
+        guard let bitmap else { return nil }
+        return try? printer.preparedBitmap(bitmap)
+    }
     private var eanMessage: String? {
         do {
             let completed = try EAN13.completed(label.ean)
@@ -34,7 +38,7 @@ struct ContentView: View {
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
-                        if let bitmap, let image = LabelRenderer.preview(bitmap) {
+                        if let previewBitmap, let image = LabelRenderer.preview(previewBitmap) {
                             Image(uiImage: image).interpolation(.none).resizable()
                                 .aspectRatio(50.0 / 30.0, contentMode: .fit)
                                 .background(.white)
@@ -120,6 +124,10 @@ struct ContentView: View {
                     Text("20 mm").tag(160)
                 }
                 Text("13 mm ajoute environ 3 mm de papier blanc après le prix par rapport au réglage initial.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Toggle("Tourner l’impression de 180°", isOn: $printer.rotateContent180)
+                Text("L’aperçu montre le sens imprimé. Retournez le ticket après découpe pour lire l’étiquette avec le grand blanc en bas.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Section("Calibration") {

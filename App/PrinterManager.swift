@@ -18,6 +18,9 @@ final class PrinterManager: ObservableObject {
     @Published var trailingFeedDots = 104 {
         didSet { UserDefaults.standard.set(trailingFeedDots, forKey: "trailingFeedDots") }
     }
+    @Published var rotateContent180 = false {
+        didSet { UserDefaults.standard.set(rotateContent180, forKey: "rotateContent180") }
+    }
     private var cancellables = Set<AnyCancellable>()
     private var pendingBitmap: MonochromeBitmap?
     private var automaticReconnect = false
@@ -32,6 +35,7 @@ final class PrinterManager: ObservableObject {
             trailingFeedDots = saved == 128 ? 104 : saved
             if saved == 128 { UserDefaults.standard.set(104, forKey: "trailingFeedDots") }
         }
+        rotateContent180 = UserDefaults.standard.bool(forKey: "rotateContent180")
         transport.$devices.sink { [weak self] found in
             guard let self else { return }
             self.devices = found
@@ -92,8 +96,17 @@ final class PrinterManager: ObservableObject {
 
     func print(_ bitmap: MonochromeBitmap) {
         guard !printing else { return }
-        if connected { send(bitmap) }
-        else { pendingBitmap = bitmap; scan(automaticReconnect: true) }
+        guard let prepared = try? preparedBitmap(bitmap) else {
+            status = "Impossible de tourner le bitmap"
+            return
+        }
+        if connected { send(prepared) }
+        else { pendingBitmap = prepared; scan(automaticReconnect: true) }
+    }
+
+    func preparedBitmap(_ bitmap: MonochromeBitmap) throws -> MonochromeBitmap {
+        if rotateContent180 { return try bitmap.rotated180() }
+        return bitmap
     }
 
     private func send(_ bitmap: MonochromeBitmap) {

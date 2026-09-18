@@ -8,7 +8,7 @@ Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) doc
 
 ## Architecture
 
-- `Sources/LabelCore` : données produit, validation et encodage EAN‑13, prix français ; testable sans iOS.
+- `Sources/LabelCore` : données produit, validation et encodage EAN‑13, prix français, rotation exacte du bitmap 1 bit ; testable sans iOS.
 - `App/LabelRenderer.swift` : composition à la résolution native, seuillage direct à 1 bit, barres EAN en modules entiers.
 - `App/PrinterManager.swift` : découverte, sélection, reconnexion, densité et impression directe.
 - `App/ContentView.swift` : formulaire, aperçu issu du **même bitmap** que l'impression, état BLE et réglages.
@@ -30,7 +30,9 @@ xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configu
 2. Ouvrir l'app. Appuyer sur **Connecter**, sélectionner `Mini Pocket Printer_BLE`. La dernière imprimante est recherchée au lancement suivant.
 3. Saisir nom, catégorie, référence rayon, référence produit, EAN et prix (`5,95` ou `5.95`). L'aperçu se met à jour avec les données valides.
 4. Appuyer sur **Imprimer**. En l'absence de connexion, l'app recherche l'imprimante avant d'envoyer le travail.
-5. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut), ajuster l'avance après impression et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
+5. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut), ajuster l'avance après impression, activer éventuellement **Tourner l'impression de 180°**, et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
+
+La rotation est désactivée par défaut et mémorisée sur l'iPhone. Elle retourne **tout le bitmap final** de 180° par permutation exacte des points, sans nouveau rendu de texte ni redimensionnement. L'aperçu montre le sens réellement envoyé à l'imprimante. Une fois le ticket découpé, le retourner physiquement pour lire l'étiquette : le blanc mécanique initial se retrouve alors sous le contenu. L'avance finale du papier reste identique.
 
 Le rouleau est continu. L'avance finale vaut désormais **104 points**, soit environ **13 mm** selon la résolution documentée : 3 mm de plus que le réglage initial de 80 points, et 3 mm de moins que l'essai de 128 points jugé excessif. Le réglage propose 10, 12, 13, 14, 15, 16 et 20 mm. Une ancienne valeur de 16 mm est ramenée automatiquement à 13 mm. Ce réglage ajoute du papier blanc après le prix avant la découpe ; il ne change pas la composition du bitmap de 30 mm. Le blanc en tête visible sur les impressions semble lié à la distance mécanique entre tête thermique et bord de découpe ; sa valeur exacte reste à mesurer sur le papier. Mesurer la hauteur totale du ticket découpé avant de choisir un porte-étiquette : les produits du commerce existent notamment pour des insertions de 30, 39/40 et 52 mm. Voir par exemple les [porte-étiquettes Provost 30 × 50 mm](https://www.provost.fr/fr/rayonnage-pour-magasins/569-porte-etiquette/) et les [réglettes VKF Renzel 26, 39 et 52 mm](https://www.vkf-renzel.com/no-shelf-edge-strip-26-mm-transparent-standard-adhesive-12-mm-20-0026-40.html).
 

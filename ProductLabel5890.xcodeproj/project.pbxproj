@@ -12,14 +12,17 @@
 		13A4BF10CEF273B47EE2FF5E /* PrinterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */; };
 		1699461663AF3457AD0E22F7 /* LabelRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9485C1DE846860B7012E33A /* LabelRenderer.swift */; };
 		24098E837ACC9BB9BFAADC28 /* ProductLabelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */; };
+		29F2F0199AB875A9E2AC90F1 /* MonochromeBitmap+Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */; };
 		423998305BE6E6DB90D59684 /* PocketPrinter5890Kit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */; };
 		5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */ = {isa = PBXBuildFile; productRef = 8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */; };
 		623DC584C67D81177CE2957F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
 		768929E14B9C95B327364A35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
+		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
 		A1B2C3D40004E5F600000004 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D40003E5F600000003 /* AppIntents.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "MonochromeBitmap+Rotation.swift"; sourceTree = "<group>"; };
 		3685E330EC5277A9DD5661C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3EDB93876352D2311F5650D9 /* ImagePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewView.swift; sourceTree = "<group>"; };
 		4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -29,6 +32,7 @@
 		8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabelApp.swift; sourceTree = "<group>"; };
 		A1B2C3D40003E5F600000003 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 		B756FF8ED397B989BAB791EC /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThermalBitmapRotation.swift; sourceTree = "<group>"; };
 		C9485C1DE846860B7012E33A /* LabelRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelRenderer.swift; sourceTree = "<group>"; };
 		CC908DE1A132B9184DD689EE /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D36961784DCB2F5C609630FE /* PrinterSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSettings.swift; sourceTree = "<group>"; };
@@ -72,6 +76,7 @@
 				EE657AD14653602D585DC52F /* ContentView.swift */,
 				C9485C1DE846860B7012E33A /* LabelRenderer.swift */,
 				7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */,
+				2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -81,6 +86,7 @@
 			children = (
 				FE99AF2776C04A5A8568E934 /* ProductLabel.swift */,
 				516D0672BE4E8CAD47F01920 /* EAN13.swift */,
+				BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */,
 			);
 			name = LabelCore;
 			path = Sources/LabelCore;
@@ -191,6 +197,8 @@
 				13A4BF10CEF273B47EE2FF5E /* PrinterManager.swift in Sources */,
 				0772CE364723F4F489E70EA2 /* ProductLabel.swift in Sources */,
 				0F84EF6A4D312FEDD83FD793 /* EAN13.swift in Sources */,
+				9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */,
+				29F2F0199AB875A9E2AC90F1 /* MonochromeBitmap+Rotation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,7 +226,7 @@
 				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 5D6QHL72QC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -265,7 +273,7 @@
 				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 5D6QHL72QC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

@@ -23,4 +23,12 @@ final class LabelCoreTests: XCTestCase {
         XCTAssertEqual(PriceFormatter.formatted("5.95"), "5,95 €")
         XCTAssertNil(PriceFormatter.formatted("abc"))
     }
+
+    func testPackedBitmapRotationKeepsEveryDot() throws {
+        let original: [UInt8] = [0x80, 0x00, 0x20, 0x01]
+        let rotated = try ThermalBitmapRotation.rotated180(original, bytesPerRow: 2, rows: 2)
+        XCTAssertEqual(rotated, [0x80, 0x04, 0x00, 0x01])
+        XCTAssertEqual(try ThermalBitmapRotation.rotated180(rotated, bytesPerRow: 2, rows: 2), original)
+        XCTAssertThrowsError(try ThermalBitmapRotation.rotated180(original, bytesPerRow: 3, rows: 2))
+    }
 }
