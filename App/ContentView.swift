@@ -175,7 +175,7 @@ struct ContentView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .disabled(bitmap == nil || printer.printing)
+                    .disabled(bitmap == nil || printer.printing || !printer.connected)
                     }
                 }
                 .padding()
@@ -229,14 +229,13 @@ struct ContentView: View {
     }
 
     private func printCurrentLabel() {
-        guard let bitmap else { return }
+        guard printer.connected, let bitmap else { return }
         let entry = PrintedLabel(label: label, size: labelSize, arrangement: labelArrangement,
                                  densityValue: printer.density.rawValue,
                                  leadingFeedDots: printer.leadingFeedDots,
                                  trailingFeedDots: printer.trailingFeedDots,
                                  rotateContent180: printer.rotateContent180)
         printer.print(bitmap) { history.record(entry) }
-        if !printer.connected { showingPrinters = true }
     }
 
     private func restore(_ entry: PrintedLabel) {
@@ -252,6 +251,7 @@ struct ContentView: View {
     }
 
     private func reprint(_ entry: PrintedLabel) {
+        guard printer.connected else { return }
         restore(entry)
         do {
             let bitmap = try LabelRenderer.render(entry.label, size: entry.size, arrangement: entry.arrangement)
@@ -260,7 +260,6 @@ struct ContentView: View {
                                     trailingFeedDots: entry.trailingFeedDots,
                                     rotateContent180: entry.rotateContent180)
             printer.print(bitmap) { history.record(copy) }
-            if !printer.connected { showingPrinters = true }
         } catch { message = error.localizedDescription }
     }
 
@@ -281,6 +280,7 @@ struct ContentView: View {
                                 .buttonStyle(.bordered)
                             Button("Réimprimer") { reprint(entry) }
                                 .buttonStyle(.borderedProminent)
+                                .disabled(!printer.connected || printer.printing)
                         }
                     }
                     .padding(.vertical, 4)
@@ -455,9 +455,9 @@ struct ContentView: View {
                         do {
                             printer.print(try LabelRenderer.render(test, size: labelSize, arrangement: labelArrangement))
                             showingSettings = false
-                            if !printer.connected { printer.scan(); showingPrinters = true }
                         } catch { message = error.localizedDescription }
                     }
+                    .disabled(!printer.connected || printer.printing)
                     if printer.connected { Button("Déconnecter") { printer.disconnect() } }
                 }
                 Section("Application") {
