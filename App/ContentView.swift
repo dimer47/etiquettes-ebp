@@ -126,7 +126,7 @@ struct ContentView: View {
                         Button(printer.connected ? "Changer" : "Connecter") { printer.scan(); showingPrinters = true }
                     }
                     .padding(16)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                    .modifier(PrintCardStyle())
                     Button {
                         showingPresentation = true
                         thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
@@ -144,8 +144,7 @@ struct ContentView: View {
                             Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.secondary)
                         }
                         .padding(16)
-                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 1))
+                        .modifier(PrintCardStyle())
                     }
                     .buttonStyle(ResponsiveCardStyle())
                     VStack(alignment: .leading, spacing: 8) {
@@ -162,7 +161,7 @@ struct ContentView: View {
                         }
                     }
                     .padding(16)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                    .modifier(PrintCardStyle())
                     Button {
                         guard let bitmap else { return }
                         printer.print(bitmap)
@@ -170,6 +169,7 @@ struct ContentView: View {
                     } label: {
                         Label(printer.printing ? "Impression…" : "Imprimer", systemImage: "printer.fill")
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
@@ -433,6 +433,13 @@ private struct ProductPanelStyle: ViewModifier {
         } else {
             content.background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
         }
+    }
+}
+
+private struct PrintCardStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content.background(Color(.secondarySystemGroupedBackground),
+                           in: RoundedRectangle(cornerRadius: 14))
     }
 }
 
