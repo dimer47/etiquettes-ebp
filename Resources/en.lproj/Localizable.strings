@@ -98,3 +98,12 @@
 "Faible" = "Light";
 "Moyenne" = "Normal";
 "Forte" = "Strong";
+"Historique" = "History";
+"Aucune impression enregistrée" = "No saved prints";
+"Les étiquettes imprimées apparaîtront ici." = "Printed labels will appear here.";
+"Restaurer" = "Restore";
+"Réimprimer" = "Reprint";
+"Application" = "Application";
+"Langue de l’application" = "App language";
+"Choisir la langue dans les réglages iPhone" = "Choose language in iPhone Settings";
+"Le français et l’anglais sont disponibles. iOS applique le choix à toute l’application." = "French and English are available. iOS applies your choice throughout the app.";

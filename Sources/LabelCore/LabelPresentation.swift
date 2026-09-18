@@ -1,6 +1,6 @@
 import Foundation
 
-public enum LabelSize: String, CaseIterable, Identifiable {
+public enum LabelSize: String, CaseIterable, Identifiable, Codable {
     case compact, standard, airy, large
 
     public var id: String { rawValue }
@@ -23,7 +23,7 @@ public enum LabelSize: String, CaseIterable, Identifiable {
     public var heightMillimeters: Int { heightDots / 8 }
 }
 
-public enum LabelArrangement: String, CaseIterable, Identifiable {
+public enum LabelArrangement: String, CaseIterable, Identifiable, Codable {
     case current, priceFirst, columns, barcodeFirst, centered, barcodeLast
 
     public var id: String { rawValue }

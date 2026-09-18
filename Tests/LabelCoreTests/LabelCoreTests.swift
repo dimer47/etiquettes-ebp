@@ -54,4 +54,16 @@ final class LabelCoreTests: XCTestCase {
         XCTAssertEqual(try ThermalBitmapRotation.rotated180(rotated, bytesPerRow: 2, rows: 2), original)
         XCTAssertThrowsError(try ThermalBitmapRotation.rotated180(original, bytesPerRow: 3, rows: 2))
     }
+
+    func testPrintedLabelKeepsLayoutAndPrinterSettings() throws {
+        let entry = PrintedLabel(printedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                                 label: ProductLabel(name: "Spray", ean: "4006381333931"),
+                                 size: .airy, arrangement: .priceFirst, densityValue: 2,
+                                 leadingFeedDots: 16, trailingFeedDots: 104, rotateContent180: true)
+        let restored = try JSONDecoder().decode(PrintedLabel.self, from: JSONEncoder().encode(entry))
+        XCTAssertEqual(restored, entry)
+        XCTAssertEqual(restored.size, .airy)
+        XCTAssertEqual(restored.arrangement, .priceFirst)
+        XCTAssertEqual(restored.trailingFeedDots, 104)
+    }
 }

@@ -4,11 +4,13 @@ import PocketPrinter5890Kit
 struct ContentView: View {
     @StateObject private var printer = PrinterManager()
     @StateObject private var thumbnailStore = LabelThumbnailStore()
+    @StateObject private var history = LabelHistoryStore()
     @State private var label = (UserDefaults.standard.data(forKey: "lastLabel").flatMap { try? JSONDecoder().decode(ProductLabel.self, from: $0) }) ?? ProductLabel()
     @State private var showingPrinters = false
     @State private var showingSettings = false
     @State private var showingPresentation = false
     @State private var showingScanner = false
+    @State private var showingHistory = false
     @State private var message: String?
     @State private var selectedPage = 0
     @State private var categories = (UserDefaults.standard.array(forKey: "savedCategories") as? [String]) ?? [NSLocalizedString("Peinture / Aérosols", comment: "Sample category")]
@@ -166,11 +168,7 @@ struct ContentView: View {
                     }
                     .padding(16)
                     .modifier(PrintCardStyle())
-                    Button {
-                        guard let bitmap else { return }
-                        printer.print(bitmap)
-                        if !printer.connected { showingPrinters = true }
-                    } label: {
+                    Button { printCurrentLabel() } label: {
                         Label(printer.printing ? NSLocalizedString("Impression…", comment: "Printing progress") : NSLocalizedString("Imprimer", comment: "Print button"), systemImage: "printer.fill")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
@@ -185,10 +183,18 @@ struct ContentView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Étiquettes Pocket")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { Button("Réglages", systemImage: "gearshape") { showingSettings = true } }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Historique", systemImage: "clock.arrow.circlepath") { showingHistory = true }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Réglages", systemImage: "gearshape") { showingSettings = true }
+                }
+            }
             .sheet(isPresented: $showingPrinters) { printerSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
             .sheet(isPresented: $showingPresentation) { presentationSheet }
+            .sheet(isPresented: $showingHistory) { historySheet }
             .sheet(isPresented: $showingScanner) {
                 BarcodeScannerView { code in
                     label.ean = code
@@ -219,6 +225,70 @@ struct ContentView: View {
                 if LabelArrangement(rawValue: selectedArrangement) == nil { selectedArrangement = LabelArrangement.current.rawValue }
                 printer.reconnect()
             }
+        }
+    }
+
+    private func printCurrentLabel() {
+        guard let bitmap else { return }
+        let entry = PrintedLabel(label: label, size: labelSize, arrangement: labelArrangement,
+                                 densityValue: printer.density.rawValue,
+                                 leadingFeedDots: printer.leadingFeedDots,
+                                 trailingFeedDots: printer.trailingFeedDots,
+                                 rotateContent180: printer.rotateContent180)
+        printer.print(bitmap) { history.record(entry) }
+        if !printer.connected { showingPrinters = true }
+    }
+
+    private func restore(_ entry: PrintedLabel) {
+        label = entry.label
+        selectedSize = entry.size.rawValue
+        selectedArrangement = entry.arrangement.rawValue
+        printer.density = PrintDensity(rawValue: entry.densityValue) ?? .medium
+        printer.leadingFeedDots = entry.leadingFeedDots
+        printer.trailingFeedDots = entry.trailingFeedDots
+        printer.rotateContent180 = entry.rotateContent180
+        selectedPage = 1
+        showingHistory = false
+    }
+
+    private func reprint(_ entry: PrintedLabel) {
+        restore(entry)
+        do {
+            let bitmap = try LabelRenderer.render(entry.label, size: entry.size, arrangement: entry.arrangement)
+            let copy = PrintedLabel(label: entry.label, size: entry.size, arrangement: entry.arrangement,
+                                    densityValue: entry.densityValue, leadingFeedDots: entry.leadingFeedDots,
+                                    trailingFeedDots: entry.trailingFeedDots,
+                                    rotateContent180: entry.rotateContent180)
+            printer.print(bitmap) { history.record(copy) }
+            if !printer.connected { showingPrinters = true }
+        } catch { message = error.localizedDescription }
+    }
+
+    private var historySheet: some View {
+        NavigationStack {
+            List {
+                if history.entries.isEmpty {
+                    ContentUnavailableView("Aucune impression enregistrée", systemImage: "clock.arrow.circlepath",
+                                           description: Text("Les étiquettes imprimées apparaîtront ici."))
+                }
+                ForEach(history.entries) { entry in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(entry.label.name).font(.headline)
+                        Text("\(entry.printedAt.formatted(date: .abbreviated, time: .shortened)) · \(entry.arrangement.title) · \(entry.size.title)")
+                            .font(.subheadline).foregroundStyle(.secondary)
+                        HStack {
+                            Button("Restaurer") { restore(entry) }
+                                .buttonStyle(.bordered)
+                            Button("Réimprimer") { reprint(entry) }
+                                .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .onDelete(perform: history.delete)
+            }
+            .navigationTitle("Historique")
+            .toolbar { Button("Fermer") { showingHistory = false } }
         }
     }
 
@@ -389,6 +459,15 @@ struct ContentView: View {
                         } catch { message = error.localizedDescription }
                     }
                     if printer.connected { Button("Déconnecter") { printer.disconnect() } }
+                }
+                Section("Application") {
+                    LabeledContent("Langue de l’application", value: Bundle.main.preferredLocalizations.first == "en" ? "English" : "Français")
+                    Button("Choisir la langue dans les réglages iPhone", systemImage: "arrow.up.right.square") {
+                        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                        UIApplication.shared.open(url)
+                    }
+                    Text("Le français et l’anglais sont disponibles. iOS applique le choix à toute l’application.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Catégories enregistrées") {
                     HStack {

@@ -38,6 +38,7 @@ final class PrinterManager: ObservableObject {
     }
     private var cancellables = Set<AnyCancellable>()
     private var pendingBitmap: MonochromeBitmap?
+    private var pendingOnQueued: (() -> Void)?
     private var automaticReconnect = false
     private var scanTimeout: Task<Void, Never>?
 
@@ -45,10 +46,7 @@ final class PrinterManager: ObservableObject {
         if UserDefaults.standard.object(forKey: "density") != nil,
            let saved = PrintDensity(rawValue: UInt8(clamping: UserDefaults.standard.integer(forKey: "density"))) { density = saved }
         if let saved = UserDefaults.standard.object(forKey: "trailingFeedDots") as? Int {
-            // The user asked to halve the extra advance from the 16 mm trial.
-            // Migrate that value even if it was explicitly selected in build 4.
-            trailingFeedDots = saved == 128 ? 104 : saved
-            if saved == 128 { UserDefaults.standard.set(104, forKey: "trailingFeedDots") }
+            trailingFeedDots = saved
         }
         if let saved = UserDefaults.standard.object(forKey: "leadingFeedDots") as? Int {
             leadingFeedDots = max(0, min(saved, 80))
@@ -75,7 +73,9 @@ final class PrinterManager: ObservableObject {
             if !connected { self.batteryPercent = nil }
             if connected, let bitmap = self.pendingBitmap {
                 self.pendingBitmap = nil
-                self.send(bitmap)
+                let onQueued = self.pendingOnQueued
+                self.pendingOnQueued = nil
+                self.send(bitmap, onQueued: onQueued)
             }
         }.store(in: &cancellables)
     }
@@ -119,18 +119,23 @@ final class PrinterManager: ObservableObject {
 
     func disconnect() {
         pendingBitmap = nil
+        pendingOnQueued = nil
         transport.disconnect()
         status = NSLocalizedString("Aucune imprimante connectée", comment: "Printer status")
     }
 
-    func print(_ bitmap: MonochromeBitmap) {
+    func print(_ bitmap: MonochromeBitmap, onQueued: (() -> Void)? = nil) {
         guard !printing else { return }
         guard let prepared = try? preparedBitmap(bitmap) else {
             status = NSLocalizedString("Impossible de tourner le bitmap", comment: "Print error")
             return
         }
-        if connected { send(prepared) }
-        else { pendingBitmap = prepared; scan(automaticReconnect: true) }
+        if connected { send(prepared, onQueued: onQueued) }
+        else {
+            pendingBitmap = prepared
+            pendingOnQueued = onQueued
+            scan(automaticReconnect: true)
+        }
     }
 
     func preparedBitmap(_ bitmap: MonochromeBitmap) throws -> MonochromeBitmap {
@@ -138,7 +143,7 @@ final class PrinterManager: ObservableObject {
         return bitmap
     }
 
-    private func send(_ bitmap: MonochromeBitmap) {
+    private func send(_ bitmap: MonochromeBitmap, onQueued: (() -> Void)? = nil) {
         printing = true
         status = NSLocalizedString("Impression…", comment: "Printer status")
         let options = PrintOptions(width: .mm58, density: density, trailingFeedDots: trailingFeedDots, paperMode: .continuous)
@@ -150,6 +155,7 @@ final class PrinterManager: ObservableObject {
         }
         elements.append(.image(bitmap))
         transport.send(PrintJobBuilder.segments(document: PrintDocument(elements: elements), options: options))
+        onQueued?()
         Task { @MainActor in
             // The transport exposes queue progress but no physical completion acknowledgement.
             while transport.sendProgress < 1 && transport.isConnected {
