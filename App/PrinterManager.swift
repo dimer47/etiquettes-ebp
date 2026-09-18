@@ -9,6 +9,18 @@ final class PrinterManager: ObservableObject {
     @Published private(set) var devices: [PrinterDevice] = []
     @Published private(set) var status = "Aucune imprimante connectée"
     @Published private(set) var connected = false
+    @Published private(set) var connectedDeviceName: String?
+    @Published private(set) var batteryPercent: Int?
+    @Published var printerAlias = "" {
+        didSet {
+            guard let id = UserDefaults.standard.string(forKey: "printerID") else { return }
+            UserDefaults.standard.set(printerAlias, forKey: "printerAlias.\(id)")
+        }
+    }
+    var displayName: String {
+        let alias = printerAlias.trimmingCharacters(in: .whitespacesAndNewlines)
+        return alias.isEmpty ? (connectedDeviceName ?? "Pocket Printer 5890") : alias
+    }
     @Published private(set) var printing = false
     @Published var density: PrintDensity = .medium {
         didSet { UserDefaults.standard.set(Int(density.rawValue), forKey: "density") }
@@ -42,6 +54,13 @@ final class PrinterManager: ObservableObject {
             leadingFeedDots = max(0, min(saved, 80))
         }
         rotateContent180 = UserDefaults.standard.bool(forKey: "rotateContent180")
+        if let id = UserDefaults.standard.string(forKey: "printerID") {
+            printerAlias = UserDefaults.standard.string(forKey: "printerAlias.\(id)") ?? ""
+            connectedDeviceName = UserDefaults.standard.string(forKey: "printerName.\(id)")
+        }
+        transport.$batteryPercent.sink { [weak self] value in
+            self?.batteryPercent = value
+        }.store(in: &cancellables)
         transport.$devices.sink { [weak self] found in
             guard let self else { return }
             self.devices = found
@@ -52,7 +71,8 @@ final class PrinterManager: ObservableObject {
         transport.$isConnected.sink { [weak self] connected in
             guard let self else { return }
             self.connected = connected
-            self.status = connected ? "5890 connectée" : "Aucune imprimante connectée"
+            self.status = connected ? "Connectée" : "Aucune imprimante connectée"
+            if !connected { self.batteryPercent = nil }
             if connected, let bitmap = self.pendingBitmap {
                 self.pendingBitmap = nil
                 self.send(bitmap)
@@ -91,6 +111,9 @@ final class PrinterManager: ObservableObject {
         transport.stopScan()
         status = "Connexion à \(device.name)…"
         UserDefaults.standard.set(device.id.uuidString, forKey: "printerID")
+        UserDefaults.standard.set(device.name, forKey: "printerName.\(device.id.uuidString)")
+        connectedDeviceName = device.name
+        printerAlias = UserDefaults.standard.string(forKey: "printerAlias.\(device.id.uuidString)") ?? ""
         transport.connect(to: device)
     }
 
@@ -133,7 +156,7 @@ final class PrinterManager: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(200))
             }
             printing = false
-            status = transport.isConnected ? "5890 connectée" : "Connexion perdue pendant l’impression"
+            status = transport.isConnected ? "Connectée" : "Connexion perdue pendant l’impression"
         }
     }
 }

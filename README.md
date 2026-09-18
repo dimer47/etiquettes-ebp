@@ -4,17 +4,17 @@ Application iPhone native pour saisir une fiche produit, voir son étiquette et 
 
 ## Matériel et dimensions
 
-Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) documente une machine 5890 (modèle BLE `A2Y`, firmware `V1.06LY`) testée physiquement : tête de **384 points**, **48 octets par ligne**, résolution annoncée **203 dpi**, papier d'environ 56/58 mm. Ces chiffres proviennent de cette unité ; un autre firmware pourrait différer. La tête couvre environ 48 mm, donc le modèle de 50 × 30 mm est composé dans un bitmap de **384 × 240 points**. Le contenu est centré dans la largeur imprimable. Le centrage physique de la tête dans le rouleau dépend du mécanisme.
+Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) documente une machine 5890 (modèle BLE `A2Y`, firmware `V1.06LY`) testée physiquement : tête de **384 points**, **48 octets par ligne**, résolution annoncée **203 dpi**, papier d'environ 56/58 mm. Ces chiffres proviennent de cette unité ; un autre firmware pourrait différer. La tête couvre environ 48 mm. Les quatre hauteurs proposées sont **208, 240, 312 et 416 points** (environ 26, 30, 39 et 52 mm de zone imprimée). Le contenu est centré dans la largeur imprimable. Le centrage physique de la tête dans le rouleau dépend du mécanisme.
 
 ## Architecture
 
-- `Sources/LabelCore` : données produit, validation et encodage EAN‑13, prix français, rotation exacte du bitmap 1 bit ; testable sans iOS.
+- `Sources/LabelCore` : données produit, choix de présentation, validation et encodage EAN‑13, prix français, rotation exacte du bitmap 1 bit ; testable sans iOS.
 - `App/LabelRenderer.swift` : composition à la résolution native, seuillage direct à 1 bit, barres EAN en modules entiers.
 - `App/PrinterManager.swift` : découverte, sélection, reconnexion, densité et impression directe.
 - `App/ContentView.swift` : formulaire, aperçu à l'endroit issu du **bitmap source** de l'impression, état BLE et réglages.
 - Bibliothèque SwiftPM `PocketPrinter5890Kit` et `PocketPrinter5890BLE` : commandes de densité et d'activation, raster en bandes de 24 lignes, contrôle de flux BLE et transport CoreBluetooth. La dépendance est épinglée à la révision vérifiée dans ce projet.
 
-L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffres saisis. Les 95 modules sont dessinés à **3 points chacun** (sans redimensionnement), avec 10 modules blancs de chaque côté. Les barres font 70 points de haut. La composition reprend la maquette fournie : informations et nom alignés à gauche, chiffres EAN en trois groupes, référence sous le code, mention TTC à gauche et prix à droite. Le texte peut être antialiasé durant la composition, puis chaque point est converti en noir ou blanc par un seuil fixe de 160 ; aucun tramage photo n'est appliqué. Le bitmap résultant, large exactement de 384 points, part directement au protocole 5890.
+L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffres saisis. Les 95 modules sont dessinés à **3 points chacun** (sans redimensionnement), avec au moins 10 modules blancs de chaque côté. La hauteur des barres varie selon la présentation choisie. Le texte peut être antialiasé durant la composition, puis chaque point est converti en noir ou blanc par un seuil fixe de 160 ; aucun tramage photo n'est appliqué. Le bitmap résultant, large exactement de 384 points, part directement au protocole 5890.
 
 ## Compiler et installer
 
@@ -28,9 +28,12 @@ xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configu
 
 1. Allumer la 5890 et activer Bluetooth sur l'iPhone.
 2. Ouvrir l'app. Appuyer sur **Connecter**, sélectionner `Mini Pocket Printer_BLE`. La dernière imprimante est recherchée au lancement suivant.
-3. Saisir nom, catégorie, référence rayon, référence produit, EAN et prix (`5,95` ou `5.95`). L'aperçu se met à jour avec les données valides.
-4. Appuyer sur **Imprimer**. En l'absence de connexion, l'app recherche l'imprimante avant d'envoyer le travail.
-5. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut), ajuster les avances avant et après impression, activer éventuellement **Tourner l'impression de 180°**, et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
+3. Dans **Produit**, saisir les champs identifiés par leur libellé permanent. Le texte « Prix de vente TTC » est modifiable dans **Libellé du prix** ; la référence rayon est également libre. Le prix accepte `5,95` ou `5.95` ; choisir la devise EUR, USD, GBP ou CHF à côté. Les fiches enregistrées avant ces ajouts conservent EUR et « Prix de vente TTC ».
+4. Passer à **Aperçu et impression**. Appuyer sur **Présentation de l’étiquette** pour choisir visuellement une des quatre hauteurs et une des six dispositions (le modèle actuel et cinq nouveautés). Les quatre formats sont montrés un par ligne à largeur constante pour comparer leurs hauteurs. Le choix est mémorisé sur l'iPhone.
+5. Appuyer sur **Imprimer**. En l'absence de connexion, l'app recherche l'imprimante avant d'envoyer le travail. Le bitmap affiché est celui envoyé au protocole, mais l'affichage à l'écran est lissé pour éviter le crénelage lié à l'agrandissement ; les points imprimés restent strictement noirs ou blancs.
+6. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut), ajuster les avances avant et après impression, activer éventuellement **Tourner l'impression de 180°**, et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
+
+Le bloc **Imprimante** affiche le nom du périphérique connecté et son niveau de batterie lorsque la 5890 le transmet. Le bouton **Changer** permet de choisir un autre périphérique compatible. Dans **Réglages**, un nom personnalisé peut être enregistré pour l'imprimante connectée ; il reste associé à son identifiant Bluetooth sur cet iPhone. Le nom BLE d'origine demeure visible dans la liste de sélection.
 
 La rotation est désactivée par défaut et mémorisée sur l'iPhone. Elle retourne **tout le bitmap final** de 180° par permutation exacte des points, sans nouveau rendu de texte ni redimensionnement. L'aperçu reste toujours à l'endroit pour faciliter la saisie ; seul le bitmap transmis à l'imprimante est tourné. Une fois le ticket découpé, le retourner physiquement pour lire l'étiquette : le blanc mécanique initial se retrouve alors sous le contenu. L'avance finale du papier reste identique.
 
@@ -38,11 +41,11 @@ Le rouleau est continu. L'avance avant impression est réglable de 0 à 10 mm et
 
 Le test matériel doit vérifier le contraste, la lecture du code avec un scanner, la position horizontale sur le rouleau et la hauteur réelle du ticket après découpe. La compilation iPhone, le lancement sur iPhone et le rendu sur simulateur ont été vérifiés ; l'impression physique dépend de l'imprimante connectée.
 
-## Formats à venir
+## Présentations disponibles
 
-Les propositions de formats et les limites de largeur sont décrites dans [docs/FORMATS_PROPOSES.md](docs/FORMATS_PROPOSES.md). Aucun modèle supplémentaire n'est activé avant validation de son contenu et de sa taille sur papier.
+Les quatre hauteurs et les limites de largeur sont décrites dans [docs/FORMATS_PROPOSES.md](docs/FORMATS_PROPOSES.md). La largeur reste de **384 points** pour cette imprimante : choisir un papier de 80 mm nécessiterait une autre imprimante et un profil matériel distinct.
 
-Cinq autres compositions visuelles, chacune déclinée dans les quatre hauteurs, sont présentées dans [docs/DISPOSITIONS_PROPOSEES.md](docs/DISPOSITIONS_PROPOSEES.md).
+Les cinq nouvelles dispositions sont présentées dans [docs/DISPOSITIONS_PROPOSEES.md](docs/DISPOSITIONS_PROPOSEES.md). Les maquettes Python de ce document ont servi au choix visuel ; l'app utilise son propre moteur natif pour produire le bitmap imprimé. Le contraste et la lecture de chaque combinaison doivent encore être vérifiés sur papier.
 
 ## Licence et attribution
 

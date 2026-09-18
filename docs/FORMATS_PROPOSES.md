@@ -1,4 +1,4 @@
-# Formats à valider avant implémentation
+# Quatre hauteurs disponibles
 
 Tous les modèles reprennent exactement les mêmes champs : catégorie, référence rayon, nom, EAN-13, chiffres du code, référence produit, mention TTC et prix. Les dimensions ci-dessous sont celles du **bitmap imprimé**, pas celles du ticket après découpe.
 
@@ -19,4 +19,4 @@ Pour un **autre modèle d'imprimante 80 mm**, prévoir un profil matériel disti
 
 Avant de promettre une compatibilité avec une réglette de 39 ou 52 mm, mesurer sur un ticket découpé : blanc avant l'image + hauteur du bitmap + blanc après l'image. Les réglettes vendues pour rayonnage existent notamment en insertion de 26, 30, 39 et 52 mm. [VKF Renzel](https://www.vkf-renzel.com/gls-shelf-edge-strip-52-mm-transparent-20-0257-3.html).
 
-**Décisions demandées :** choisir les modèles à implémenter en V1 et, pour le 80 mm, indiquer le modèle d'imprimante envisagé avant de concevoir son profil.
+Les quatre hauteurs sont désormais sélectionnables dans l'application. La largeur de 80 mm nécessitera un profil distinct lorsqu'un modèle d'imprimante compatible sera identifié.
