@@ -107,7 +107,14 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
     }
 
     private func configureAndStart() {
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+        // A virtual rear camera lets iOS switch between its physical lenses
+        // as focus distance and light change. Prefer a device with ultrawide
+        // support for close barcode scans, then fall back to a single lens.
+        let deviceTypes: [AVCaptureDevice.DeviceType] = [
+            .builtInTripleCamera, .builtInDualWideCamera,
+            .builtInDualCamera, .builtInWideAngleCamera
+        ]
+        guard let device = deviceTypes.compactMap({ AVCaptureDevice.default($0, for: .video, position: .back) }).first,
               let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) else {
             DispatchQueue.main.async { [onError] in onError("Caméra indisponible sur cet appareil.") }
             return
@@ -116,6 +123,14 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
         cameraDevice = device
         do {
             try device.lockForConfiguration()
+            if device.deviceType == .builtInTripleCamera || device.deviceType == .builtInDualWideCamera,
+               let wideZoom = device.virtualDeviceSwitchOverVideoZoomFactors.first?.doubleValue {
+                // Start with the wide-angle field of view used by the old
+                // scanner. At this threshold the ultrawide is also eligible
+                // when its shorter focus distance helps with a close code.
+                device.videoZoomFactor = min(max(CGFloat(wideZoom), device.minAvailableVideoZoomFactor),
+                                             device.maxAvailableVideoZoomFactor)
+            }
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
             }
