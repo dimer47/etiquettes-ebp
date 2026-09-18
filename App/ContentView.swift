@@ -38,37 +38,37 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    Picker("Écran", selection: $selectedPage) {
-                        Text("Produit").tag(0)
-                        Text("Aperçu et impression").tag(1)
+                    HStack(spacing: 8) {
+                        pageButton("Produit", icon: "square.and.pencil", page: 0)
+                        pageButton("Impression", icon: "printer", page: 1)
                     }
-                    .pickerStyle(.segmented)
                     if selectedPage == 0 {
-                    GroupBox("Informations produit") {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Informations produit").font(.title3.bold())
                         VStack(alignment: .leading, spacing: 14) {
                             field("Nom du produit", text: $label.name)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text("Catégorie").font(.subheadline.bold())
+                                TextField("Catégorie", text: $label.category)
+                                    .modifier(ProductInputStyle())
                                 HStack {
-                                    TextField("Catégorie", text: $label.category)
-                                        .textFieldStyle(.roundedBorder)
                                     Menu {
                                         if categories.isEmpty { Text("Aucune catégorie enregistrée") }
                                         ForEach(categories, id: \.self) { category in
                                             Button(category) { label.category = category }
                                         }
                                     } label: {
-                                        Image(systemName: "chevron.down.circle")
-                                            .frame(width: 36, height: 36)
+                                        Label("Choisir", systemImage: "list.bullet")
                                     }
                                     .accessibilityLabel("Choisir une catégorie")
+                                    .buttonStyle(.bordered)
                                     Button {
                                         categories = CategoryLibrary.adding(label.category, to: categories)
                                     } label: {
-                                        Image(systemName: "plus.circle.fill")
-                                            .frame(width: 36, height: 36)
+                                        Label("Enregistrer", systemImage: "plus")
                                     }
                                     .accessibilityLabel("Enregistrer cette catégorie")
+                                    .buttonStyle(.bordered)
                                     .disabled(CategoryLibrary.adding(label.category, to: categories) == categories)
                                 }
                             }
@@ -76,15 +76,13 @@ struct ContentView: View {
                             field("Référence produit", text: $label.productReference)
                             VStack(alignment: .leading, spacing: 5) {
                                 Text("Code-barres EAN-13").font(.subheadline.bold())
-                                HStack {
-                                    TextField("13 chiffres", text: $label.ean)
-                                        .textFieldStyle(.roundedBorder)
-                                        .keyboardType(.numberPad)
-                                    Button { showingScanner = true } label: {
-                                        Label("Scanner", systemImage: "barcode.viewfinder")
-                                    }
-                                    .buttonStyle(.bordered)
+                                TextField("13 chiffres", text: $label.ean)
+                                    .keyboardType(.numberPad)
+                                    .modifier(ProductInputStyle())
+                                Button { showingScanner = true } label: {
+                                    Label("Scanner un code", systemImage: "barcode.viewfinder")
                                 }
+                                .buttonStyle(.bordered)
                             }
                             if let eanMessage { Text(eanMessage).font(.caption).foregroundStyle(.orange) }
                             field("Libellé du prix", text: $label.priceCaption)
@@ -101,46 +99,13 @@ struct ContentView: View {
                             }
                         }
                     }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
                     Button("Voir l’aperçu") { selectedPage = 1 }
                         .buttonStyle(.borderedProminent)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     } else {
-                    Button {
-                        showingPresentation = true
-                        thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
-                                               arrangement: labelArrangement, reset: true)
-                    } label: {
-                        HStack {
-                            Image(systemName: "square.grid.2x2.fill")
-                                .font(.title3).foregroundStyle(.blue)
-                            VStack(alignment: .leading) {
-                                Text("Présentation de l’étiquette").font(.headline)
-                                Text("\(labelArrangement.title) · \(labelSize.title) (48 × \(labelSize.heightMillimeters) mm)")
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.blue)
-                        }
-                        .padding(16)
-                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.blue.opacity(0.45), lineWidth: 1.5))
-                    }
-                    .buttonStyle(ResponsiveCardStyle())
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
-                        if let bitmap, let image = LabelRenderer.preview(bitmap) {
-                            Image(uiImage: image).interpolation(.high).resizable()
-                                .aspectRatio(CGFloat(bitmap.width) / CGFloat(bitmap.height), contentMode: .fit)
-                                .background(.white)
-                                .overlay(Rectangle().stroke(Color(.separator), lineWidth: 1))
-                                .accessibilityLabel("Aperçu de l’étiquette à imprimer")
-                        } else {
-                            Text("Saisissez un EAN et un prix valides pour voir l’aperçu.")
-                                .frame(maxWidth: .infinity, minHeight: 170)
-                        }
-                    }
-                    .padding(16)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                     HStack {
                         Image(systemName: "printer.fill")
                             .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
@@ -155,6 +120,42 @@ struct ContentView: View {
                         }
                         Spacer()
                         Button(printer.connected ? "Changer" : "Connecter") { printer.scan(); showingPrinters = true }
+                    }
+                    .padding(16)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                    Button {
+                        showingPresentation = true
+                        thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
+                                               arrangement: labelArrangement, reset: true)
+                    } label: {
+                        HStack {
+                            Image(systemName: "square.grid.2x2.fill")
+                                .font(.title3).foregroundStyle(.primary)
+                            VStack(alignment: .leading) {
+                                Text("Présentation de l’étiquette").font(.headline)
+                                Text("\(labelArrangement.title) · \(labelSize.title) (48 × \(labelSize.heightMillimeters) mm)")
+                                    .font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.secondary)
+                        }
+                        .padding(16)
+                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator), lineWidth: 1))
+                    }
+                    .buttonStyle(ResponsiveCardStyle())
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
+                        if let bitmap, let image = LabelRenderer.preview(bitmap) {
+                            Image(uiImage: image).interpolation(.high).resizable()
+                                .aspectRatio(CGFloat(bitmap.width) / CGFloat(bitmap.height), contentMode: .fit)
+                                .background(.white)
+                                .overlay(Rectangle().stroke(Color(.separator), lineWidth: 1))
+                                .accessibilityLabel("Aperçu de l’étiquette à imprimer")
+                        } else {
+                            Text("Saisissez un EAN et un prix valides pour voir l’aperçu.")
+                                .frame(maxWidth: .infinity, minHeight: 170)
+                        }
                     }
                     .padding(16)
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
@@ -289,9 +290,26 @@ struct ContentView: View {
     private func field(_ title: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title).font(.subheadline.bold())
-            TextField(title, text: text).textFieldStyle(.roundedBorder).keyboardType(keyboard)
+            TextField(title, text: text).keyboardType(keyboard)
                 .textInputAutocapitalization(keyboard == .default ? .sentences : .never)
+                .modifier(ProductInputStyle())
         }
+    }
+
+    private func pageButton(_ title: String, icon: String, page: Int) -> some View {
+        let selected = selectedPage == page
+        return Button { selectedPage = page } label: {
+            Label(title, systemImage: icon)
+                .font(.subheadline.bold())
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .foregroundStyle(selected ? Color.white : Color.primary)
+                .background(selected ? Color.blue : Color(.secondarySystemGroupedBackground),
+                            in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? Color.clear : Color(.separator), lineWidth: 1))
+        }
+        .buttonStyle(ResponsiveCardStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private var printerSheet: some View {
@@ -408,6 +426,16 @@ private struct ResponsiveCardStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.7 : 1)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+private struct ProductInputStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 14)
+            .frame(minHeight: 52)
+            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(.separator), lineWidth: 1))
     }
 }
 
