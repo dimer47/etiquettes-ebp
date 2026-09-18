@@ -2,6 +2,11 @@ import XCTest
 @testable import LabelCore
 
 final class LabelCoreTests: XCTestCase {
+    func testPresentationSizesAndChoices() {
+        XCTAssertEqual(LabelSize.allCases.map(\.heightDots), [208, 240, 312, 416])
+        XCTAssertEqual(LabelSize.allCases.map(\.heightMillimeters), [26, 30, 39, 52])
+        XCTAssertEqual(LabelArrangement.allCases.count, 6)
+    }
     func testChecksumAndCompletion() throws {
         XCTAssertEqual(try EAN13.checksum(for: "400638133393"), 1)
         XCTAssertEqual(try EAN13.completed("400638133393"), "4006381333931")
@@ -21,7 +26,15 @@ final class LabelCoreTests: XCTestCase {
     func testFrenchPrice() {
         XCTAssertEqual(PriceFormatter.formatted("5,95"), "5,95 €")
         XCTAssertEqual(PriceFormatter.formatted("5.95"), "5,95 €")
+        XCTAssertEqual(PriceFormatter.formatted("5.95", currency: .gbp), "5,95 £")
         XCTAssertNil(PriceFormatter.formatted("abc"))
+    }
+
+    func testOlderSavedLabelDefaultsToEuro() throws {
+        let previous = #"{"name":"Spray","category":"Peinture","shelfReference":"12","productReference":"42","ean":"4006381333931","price":"5,95"}"#
+        let label = try JSONDecoder().decode(ProductLabel.self, from: Data(previous.utf8))
+        XCTAssertEqual(label.currency, .eur)
+        XCTAssertEqual(label.priceCaption, "Prix de vente TTC")
     }
 
     func testPackedBitmapRotationKeepsEveryDot() throws {
