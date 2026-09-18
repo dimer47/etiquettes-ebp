@@ -33,8 +33,6 @@ enum LabelRenderer {
         guard let bitmapContext = CGContext(data: &rgba, width: width, height: height, bitsPerComponent: 8,
                                             bytesPerRow: width * 4, space: colorSpace,
                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { throw LabelError.rasterFailure }
-        bitmapContext.translateBy(x: 0, y: CGFloat(height))
-        bitmapContext.scaleBy(x: 1, y: -1)
         bitmapContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         var black = [Bool](repeating: false, count: width * height)
         for i in black.indices {
