@@ -39,7 +39,7 @@ struct BarcodeScannerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { Button("Fermer") { dismiss() } }
             .safeAreaInset(edge: .bottom) {
-                Text("Placez le code-barres dans le cadre. Le numéro sera rempli automatiquement.")
+                Text("Placez le code-barres dans le cadre. Touchez l’image pour refaire la mise au point.")
                     .font(.footnote)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white)
@@ -76,6 +76,8 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
     private let onScan: (String) -> Void
     private let onError: (String) -> Void
     private var didScan = false
+    private var cameraDevice: AVCaptureDevice?
+    private var focusGeneration = 0
 
     init(onScan: @escaping (String) -> Void, onError: @escaping (String) -> Void) {
         self.onScan = onScan
@@ -90,6 +92,7 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
         previewLayer.videoGravity = .resizeAspectFill
         previewLayer.session = session
         view.layer.addSublayer(previewLayer)
+        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(focusAtTap(_:))))
         sessionQueue.async { [weak self] in self?.configureAndStart() }
     }
 
@@ -110,6 +113,16 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
             return
         }
         let output = AVCaptureMetadataOutput()
+        cameraDevice = device
+        do {
+            try device.lockForConfiguration()
+            if device.isFocusModeSupported(.continuousAutoFocus) {
+                device.focusMode = .continuousAutoFocus
+            }
+            device.unlockForConfiguration()
+        } catch {
+            // The scanner can still run with the camera's current focus mode.
+        }
         session.beginConfiguration()
         session.addInput(input)
         guard session.canAddOutput(output) else {
@@ -122,6 +135,50 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
         output.metadataObjectTypes = [.ean13]
         session.commitConfiguration()
         session.startRunning()
+    }
+
+    @objc private func focusAtTap(_ recognizer: UITapGestureRecognizer) {
+        let location = recognizer.location(in: view)
+        let point = previewLayer.captureDevicePointConverted(fromLayerPoint: location)
+        let ring = UIView(frame: CGRect(x: location.x - 30, y: location.y - 30, width: 60, height: 60))
+        ring.layer.cornerRadius = 30
+        ring.layer.borderWidth = 2
+        ring.layer.borderColor = UIColor.systemYellow.cgColor
+        ring.isUserInteractionEnabled = false
+        view.addSubview(ring)
+        UIView.animate(withDuration: 0.55, delay: 0.2, options: [], animations: { ring.alpha = 0 }) { _ in
+            ring.removeFromSuperview()
+        }
+        sessionQueue.async { [weak self] in
+            guard let self, let device = self.cameraDevice else { return }
+            self.focusGeneration += 1
+            let generation = self.focusGeneration
+            do {
+                try device.lockForConfiguration()
+                if device.isFocusPointOfInterestSupported { device.focusPointOfInterest = point }
+                if device.isFocusModeSupported(.autoFocus) {
+                    device.focusMode = .autoFocus
+                } else if device.isFocusModeSupported(.continuousAutoFocus) {
+                    device.focusMode = .continuousAutoFocus
+                }
+                if device.isExposurePointOfInterestSupported { device.exposurePointOfInterest = point }
+                if device.isExposureModeSupported(.continuousAutoExposure) {
+                    device.exposureMode = .continuousAutoExposure
+                }
+                device.unlockForConfiguration()
+            } catch { return }
+            // A one-shot focus reacts to the tap; then keep tracking as the
+            // user moves the phone nearer or farther from the barcode.
+            self.sessionQueue.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+                guard let self, self.focusGeneration == generation,
+                      device.isFocusModeSupported(.continuousAutoFocus) else { return }
+                do {
+                    try device.lockForConfiguration()
+                    device.focusMode = .continuousAutoFocus
+                    device.unlockForConfiguration()
+                } catch { return }
+            }
+        }
     }
 
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject],

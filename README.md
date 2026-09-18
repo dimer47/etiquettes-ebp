@@ -41,7 +41,7 @@ Le rouleau est continu. L'avance avant impression est réglable de 0 à 10 mm et
 
 Le test matériel doit vérifier le contraste, la lecture du code avec un scanner, la position horizontale sur le rouleau et la hauteur réelle du ticket après découpe. La compilation iPhone, le lancement sur iPhone et le rendu sur simulateur ont été vérifiés ; l'impression physique dépend de l'imprimante connectée.
 
-Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas vérifiable sur le simulateur. Le numéro lu est validé comme EAN‑13 avant de remplacer le champ. Les catégories sont stockées localement dans `UserDefaults` sur l'appareil, sans synchronisation réseau.
+Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas vérifiable sur le simulateur. Le numéro lu est validé comme EAN‑13 avant de remplacer le champ. Le scanner utilise l'autofocus continu ; toucher l'image déclenche une nouvelle mise au point à cet endroit, puis réactive le suivi continu. Si le code reste flou, éloigner légèrement le téléphone : la distance minimale de mise au point dépend de sa caméra. Les catégories sont stockées localement dans `UserDefaults` sur l'appareil, sans synchronisation réseau.
 
 ## Présentations disponibles
 
