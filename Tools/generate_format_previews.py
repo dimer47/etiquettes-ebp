@@ -91,29 +91,30 @@ FORMATS = [
         reference_size=19, caption=369, caption_size=22, price=346, price_size=47)),
 ]
 
-labels = []
-for slug, title, height, layout in FORMATS:
-    label = render(height, layout)
-    label.save(OUT / f"{slug}.png")
-    assert label.mode == "1" and label.size == (WIDTH, height)
-    labels.append((title, height, label))
+if __name__ == "__main__":
+    labels = []
+    for slug, title, height, layout in FORMATS:
+        label = render(height, layout)
+        label.save(OUT / f"{slug}.png")
+        assert label.mode == "1" and label.size == (WIDTH, height)
+        labels.append((title, height, label))
 
-# Side-by-side review board. Every label uses the same display scale (2 screen
-# pixels per printer dot), so differences in height remain visually honest.
-scale = 2
-cell_w = WIDTH * scale + 52
-first_row_height = 240 * scale + 116
-second_row_height = 416 * scale + 116
-board = Image.new("RGB", (cell_w * 2 + 40, first_row_height + second_row_height + 40), "#eeeeee")
-draw = ImageDraw.Draw(board)
-heading_font = ImageFont.truetype(FONT_BOLD, 29)
-small_font = ImageFont.truetype(FONT_REGULAR, 19)
-for index, (title, height, label) in enumerate(labels):
-    col, row = index % 2, index // 2
-    left = 20 + col * cell_w
-    top = 20 if row == 0 else 20 + first_row_height
-    draw.text((left + 26, top + 4), title, font=heading_font, fill="black")
-    draw.text((left + 26, top + 42), f"Zone imprimee : 48 x {height // 8} mm  |  384 x {height} points", font=small_font, fill="#333333")
-    board.paste(label.convert("RGB").resize((WIDTH * scale, height * scale), Image.Resampling.NEAREST), (left + 26, top + 76))
-board.save(OUT / "comparaison.png")
-print(OUT / "comparaison.png")
+    # Side-by-side review board. Every label uses the same display scale (2 screen
+    # pixels per printer dot), so differences in height remain visually honest.
+    scale = 2
+    cell_w = WIDTH * scale + 52
+    first_row_height = 240 * scale + 116
+    second_row_height = 416 * scale + 116
+    board = Image.new("RGB", (cell_w * 2 + 40, first_row_height + second_row_height + 40), "#eeeeee")
+    draw = ImageDraw.Draw(board)
+    heading_font = ImageFont.truetype(FONT_BOLD, 29)
+    small_font = ImageFont.truetype(FONT_REGULAR, 19)
+    for index, (title, height, label) in enumerate(labels):
+        col, row = index % 2, index // 2
+        left = 20 + col * cell_w
+        top = 20 if row == 0 else 20 + first_row_height
+        draw.text((left + 26, top + 4), title, font=heading_font, fill="black")
+        draw.text((left + 26, top + 42), f"Zone imprimee : 48 x {height // 8} mm  |  384 x {height} points", font=small_font, fill="#333333")
+        board.paste(label.convert("RGB").resize((WIDTH * scale, height * scale), Image.Resampling.NEAREST), (left + 26, top + 76))
+    board.save(OUT / "comparaison.png")
+    print(OUT / "comparaison.png")

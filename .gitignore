@@ -20,5 +20,8 @@ xcuserdata/
 Captures/
 .build-captures/
 
+# Python preview generators
+__pycache__/
+
 # Xcode index data accidentally placed beside project
 *.xcodeproj/-Xcc/

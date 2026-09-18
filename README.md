@@ -42,6 +42,8 @@ Le test matériel doit vérifier le contraste, la lecture du code avec un scanne
 
 Les propositions de formats et les limites de largeur sont décrites dans [docs/FORMATS_PROPOSES.md](docs/FORMATS_PROPOSES.md). Aucun modèle supplémentaire n'est activé avant validation de son contenu et de sa taille sur papier.
 
+Cinq autres compositions visuelles, chacune déclinée dans les quatre hauteurs, sont présentées dans [docs/DISPOSITIONS_PROPOSEES.md](docs/DISPOSITIONS_PROPOSEES.md).
+
 ## Licence et attribution
 
 Code du projet sous licence MIT, copyright 2026 Dimitri Iachi. La bibliothèque `PocketPrinter5890` est également sous MIT et conserve sa propre attribution et licence dans son dépôt. Le projet reprend la configuration Xcode et le choix de cette bibliothèque de `PocketPrinter5890App`, également annoncé MIT dans son README ; il ne modifie pas ce dépôt.
