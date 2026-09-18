@@ -1,68 +1,66 @@
-# Étiquettes Pocket / Pocket Labels
+# ProductLabel5890
 
-**Étiquettes Pocket** (nom anglais : **Pocket Labels**) est une application iPhone native pour saisir une fiche produit, voir son étiquette et l'imprimer directement en Bluetooth Low Energy sur une Pocket Printer 5890. Aucun AirPrint, export d'image, compte ou accès Internet n'est nécessaire après installation.
+*[Version française](README_FR.md)*
 
-## Matériel et dimensions
+**Pocket Labels** (French: **Étiquettes Pocket**) is a native iPhone app for creating product price labels and printing them directly over Bluetooth Low Energy to a Pocket Printer 5890. No AirPrint, image export, account, or internet connection is needed after installation.
 
-Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) documente une machine 5890 (modèle BLE `A2Y`, firmware `V1.06LY`) testée physiquement : tête de **384 points**, **48 octets par ligne**, résolution annoncée **203 dpi**, papier d'environ 56/58 mm. Ces chiffres proviennent de cette unité ; un autre firmware pourrait différer. La tête couvre environ 48 mm. Les quatre hauteurs proposées sont **208, 240, 312 et 416 points** (environ 26, 30, 39 et 52 mm de zone imprimée). Le contenu est centré dans la largeur imprimable. Le centrage physique de la tête dans le rouleau dépend du mécanisme.
+| TRONIC | SILVERCREST |
+|---|---|
+| <img src="docs/images/tronic-1.jpg" alt="TRONIC pocket printer" width="380"> | <img src="docs/images/silvercrest-1.jpg" alt="SILVERCREST pocket printer" width="380"> |
 
-## Architecture
+| Product editor | Label preview and print |
+|---|---|
+| <img src="docs/images/app-editor-en.png" alt="Pocket Labels product editor" width="300"> | <img src="docs/images/app-print-fr.png" alt="Pocket Labels print preview, shown in French" width="300"> |
 
-- `Sources/LabelCore` : données produit, choix de présentation, validation et encodage EAN‑13, prix français, rotation exacte du bitmap 1 bit ; testable sans iOS.
-- `App/LabelRenderer.swift` : composition à la résolution native, seuillage direct à 1 bit, barres EAN en modules entiers.
-- `App/PrinterManager.swift` : découverte, sélection, reconnexion, densité et impression directe.
-- `App/LabelHistoryStore.swift` : historique local des impressions et restauration des paramètres associés.
-- `App/ContentView.swift` : formulaire, aperçu à l'endroit issu du **bitmap source** de l'impression, état BLE et réglages.
-- Bibliothèque SwiftPM `PocketPrinter5890Kit` et `PocketPrinter5890BLE` : commandes de densité et d'activation, raster en bandes de 24 lignes, contrôle de flux BLE et transport CoreBluetooth. La dépendance est épinglée à la révision vérifiée dans ce projet.
+## What the app does
 
-L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffres saisis. Les 95 modules sont dessinés à **3 points chacun** (sans redimensionnement), avec au moins 10 modules blancs de chaque côté. La hauteur des barres varie selon la présentation choisie. Le texte peut être antialiasé durant la composition, puis chaque point est converti en noir ou blanc par un seuil fixe de 160 ; aucun tramage photo n'est appliqué. Le bitmap résultant, large exactement de 384 points, part directement au protocole 5890.
+Enter a product name, category, shelf reference, product reference, EAN‑13 barcode and price. The print screen shows the label using the same 1-bit bitmap sent to the printer. Connect to the 5890, then tap **Print**. The print button remains disabled when no printer is connected.
 
-## Compiler et installer
+The app offers four label heights (about 26, 30, 39 and 52 mm) and six layouts. Settings include print density, paper feed before and after the label, and an optional 180° rotation of printed content. The preview remains upright when rotation is enabled. A calibration label helps check the actual paper output. The current product and print settings are restored on reopening; a local history stores the last 100 submitted print jobs with their layouts and settings for restoration or reprinting. The interface is available in English and French. Product names and saved category text stay as entered.
 
-Prérequis : Xcode compatible avec le SDK iOS, iOS 17 ou plus récent et un compte de signature Apple pour déployer sur iPhone. Ouvrir `ProductLabel5890.xcodeproj`, sélectionner le schéma `ProductLabel5890`, choisir son iPhone, configurer l'équipe de signature si nécessaire, puis lancer. Le paquet SwiftPM est téléchargé lors de la première compilation. Test du cœur : `swift test`. Compilation vérifiée sans signature avec :
+An EAN‑13 can be typed or scanned with the iPhone camera. Twelve digits get a calculated check digit; thirteen digits are validated. Categories can be entered freely or saved for later selection. Prices accept a comma or decimal point, with EUR, USD, GBP and CHF available.
+
+## Printer and print format
+
+The [PocketPrinter5890 project](https://github.com/dimer47/PocketPrinter5890) documents a physically tested 5890 with BLE model `A2Y` and firmware `V1.06LY`: **384 printable dots**, **48 bytes per row**, and a documented **203 dpi** resolution on approximately 56/58 mm continuous paper. The printable width is about 48 mm. These observations apply to the tested unit; other firmware may differ. The app always generates a 384-dot-wide bitmap for this printer. An 80 mm printer would require a separate hardware profile.
+
+The four image heights are 208, 240, 312 and 416 dots. EAN‑13's 95 modules are drawn directly at three whole printer dots per module, with at least ten white modules of quiet zone on each side. There is no resize after rasterization. Text is composed at native resolution and thresholded to pure black or white at a fixed value of 160. No photo dithering is applied. The resulting monochrome bitmap goes straight to the 5890 protocol and BLE transport.
+
+## Build and use
+
+Use Xcode with an iOS SDK, an iPhone running iOS 17 or newer, and an Apple signing team for installation. Open `ProductLabel5890.xcodeproj`, select the `ProductLabel5890` scheme and your iPhone, set the signing team if needed, then run. Xcode resolves the Swift package dependency on the first build. The core tests run with `swift test`. A device build without signing can be checked with:
 
 ```sh
 xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
 ```
 
-## Utilisation
+1. Turn on the 5890 and iPhone Bluetooth.
+2. Tap **Connect** and select the compatible printer, usually `Mini Pocket Printer_BLE`. The app looks for the last printer again on a later launch.
+3. Fill in the **Product** form. Use **Scan a barcode** if you prefer the camera.
+4. Open **Print**, choose a label presentation, inspect the preview, then tap **Print**.
+5. In **Settings**, adjust density and paper feed or print the calibration label when needed.
 
-1. Allumer la 5890 et activer Bluetooth sur l'iPhone.
-2. Ouvrir l'app. Appuyer sur **Connecter**, sélectionner `Mini Pocket Printer_BLE`. La dernière imprimante est recherchée au lancement suivant.
-3. Dans **Produit**, saisir les champs identifiés par leur libellé permanent. Le sélecteur iOS natif **Produit / Impression** dispose de plus de hauteur ; le formulaire utilise de grands champs dans un panneau Glass sur iOS 26 et un matériau système sur les versions antérieures. Le bouton **Scanner un code** sous l'EAN ouvre la caméra et remplit automatiquement un EAN‑13 valide ; l'accès à la caméra est demandé au premier scan. La catégorie reste libre : **Choisir** ouvre les catégories enregistrées et **Enregistrer** mémorise celle qui est saisie. Les catégories se gèrent aussi dans **Réglages**, avec suppression par balayage. Le texte « Prix de vente TTC » est modifiable dans **Libellé du prix** ; la référence rayon est également libre. Le prix accepte `5,95` ou `5.95` ; choisir la devise EUR, USD, GBP ou CHF à côté. Les fiches enregistrées avant ces ajouts conservent EUR et « Prix de vente TTC ».
-4. Passer à **Aperçu et impression** : l'état de l'imprimante est affiché en premier. Appuyer ensuite sur **Présentation de l’étiquette** pour choisir visuellement une des quatre hauteurs et une des six dispositions (le modèle actuel et cinq nouveautés). Les quatre formats sont montrés un par ligne à largeur constante pour comparer leurs hauteurs. Le choix est mémorisé sur l'iPhone.
-   La fenêtre s'ouvre aussitôt avec des indicateurs de chargement ; les miniatures sont calculées progressivement en arrière-plan à partir des données du produit. Le bouton donne un retour visuel dès l'appui.
-5. Une fois la 5890 connectée, appuyer sur **Imprimer**. Le bouton est désactivé sans connexion, tout comme **Réimprimer** dans l'historique et l'impression de test. Le bitmap affiché est celui envoyé au protocole, mais l'affichage à l'écran est lissé pour éviter le crénelage lié à l'agrandissement ; les points imprimés restent strictement noirs ou blancs.
-6. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut), ajuster les avances avant et après impression, activer éventuellement **Tourner l'impression de 180°**, et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
+The printer panel shows a battery percentage when the device reports one. A custom printer name is associated with that printer's Bluetooth identifier on this iPhone. No network connection is used to print.
 
-Le bloc **Imprimante** affiche le nom du périphérique connecté et son niveau de batterie lorsque la 5890 le transmet. Le bouton **Changer** permet de choisir un autre périphérique compatible. Dans **Réglages**, un nom personnalisé peut être enregistré pour l'imprimante connectée ; il reste associé à son identifiant Bluetooth sur cet iPhone. Le nom BLE d'origine demeure visible dans la liste de sélection.
+## Code layout
 
-La fiche en cours est enregistrée après chaque modification et réapparaît à la prochaine ouverture. Le format, la disposition, la densité, les avances papier et la rotation restent aussi mémorisés. Le bouton **Historique** dans la barre supérieure ouvre les 100 dernières impressions soumises au transport Bluetooth, conservées localement dans `UserDefaults`. Chaque entrée contient la fiche, l'heure, le format, la disposition, la densité, les avances et la rotation. **Restaurer** remet ces valeurs dans l'éditeur ; **Réimprimer** recharge les mêmes paramètres et soumet une nouvelle impression, ajoutée à l'historique. Les entrées se suppriment par balayage. L'historique n'est pas une preuve que le papier est sorti : le protocole ne fournit pas d'accusé de fin physique.
+| Path | Responsibility |
+|---|---|
+| `Sources/LabelCore` | Product data, presentation selection, EAN‑13 checks and patterns, price formatting, exact 1-bit rotation |
+| `App/LabelRenderer.swift` | Native-resolution label layout and monochrome rasterization |
+| `App/PrinterManager.swift` | Discovery, selection, reconnection, density and direct printing |
+| `App/LabelHistoryStore.swift` | Local print history and restoration of print parameters |
+| `App/ContentView.swift` | Editor, bitmap-based preview, printer status and settings |
+| `PocketPrinter5890Kit` and `PocketPrinter5890BLE` | Swift package with 5890 commands, 24-row raster bands, flow control and CoreBluetooth transport |
 
-La rotation est désactivée par défaut et mémorisée sur l'iPhone. Elle retourne **tout le bitmap final** de 180° par permutation exacte des points, sans nouveau rendu de texte ni redimensionnement. L'aperçu reste toujours à l'endroit pour faciliter la saisie ; seul le bitmap transmis à l'imprimante est tourné. Une fois le ticket découpé, le retourner physiquement pour lire l'étiquette : le blanc mécanique initial se retrouve alors sous le contenu. L'avance finale du papier reste identique.
+See [label sizes](docs/FORMATS_PROPOSES.md) and [layout variants](docs/DISPOSITIONS_PROPOSEES.md) for the proposed presentations. The app uses its own native renderer; the Python mockups in those documents were used for visual exploration only.
 
-Le rouleau est continu. L'avance avant impression est réglable de 0 à 10 mm et vaut **0 mm par défaut** ; elle est envoyée après la séquence d'activation de la 5890 et avant le bitmap. L'avance finale vaut désormais **104 points**, soit environ **13 mm** selon la résolution documentée : 3 mm de plus que le réglage initial de 80 points, et 3 mm de moins que l'essai de 128 points jugé excessif. Le réglage propose 10, 12, 13, 14, 15, 16 et 20 mm. Une ancienne valeur de 16 mm est ramenée automatiquement à 13 mm. Ce réglage ajoute du papier blanc après le prix avant la découpe ; il ne change pas la composition du bitmap de 30 mm. Le blanc en tête visible sur les impressions semble lié à la distance mécanique entre tête thermique et bord de découpe ; sa valeur exacte reste à mesurer sur le papier. Mesurer la hauteur totale du ticket découpé avant de choisir un porte-étiquette : les produits du commerce existent notamment pour des insertions de 30, 39/40 et 52 mm. Voir par exemple les [porte-étiquettes Provost 30 × 50 mm](https://www.provost.fr/fr/rayonnage-pour-magasins/569-porte-etiquette/) et les [réglettes VKF Renzel 26, 39 et 52 mm](https://www.vkf-renzel.com/no-shelf-edge-strip-26-mm-transparent-standard-adhesive-12-mm-20-0026-40.html).
+## Known limits
 
-Le test matériel doit vérifier le contraste, la lecture du code avec un scanner, la position horizontale sur le rouleau et la hauteur réelle du ticket après découpe. La compilation iPhone, le lancement sur iPhone et le rendu sur simulateur ont été vérifiés ; l'impression physique dépend de l'imprimante connectée.
+The paper is continuous. Feed before printing defaults to 0 mm; feed after printing defaults to 104 dots, approximately 13 mm at the documented resolution. Paper visible above a cut label appears to come from the physical distance between the print head and tear edge; its exact size has not been measured. Check the total cut label height against a shelf label holder.
 
-Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas vérifiable sur le simulateur. Le numéro lu est validé comme EAN‑13 avant de remplacer le champ. Le scanner choisit une caméra arrière virtuelle triple ou double large lorsqu'elle existe, puis une caméra simple en repli. Sur les appareils compatibles, AVFoundation peut alors passer de l'objectif principal à l'ultra grand-angle pour une mise au point rapprochée selon la distance et la lumière. L'image démarre au champ de vision de l'objectif principal. Le scanner utilise l'autofocus continu ; toucher l'image déclenche une nouvelle mise au point à cet endroit, puis réactive le suivi continu. Le changement d'objectif réel et la lisibilité d'un code très proche restent à vérifier sur chaque modèle d'iPhone. Les catégories sont stockées localement dans `UserDefaults` sur l'appareil, sans synchronisation réseau.
+Print history records jobs submitted to the BLE transport, not a physical paper completion acknowledgement: the protocol does not provide one. Barcode scanning and switching among multiple rear camera lenses depend on the iPhone model and lighting. The available protocol documentation does not establish a tested immediate power-off command, so the app has no power-off button. Physical contrast, barcode readability, centering and cut position should be verified on each printer.
 
-## Langues
+## License and attribution
 
-L'interface est disponible en **français** (langue de développement) et en **anglais**. Les textes des écrans, états Bluetooth, noms de présentations et autorisations système se trouvent dans `Resources/fr.lproj` et `Resources/en.lproj` (`Localizable.strings` et `InfoPlist.strings`). La devise et la ponctuation du prix imprimé suivent les réglages régionaux de l'iPhone ; la saisie accepte toujours la virgule et le point. Les champs produit et noms de catégories déjà enregistrés restent tels que saisis : changer la langue de l'iPhone ne traduit pas les données personnelles existantes. Les langues autres que le français et l'anglais utilisent le français en repli.
-
-Dans **Réglages → Application**, le bouton de langue ouvre la page de l'application dans les réglages iOS. Le choix de langue par application y est géré par le système : il permet de choisir l'anglais ou le français sans maintenir deux mécanismes de traduction concurrents dans l'app.
-
-Le projet Xcode ne contient plus les références inactives aux anciens écrans de prévisualisation, à une extension de partage ou à App Intents. La bibliothèque `PocketPrinter5890` reste une dépendance volontaire pour le protocole et le transport BLE ; le nom interne du projet et son identifiant de paquet ne changent pas, afin de préserver l'installation et les préférences de l'app.
-
-La documentation du protocole ne décrit aucune commande permettant d'éteindre immédiatement la 5890 par Bluetooth. Une commande de réglage du délai d'extinction automatique existe dans la bibliothèque, mais son fonctionnement sur l'A2Y n'a pas été vérifié ; l'application n'affiche donc pas de bouton « Éteindre ».
-
-## Présentations disponibles
-
-Les quatre hauteurs et les limites de largeur sont décrites dans [docs/FORMATS_PROPOSES.md](docs/FORMATS_PROPOSES.md). La largeur reste de **384 points** pour cette imprimante : choisir un papier de 80 mm nécessiterait une autre imprimante et un profil matériel distinct.
-
-Les cinq nouvelles dispositions sont présentées dans [docs/DISPOSITIONS_PROPOSEES.md](docs/DISPOSITIONS_PROPOSEES.md). Les maquettes Python de ce document ont servi au choix visuel ; l'app utilise son propre moteur natif pour produire le bitmap imprimé. Le contraste et la lecture de chaque combinaison doivent encore être vérifiés sur papier.
-
-## Licence et attribution
-
-Code du projet sous licence MIT, copyright 2026 Dimitri Iachi. La bibliothèque `PocketPrinter5890` est également sous MIT et conserve sa propre attribution et licence dans son dépôt. Le projet reprend la configuration Xcode et le choix de cette bibliothèque de `PocketPrinter5890App`, également annoncé MIT dans son README ; il ne modifie pas ce dépôt.
+ProductLabel5890 is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository. The TRONIC and SILVERCREST photos above are reused from that repository with attribution under its MIT license. The project derives its Xcode setup and choice of BLE package from [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), whose README also states MIT; that repository is unchanged.
