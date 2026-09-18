@@ -1,0 +1,15 @@
+{
+  "originHash" : "ec2838235b1638fef23cfa6a8fb5febc60f627717b00fcb86b43fd33619bfbf5",
+  "pins" : [
+    {
+      "identity" : "pocketprinter5890",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/dimer47/PocketPrinter5890.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "58645c97054bf3d5fe30169491a0aba9bd6a3525"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -1,0 +1,482 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		246C8B42CE885A3CFA97109A /* PocketPrinterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B86D2A998B57FE504C5303E5 /* PocketPrinterApp.swift */; };
+		AF809829C23D8D7DE6E2A9BF /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
+		AA70B57D1F765E4E7B4E7C50 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C33DE62792A717995B03332 /* SettingsView.swift */; };
+		4309CB04A3863D575CDED480 /* ImagePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EDB93876352D2311F5650D9 /* ImagePreviewView.swift */; };
+		A312E33A68BB6B91BC65516A /* PrintJobController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9281AC802705FF1D18E20451 /* PrintJobController.swift */; };
+		A95BCE026865DBE9F6DE51D8 /* PrinterSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D36961784DCB2F5C609630FE /* PrinterSettings.swift */; };
+		65C66AA3D5599BDCDABBD397 /* PrintIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3E95D6DFEC32D4961169F98 /* PrintIntent.swift */; };
+		423998305BE6E6DB90D59684 /* PocketPrinter5890Kit */ = {isa = PBXBuildFile; productRef = 6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */; };
+		5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE */ = {isa = PBXBuildFile; productRef = 8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */; };
+		AB07A292365A9FEBFC17BAAE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
+		D8E7889130EB3D876F38361A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 57E7D1DAC9AA3A3FECF5D9A2 /* Localizable.xcstrings */; };
+		A1B2C3D40004E5F600000004 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D40003E5F600000003 /* AppIntents.framework */; };
+		A1B2C3D40002E5F600000002 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40001E5F600000001 /* InfoPlist.xcstrings */; };
+		CA34851B422A99793E116599 /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = C831C8A6750A6FCAF3F1F160 /* SharedInbox.swift */; };
+		6C84E9AEB78EB25F0FCB8A22 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2EA727127DB23F2AF95BDFE /* ShareViewController.swift */; };
+		1A83FFA0F7E5F2FB082D81E8 /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = C831C8A6750A6FCAF3F1F160 /* SharedInbox.swift */; };
+		CFF6EDEFB2AE05326D4DB89A /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CC908DE1A132B9184DD689EE /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F165172D46E216FADA0DDCCF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 53BE9AABE1A644499EF1C885 /* Assets.xcassets */; };
+		AB46E91E735CFFCFA4C82775 /* TextPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5295B7992531B3EEBE7258A8 /* TextPreviewView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B86D2A998B57FE504C5303E5 /* PocketPrinterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocketPrinterApp.swift; sourceTree = "<group>"; };
+		4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		6C33DE62792A717995B03332 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		3EDB93876352D2311F5650D9 /* ImagePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewView.swift; sourceTree = "<group>"; };
+		9281AC802705FF1D18E20451 /* PrintJobController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintJobController.swift; sourceTree = "<group>"; };
+		D36961784DCB2F5C609630FE /* PrinterSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSettings.swift; sourceTree = "<group>"; };
+		F3E95D6DFEC32D4961169F98 /* PrintIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintIntent.swift; sourceTree = "<group>"; };
+		59BD0A3FF43B32849B319E64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F6C433ACAC2A27CC06A06258 /* PocketPrinter5890.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PocketPrinter5890.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3685E330EC5277A9DD5661C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		57E7D1DAC9AA3A3FECF5D9A2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		A1B2C3D40003E5F600000003 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
+		A1B2C3D40001E5F600000001 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		C831C8A6750A6FCAF3F1F160 /* SharedInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedInbox.swift; sourceTree = "<group>"; };
+		F2EA727127DB23F2AF95BDFE /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		DBBA666E016E21152A589BC8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1C4EEBD707B6F8216483534 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
+		CC908DE1A132B9184DD689EE /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		53BE9AABE1A644499EF1C885 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5295B7992531B3EEBE7258A8 /* TextPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextPreviewView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1E3F4FD42CD5353AD63D7170 = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				423998305BE6E6DB90D59684 /* PocketPrinter5890Kit */,
+				5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE */,
+				A1B2C3D40004E5F600000004 /* AppIntents.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0E7859F4F7B2EF55D58E9DB = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DE06109890D26A134F724246 = {
+			isa = PBXGroup;
+			children = (
+				72B6EF474440C54744701B27 /* App */,
+				7C24BE730ECEC7AF7D676874 /* Shared */,
+				FE327CA3B2E41EE1F9D34690 /* Resources */,
+				ED137CADE422E72E9159FED3 /* ShareExtension */,
+				4AF17906B199BA689DB52BAD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		72B6EF474440C54744701B27 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B86D2A998B57FE504C5303E5 /* PocketPrinterApp.swift */,
+				4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */,
+				6C33DE62792A717995B03332 /* SettingsView.swift */,
+				3EDB93876352D2311F5650D9 /* ImagePreviewView.swift */,
+				9281AC802705FF1D18E20451 /* PrintJobController.swift */,
+				D36961784DCB2F5C609630FE /* PrinterSettings.swift */,
+				F3E95D6DFEC32D4961169F98 /* PrintIntent.swift */,
+				5295B7992531B3EEBE7258A8 /* TextPreviewView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		FE327CA3B2E41EE1F9D34690 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				59BD0A3FF43B32849B319E64 /* Info.plist */,
+				3685E330EC5277A9DD5661C6 /* Assets.xcassets */,
+				57E7D1DAC9AA3A3FECF5D9A2 /* Localizable.xcstrings */,
+				A1B2C3D40003E5F600000003 /* AppIntents.framework */,
+				A1B2C3D40001E5F600000001 /* InfoPlist.xcstrings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		4AF17906B199BA689DB52BAD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F6C433ACAC2A27CC06A06258 /* PocketPrinter5890.app */,
+				CC908DE1A132B9184DD689EE /* ShareExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7C24BE730ECEC7AF7D676874 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				C831C8A6750A6FCAF3F1F160 /* SharedInbox.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		ED137CADE422E72E9159FED3 /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				F2EA727127DB23F2AF95BDFE /* ShareViewController.swift */,
+				DBBA666E016E21152A589BC8 /* Info.plist */,
+				A1C4EEBD707B6F8216483534 /* ShareExtension.entitlements */,
+				53BE9AABE1A644499EF1C885 /* Assets.xcassets */,
+			);
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1C2A82ECF3AC3518EF122301 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				CFF6EDEFB2AE05326D4DB89A /* ShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		FD334F8DB99B5FE588CB97FB = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 633579642D79D259F3001E4F;
+			proxyType = 1;
+			remoteGlobalIDString = 3DC1023277971B3097255DD9;
+			remoteInfo = ShareExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		627F15F3A65FE3F081217A3F = {
+			isa = PBXTargetDependency;
+			target = 3DC1023277971B3097255DD9 /* ShareExtension */;
+			targetProxy = FD334F8DB99B5FE588CB97FB;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXNativeTarget section */
+		3DC1023277971B3097255DD9 /* ShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C36891A61AD0E21EB2DEC9E6;
+			buildPhases = (
+				4F9353EAF6CE66272760F20B,
+				B0E7859F4F7B2EF55D58E9DB,
+				2DC560989F2FFA3E85BB23E6,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = ShareExtension;
+			productName = ShareExtension;
+			productReference = CC908DE1A132B9184DD689EE;
+			productType = "com.apple.product-type.app-extension";
+		};
+		0E8A3AD980EC179856012B7E /* PocketPrinter5890 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 011485B2EE57B7D61ACA51C9;
+			buildPhases = (
+				E8C5E5BE4D4926E3ACC74ED8,
+				1E3F4FD42CD5353AD63D7170,
+				5EEC8E1CABA298AF9CB3BA60,
+				1C2A82ECF3AC3518EF122301,
+			);
+			buildRules = ();
+			dependencies = (
+				627F15F3A65FE3F081217A3F,
+			);
+			name = PocketPrinter5890;
+			packageProductDependencies = (
+				6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */,
+				8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */,
+			);
+			productName = PocketPrinter5890;
+			productReference = F6C433ACAC2A27CC06A06258;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		633579642D79D259F3001E4F = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+			};
+			buildConfigurationList = 15FD5A6CB082B2EEE99CAC7F;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (fr, en, de, es, it, nl, pt, pl, Base);
+			mainGroup = DE06109890D26A134F724246;
+			packageReferences = (
+				4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */,
+			);
+			productRefGroup = 4AF17906B199BA689DB52BAD;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0E8A3AD980EC179856012B7E /* PocketPrinter5890 */,
+				3DC1023277971B3097255DD9 /* ShareExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5EEC8E1CABA298AF9CB3BA60 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB07A292365A9FEBFC17BAAE /* Assets.xcassets in Resources */,
+				D8E7889130EB3D876F38361A /* Localizable.xcstrings in Resources */,
+				A1B2C3D40002E5F600000002 /* InfoPlist.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2DC560989F2FFA3E85BB23E6 = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F165172D46E216FADA0DDCCF /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E8C5E5BE4D4926E3ACC74ED8 = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB46E91E735CFFCFA4C82775 /* TextPreviewView.swift in Sources */,
+				CA34851B422A99793E116599 /* SharedInbox.swift in Sources */,
+				246C8B42CE885A3CFA97109A /* PocketPrinterApp.swift in Sources */,
+				AF809829C23D8D7DE6E2A9BF /* ContentView.swift in Sources */,
+				AA70B57D1F765E4E7B4E7C50 /* SettingsView.swift in Sources */,
+				4309CB04A3863D575CDED480 /* ImagePreviewView.swift in Sources */,
+				A312E33A68BB6B91BC65516A /* PrintJobController.swift in Sources */,
+				A95BCE026865DBE9F6DE51D8 /* PrinterSettings.swift in Sources */,
+				65C66AA3D5599BDCDABBD397 /* PrintIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4F9353EAF6CE66272760F20B = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6C84E9AEB78EB25F0FCB8A22 /* ShareViewController.swift in Sources */,
+				1A83FFA0F7E5F2FB082D81E8 /* SharedInbox.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F090C939548C3369FCA5A08C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				ONLY_ACTIVE_ARCH = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1 $(inherited)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+			};
+			name = Debug;
+		};
+		7CCC92E1540C3EC9700940A0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				SWIFT_VERSION = 5.0;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DA91CBAE90107435CBDE17DA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/PocketPrinter5890.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				COPY_PHASE_STRIP = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dimer47.pocketprinter5890;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5D6QHL72QC;
+			};
+			name = Debug;
+		};
+		F9DBEBE1182598DA194006FC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/PocketPrinter5890.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				COPY_PHASE_STRIP = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dimer47.pocketprinter5890;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5D6QHL72QC;
+			};
+			name = Release;
+		};
+		1A0A3DB835CCA5BB3A532926 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				DEVELOPMENT_TEAM = 5D6QHL72QC;
+				GENERATE_INFOPLIST_FILE = YES;
+				COPY_PHASE_STRIP = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LM_SKIP_METADATA_EXTRACTION = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dimer47.pocketprinter5890.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FE31702C8B5A4D0613EB7560 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				MARKETING_VERSION = 1.0;
+				DEVELOPMENT_TEAM = 5D6QHL72QC;
+				GENERATE_INFOPLIST_FILE = YES;
+				COPY_PHASE_STRIP = NO;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LM_SKIP_METADATA_EXTRACTION = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dimer47.pocketprinter5890.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		15FD5A6CB082B2EEE99CAC7F = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F090C939548C3369FCA5A08C /* Debug */,
+				7CCC92E1540C3EC9700940A0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		011485B2EE57B7D61ACA51C9 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DA91CBAE90107435CBDE17DA /* Debug */,
+				F9DBEBE1182598DA194006FC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C36891A61AD0E21EB2DEC9E6 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0A3DB835CCA5BB3A532926 /* Debug */,
+				FE31702C8B5A4D0613EB7560 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dimer47/PocketPrinter5890.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */;
+			productName = PocketPrinter5890Kit;
+		};
+		8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */;
+			productName = PocketPrinter5890BLE;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 633579642D79D259F3001E4F;
+}

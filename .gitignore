@@ -1,0 +1,21 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# Sauvegardes
+*.bak
+
+# Captures d'ecran regenerables par Tools/captures.sh
+Captures/
+.build-captures/
