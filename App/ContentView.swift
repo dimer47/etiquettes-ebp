@@ -110,6 +110,14 @@ struct ContentView: View {
                         Text(density.title).tag(density)
                     }
                 }
+                Picker("Avance avant impression", selection: $printer.leadingFeedDots) {
+                    Text("0 mm").tag(0)
+                    Text("1 mm").tag(8)
+                    Text("2 mm").tag(16)
+                    Text("3 mm").tag(24)
+                    Text("5 mm").tag(40)
+                    Text("10 mm").tag(80)
+                }
                 Picker("Avance après impression", selection: $printer.trailingFeedDots) {
                     Text("10 mm").tag(80)
                     Text("12 mm").tag(96)
@@ -120,6 +128,9 @@ struct ContentView: View {
                     Text("20 mm").tag(160)
                 }
                 Text("13 mm ajoute environ 3 mm de papier blanc après le prix par rapport au réglage initial.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Text("L’avance avant impression vaut 0 mm par défaut. Elle ajoute du papier avant le premier point imprimé.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Toggle("Tourner l’impression de 180°", isOn: $printer.rotateContent180)

@@ -18,6 +18,9 @@ final class PrinterManager: ObservableObject {
     @Published var trailingFeedDots = 104 {
         didSet { UserDefaults.standard.set(trailingFeedDots, forKey: "trailingFeedDots") }
     }
+    @Published var leadingFeedDots = 0 {
+        didSet { UserDefaults.standard.set(leadingFeedDots, forKey: "leadingFeedDots") }
+    }
     @Published var rotateContent180 = false {
         didSet { UserDefaults.standard.set(rotateContent180, forKey: "rotateContent180") }
     }
@@ -34,6 +37,9 @@ final class PrinterManager: ObservableObject {
             // Migrate that value even if it was explicitly selected in build 4.
             trailingFeedDots = saved == 128 ? 104 : saved
             if saved == 128 { UserDefaults.standard.set(104, forKey: "trailingFeedDots") }
+        }
+        if let saved = UserDefaults.standard.object(forKey: "leadingFeedDots") as? Int {
+            leadingFeedDots = max(0, min(saved, 80))
         }
         rotateContent180 = UserDefaults.standard.bool(forKey: "rotateContent180")
         transport.$devices.sink { [weak self] found in
@@ -113,7 +119,14 @@ final class PrinterManager: ObservableObject {
         printing = true
         status = "Impression…"
         let options = PrintOptions(width: .mm58, density: density, trailingFeedDots: trailingFeedDots, paperMode: .continuous)
-        transport.send(PrintJobBuilder.segments(bitmap: bitmap, options: options))
+        var elements: [PrintElement] = []
+        if leadingFeedDots > 0 {
+            // The document is sent after PrintJobBuilder's activation sequence;
+            // a bare feed before activation is ignored by the 5890 firmware.
+            elements.append(.raw(ESCPOS.feed(dots: leadingFeedDots)))
+        }
+        elements.append(.image(bitmap))
+        transport.send(PrintJobBuilder.segments(document: PrintDocument(elements: elements), options: options))
         Task { @MainActor in
             // The transport exposes queue progress but no physical completion acknowledgement.
             while transport.sendProgress < 1 && transport.isConnected {
