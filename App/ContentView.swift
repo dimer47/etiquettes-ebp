@@ -106,9 +106,13 @@ struct ContentView: View {
                     .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .modifier(ProductPanelStyle())
-                    Button("Voir l’aperçu") { selectedPage = 1 }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    Button { selectedPage = 1 } label: {
+                        Label("Voir l’aperçu", systemImage: "eye")
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                     } else {
                     HStack {
                         Image(systemName: "printer.fill")
