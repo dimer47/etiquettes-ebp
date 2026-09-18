@@ -3,6 +3,7 @@ import PocketPrinter5890Kit
 
 struct ContentView: View {
     @StateObject private var printer = PrinterManager()
+    @StateObject private var thumbnailStore = LabelThumbnailStore()
     @State private var label = (UserDefaults.standard.data(forKey: "lastLabel").flatMap { try? JSONDecoder().decode(ProductLabel.self, from: $0) }) ?? ProductLabel()
     @State private var showingPrinters = false
     @State private var showingSettings = false
@@ -104,19 +105,27 @@ struct ContentView: View {
                         .buttonStyle(.borderedProminent)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     } else {
-                    Button { showingPresentation = true } label: {
+                    Button {
+                        showingPresentation = true
+                        thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
+                                               arrangement: labelArrangement, reset: true)
+                    } label: {
                         HStack {
-                            Image(systemName: "square.grid.2x2")
+                            Image(systemName: "square.grid.2x2.fill")
+                                .font(.title3).foregroundStyle(.blue)
                             VStack(alignment: .leading) {
                                 Text("Présentation de l’étiquette").font(.headline)
                                 Text("\(labelArrangement.title) · \(labelSize.title) (48 × \(labelSize.heightMillimeters) mm)")
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Image(systemName: "chevron.right").font(.caption)
+                            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.blue)
                         }
+                        .padding(16)
+                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.blue.opacity(0.45), lineWidth: 1.5))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ResponsiveCardStyle())
                     VStack(alignment: .leading, spacing: 8) {
                         Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
                         if let bitmap, let image = LabelRenderer.preview(bitmap) {
@@ -130,7 +139,11 @@ struct ContentView: View {
                                 .frame(maxWidth: .infinity, minHeight: 170)
                         }
                     }
+                    .padding(16)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                     HStack {
+                        Image(systemName: "printer.fill")
+                            .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
                         VStack(alignment: .leading) {
                             Text(printer.connected ? printer.displayName : "Imprimante").font(.headline)
                             Text(printer.status).font(.subheadline)
@@ -143,6 +156,8 @@ struct ContentView: View {
                         Spacer()
                         Button(printer.connected ? "Changer" : "Connecter") { printer.scan(); showingPrinters = true }
                     }
+                    .padding(16)
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                     Button {
                         guard let bitmap else { return }
                         printer.print(bitmap)
@@ -158,6 +173,7 @@ struct ContentView: View {
                 }
                 .padding()
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("PRODUCT LABEL 5890")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { Button("Réglages", systemImage: "gearshape") { showingSettings = true } }
@@ -178,6 +194,16 @@ struct ContentView: View {
             }
             .onChange(of: categories) { _, newValue in
                 UserDefaults.standard.set(newValue, forKey: "savedCategories")
+            }
+            .onChange(of: selectedSize) { _, _ in
+                if showingPresentation {
+                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement)
+                }
+            }
+            .onChange(of: selectedArrangement) { _, _ in
+                if showingPresentation {
+                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement)
+                }
             }
             .onAppear {
                 if LabelSize(rawValue: selectedSize) == nil { selectedSize = LabelSize.standard.rawValue }
@@ -220,6 +246,7 @@ struct ContentView: View {
                 }
                 .padding()
             }
+            .background(Color(.systemGroupedBackground))
             .navigationTitle("Présentation")
             .toolbar { Button("Terminé") { showingPresentation = false } }
         }
@@ -231,11 +258,14 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 7) {
             ZStack {
                 Color.white
-                if let bitmap = try? LabelRenderer.render(selectionPreviewLabel, size: size, arrangement: arrangement),
-                   let image = LabelRenderer.preview(bitmap) {
+                if let image = thumbnailStore.images[LabelThumbnailStore.key(size: size, arrangement: arrangement)] {
                     Image(uiImage: image).interpolation(.high).resizable()
-                        .aspectRatio(CGFloat(bitmap.width) / CGFloat(bitmap.height), contentMode: .fit)
+                        .aspectRatio(CGFloat(LabelRenderer.width) / CGFloat(size.heightDots), contentMode: .fit)
                         .padding(5)
+                } else if thumbnailStore.failed.contains(LabelThumbnailStore.key(size: size, arrangement: arrangement)) {
+                    Text("Aperçu indisponible").font(.caption).foregroundStyle(.secondary)
+                } else {
+                    ProgressView().tint(.blue)
                 }
             }
             .frame(height: fullWidth ? CGFloat(size.heightDots) * 0.82 : 125)
@@ -369,5 +399,59 @@ struct ContentView: View {
             .navigationTitle("Réglages")
             .toolbar { Button("Fermer") { showingSettings = false } }
         }
+    }
+}
+
+private struct ResponsiveCardStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+@MainActor
+private final class LabelThumbnailStore: ObservableObject {
+    @Published private(set) var images: [String: UIImage] = [:]
+    @Published private(set) var failed: Set<String> = []
+    private var pending: Set<String> = []
+    private var generation = 0
+
+    nonisolated static func key(size: LabelSize, arrangement: LabelArrangement) -> String {
+        "\(size.rawValue).\(arrangement.rawValue)"
+    }
+
+    func prepare(label: ProductLabel, size: LabelSize, arrangement: LabelArrangement, reset: Bool = false) {
+        if reset {
+            generation += 1
+            images.removeAll()
+            failed.removeAll()
+            pending.removeAll()
+        }
+        let currentGeneration = generation
+        let combinations = LabelSize.allCases.map { ($0, arrangement) }
+            + LabelArrangement.allCases.map { (size, $0) }
+        let missing = combinations.filter { combination in
+            let imageKey = Self.key(size: combination.0, arrangement: combination.1)
+            guard images[imageKey] == nil, !pending.contains(imageKey) else { return false }
+            pending.insert(imageKey)
+            return true
+        }
+        Task.detached(priority: .userInitiated) { [weak self] in
+            for (imageSize, imageArrangement) in missing {
+                let bitmap = try? LabelRenderer.render(label, size: imageSize, arrangement: imageArrangement)
+                let image = bitmap.flatMap(LabelRenderer.preview)
+                let imageKey = Self.key(size: imageSize, arrangement: imageArrangement)
+                await self?.accept(image, for: imageKey, generation: currentGeneration)
+            }
+        }
+    }
+
+    private func accept(_ image: UIImage?, for key: String, generation request: Int) {
+        guard generation == request else { return }
+        if let image { images[key] = image }
+        else { failed.insert(key) }
+        pending.remove(key)
     }
 }
