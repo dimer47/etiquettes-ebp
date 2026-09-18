@@ -1,4 +1,4 @@
-# ProductLabel5890
+# Étiquettes Pocket / Pocket Labels
 
 **Étiquettes Pocket** (nom anglais : **Pocket Labels**) est une application iPhone native pour saisir une fiche produit, voir son étiquette et l'imprimer directement en Bluetooth Low Energy sur une Pocket Printer 5890. Aucun AirPrint, export d'image, compte ou accès Internet n'est nécessaire après installation.
 
