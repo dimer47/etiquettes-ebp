@@ -1,1 +1,3 @@
 "CFBundleDisplayName" = "Étiquettes Pocket";
+"NSBluetoothAlwaysUsageDescription" = "Connexion à votre imprimante thermique 5890 pour imprimer les étiquettes.";
+"NSCameraUsageDescription" = "Scanner le code-barres EAN-13 d’un produit pour remplir son étiquette.";

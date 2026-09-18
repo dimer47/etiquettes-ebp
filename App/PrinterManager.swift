@@ -7,7 +7,7 @@ import PocketPrinter5890Kit
 final class PrinterManager: ObservableObject {
     let transport = PocketPrinter5890BLE()
     @Published private(set) var devices: [PrinterDevice] = []
-    @Published private(set) var status = "Aucune imprimante connectée"
+    @Published private(set) var status = NSLocalizedString("Aucune imprimante connectée", comment: "Printer status")
     @Published private(set) var connected = false
     @Published private(set) var connectedDeviceName: String?
     @Published private(set) var batteryPercent: Int?
@@ -71,7 +71,7 @@ final class PrinterManager: ObservableObject {
         transport.$isConnected.sink { [weak self] connected in
             guard let self else { return }
             self.connected = connected
-            self.status = connected ? "Connectée" : "Aucune imprimante connectée"
+            self.status = connected ? NSLocalizedString("Connectée", comment: "Printer status") : NSLocalizedString("Aucune imprimante connectée", comment: "Printer status")
             if !connected { self.batteryPercent = nil }
             if connected, let bitmap = self.pendingBitmap {
                 self.pendingBitmap = nil
@@ -89,15 +89,15 @@ final class PrinterManager: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(150))
             }
             if transport.isScanning {
-                status = "Recherche de la 5890…"
+                status = NSLocalizedString("Recherche de la 5890…", comment: "Printer status")
                 scanTimeout?.cancel()
                 scanTimeout = Task { @MainActor in
                     try? await Task.sleep(for: .seconds(15))
                     guard !Task.isCancelled else { return }
                     transport.stopScan()
-                    if !connected { status = "Aucune imprimante connectée" }
+                    if !connected { status = NSLocalizedString("Aucune imprimante connectée", comment: "Printer status") }
                 }
-            } else { status = "Activez Bluetooth pour rechercher la 5890" }
+            } else { status = NSLocalizedString("Activez Bluetooth pour rechercher la 5890", comment: "Printer status") }
         }
     }
 
@@ -109,7 +109,7 @@ final class PrinterManager: ObservableObject {
         scanTimeout?.cancel()
         automaticReconnect = false
         transport.stopScan()
-        status = "Connexion à \(device.name)…"
+        status = String(format: NSLocalizedString("Connexion à %@…", comment: "Printer status"), device.name)
         UserDefaults.standard.set(device.id.uuidString, forKey: "printerID")
         UserDefaults.standard.set(device.name, forKey: "printerName.\(device.id.uuidString)")
         connectedDeviceName = device.name
@@ -120,13 +120,13 @@ final class PrinterManager: ObservableObject {
     func disconnect() {
         pendingBitmap = nil
         transport.disconnect()
-        status = "Aucune imprimante connectée"
+        status = NSLocalizedString("Aucune imprimante connectée", comment: "Printer status")
     }
 
     func print(_ bitmap: MonochromeBitmap) {
         guard !printing else { return }
         guard let prepared = try? preparedBitmap(bitmap) else {
-            status = "Impossible de tourner le bitmap"
+            status = NSLocalizedString("Impossible de tourner le bitmap", comment: "Print error")
             return
         }
         if connected { send(prepared) }
@@ -140,7 +140,7 @@ final class PrinterManager: ObservableObject {
 
     private func send(_ bitmap: MonochromeBitmap) {
         printing = true
-        status = "Impression…"
+        status = NSLocalizedString("Impression…", comment: "Printer status")
         let options = PrintOptions(width: .mm58, density: density, trailingFeedDots: trailingFeedDots, paperMode: .continuous)
         var elements: [PrintElement] = []
         if leadingFeedDots > 0 {
@@ -156,7 +156,7 @@ final class PrinterManager: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(200))
             }
             printing = false
-            status = transport.isConnected ? "Connectée" : "Connexion perdue pendant l’impression"
+            status = transport.isConnected ? NSLocalizedString("Connectée", comment: "Printer status") : NSLocalizedString("Connexion perdue pendant l’impression", comment: "Printer status")
         }
     }
 }

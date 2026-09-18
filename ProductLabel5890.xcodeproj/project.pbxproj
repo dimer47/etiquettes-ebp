@@ -18,35 +18,30 @@
 		623DC584C67D81177CE2957F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
 		768929E14B9C95B327364A35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
 		AA0000000000000000000004 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* InfoPlist.strings */; };
+		AA0000000000000000000008 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* Localizable.strings */; };
 		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
 		A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */; };
 		B749FB7510124A76A786DA11 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */; };
 		B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA14 /* CategoryLibrary.swift */; };
-		A1B2C3D40004E5F600000004 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D40003E5F600000003 /* AppIntents.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "MonochromeBitmap+Rotation.swift"; sourceTree = "<group>"; };
 		3685E330EC5277A9DD5661C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		3EDB93876352D2311F5650D9 /* ImagePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePreviewView.swift; sourceTree = "<group>"; };
 		4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		516D0672BE4E8CAD47F01920 /* EAN13.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EAN13.swift; sourceTree = "<group>"; };
-		5295B7992531B3EEBE7258A8 /* TextPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextPreviewView.swift; sourceTree = "<group>"; };
 		7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrinterManager.swift; sourceTree = "<group>"; };
 		8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabelApp.swift; sourceTree = "<group>"; };
-		A1B2C3D40003E5F600000003 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
-		B756FF8ED397B989BAB791EC /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThermalBitmapRotation.swift; sourceTree = "<group>"; };
 		A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelPresentation.swift; sourceTree = "<group>"; };
 		B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
 		B749FB7510124A76A786DA14 /* CategoryLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryLibrary.swift; sourceTree = "<group>"; };
 		C9485C1DE846860B7012E33A /* LabelRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelRenderer.swift; sourceTree = "<group>"; };
-		CC908DE1A132B9184DD689EE /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		D36961784DCB2F5C609630FE /* PrinterSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSettings.swift; sourceTree = "<group>"; };
 		E3B2F6A22DEB550C9E61C92D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA0000000000000000000002 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		AA0000000000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		EE657AD14653602D585DC52F /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000006 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		AA0000000000000000000007 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProductLabel5890.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FE99AF2776C04A5A8568E934 /* ProductLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -58,7 +53,6 @@
 			files = (
 				423998305BE6E6DB90D59684 /* PocketPrinter5890Kit in Frameworks */,
 				5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */,
-				A1B2C3D40004E5F600000004 /* AppIntents.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,7 +63,6 @@
 			isa = PBXGroup;
 			children = (
 				F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */,
-				CC908DE1A132B9184DD689EE /* ShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -78,11 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */,
-				3EDB93876352D2311F5650D9 /* ImagePreviewView.swift */,
-				D36961784DCB2F5C609630FE /* PrinterSettings.swift */,
-				5295B7992531B3EEBE7258A8 /* TextPreviewView.swift */,
 				8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */,
-				EE657AD14653602D585DC52F /* ContentView.swift */,
 				C9485C1DE846860B7012E33A /* LabelRenderer.swift */,
 				7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */,
 				2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */,
@@ -118,10 +107,9 @@
 			isa = PBXGroup;
 			children = (
 				3685E330EC5277A9DD5661C6 /* Assets.xcassets */,
-				A1B2C3D40003E5F600000003 /* AppIntents.framework */,
-				B756FF8ED397B989BAB791EC /* Assets.xcassets */,
 				E3B2F6A22DEB550C9E61C92D /* Info.plist */,
 				AA0000000000000000000001 /* InfoPlist.strings */,
+				AA0000000000000000000005 /* Localizable.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -162,18 +150,11 @@
 			};
 			buildConfigurationList = 15FD5A6CB082B2EEE99CAC7F /* Build configuration list for PBXProject "ProductLabel5890" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
+			developmentRegion = fr;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				fr,
 				en,
-				de,
-				es,
-				it,
-				nl,
-				pt,
-				pl,
-				Base,
 			);
 			mainGroup = DE06109890D26A134F724246;
 			packageReferences = (
@@ -195,6 +176,7 @@
 			files = (
 				768929E14B9C95B327364A35 /* Assets.xcassets in Resources */,
 				AA0000000000000000000004 /* InfoPlist.strings in Resources */,
+				AA0000000000000000000008 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,6 +190,15 @@
 				AA0000000000000000000003 /* en */,
 			);
 			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000005 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AA0000000000000000000006 /* fr */,
+				AA0000000000000000000007 /* en */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -262,12 +253,11 @@
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabel5890;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -309,12 +299,11 @@
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabel5890;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

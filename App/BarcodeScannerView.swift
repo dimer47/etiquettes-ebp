@@ -116,7 +116,7 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
         ]
         guard let device = deviceTypes.compactMap({ AVCaptureDevice.default($0, for: .video, position: .back) }).first,
               let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input) else {
-            DispatchQueue.main.async { [onError] in onError("Caméra indisponible sur cet appareil.") }
+            DispatchQueue.main.async { [onError] in onError(NSLocalizedString("Caméra indisponible sur cet appareil.", comment: "Scanner error")) }
             return
         }
         let output = AVCaptureMetadataOutput()
@@ -142,7 +142,7 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
         session.addInput(input)
         guard session.canAddOutput(output) else {
             session.commitConfiguration()
-            DispatchQueue.main.async { [onError] in onError("La lecture des codes-barres est indisponible.") }
+            DispatchQueue.main.async { [onError] in onError(NSLocalizedString("La lecture des codes-barres est indisponible.", comment: "Scanner error")) }
             return
         }
         session.addOutput(output)

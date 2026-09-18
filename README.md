@@ -44,6 +44,14 @@ Le test matériel doit vérifier le contraste, la lecture du code avec un scanne
 
 Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas vérifiable sur le simulateur. Le numéro lu est validé comme EAN‑13 avant de remplacer le champ. Le scanner choisit une caméra arrière virtuelle triple ou double large lorsqu'elle existe, puis une caméra simple en repli. Sur les appareils compatibles, AVFoundation peut alors passer de l'objectif principal à l'ultra grand-angle pour une mise au point rapprochée selon la distance et la lumière. L'image démarre au champ de vision de l'objectif principal. Le scanner utilise l'autofocus continu ; toucher l'image déclenche une nouvelle mise au point à cet endroit, puis réactive le suivi continu. Le changement d'objectif réel et la lisibilité d'un code très proche restent à vérifier sur chaque modèle d'iPhone. Les catégories sont stockées localement dans `UserDefaults` sur l'appareil, sans synchronisation réseau.
 
+## Langues
+
+L'interface est disponible en **français** (langue de développement) et en **anglais**. Les textes des écrans, états Bluetooth, noms de présentations et autorisations système se trouvent dans `Resources/fr.lproj` et `Resources/en.lproj` (`Localizable.strings` et `InfoPlist.strings`). La devise et la ponctuation du prix imprimé suivent les réglages régionaux de l'iPhone ; la saisie accepte toujours la virgule et le point. Les champs produit et noms de catégories déjà enregistrés restent tels que saisis : changer la langue de l'iPhone ne traduit pas les données personnelles existantes. Les langues autres que le français et l'anglais utilisent le français en repli.
+
+Le projet Xcode ne contient plus les références inactives aux anciens écrans de prévisualisation, à une extension de partage ou à App Intents. La bibliothèque `PocketPrinter5890` reste une dépendance volontaire pour le protocole et le transport BLE ; le nom interne du projet et son identifiant de paquet ne changent pas, afin de préserver l'installation et les préférences de l'app.
+
+La documentation du protocole ne décrit aucune commande permettant d'éteindre immédiatement la 5890 par Bluetooth. Une commande de réglage du délai d'extinction automatique existe dans la bibliothèque, mais son fonctionnement sur l'A2Y n'a pas été vérifié ; l'application n'affiche donc pas de bouton « Éteindre ».
+
 ## Présentations disponibles
 
 Les quatre hauteurs et les limites de largeur sont décrites dans [docs/FORMATS_PROPOSES.md](docs/FORMATS_PROPOSES.md). La largeur reste de **384 points** pour cette imprimante : choisir un papier de 80 mm nécessiterait une autre imprimante et un profil matériel distinct.

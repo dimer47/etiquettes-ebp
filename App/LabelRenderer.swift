@@ -88,7 +88,7 @@ enum LabelRenderer {
             put(String(ean.dropFirst().prefix(6)), 55, top, 140, 18, 12, .center)
             put(String(ean.suffix(6)), 205, top, 140, 18, 12, .center)
         }
-        let reference = "Réf. \(label.productReference)"
+        let reference = String(format: NSLocalizedString("Réf. %@", comment: "Product reference on label"), label.productReference)
         switch arrangement {
         case .priceFirst:
             put(label.category, 12, 7, 205, 16, 12)
@@ -149,7 +149,7 @@ enum LabelRenderer {
         draw(String(ean.prefix(1)), in: CGRect(x: 22, y: v.6, width: 27, height: 20), maxSize: CGFloat(v.7), bold: true)
         draw(String(ean.dropFirst().prefix(6)), in: CGRect(x: 58, y: v.6, width: 135, height: 20), maxSize: CGFloat(v.7), bold: true)
         draw(String(ean.suffix(6)), in: CGRect(x: 208, y: v.6, width: 135, height: 20), maxSize: CGFloat(v.7), bold: true)
-        draw("Réf. \(label.productReference)", in: CGRect(x: 12, y: v.8, width: 360, height: 25), maxSize: size == .compact ? 12 : size == .standard ? 14 : size == .airy ? 17 : 19, bold: true)
+        draw(String(format: NSLocalizedString("Réf. %@", comment: "Product reference on label"), label.productReference), in: CGRect(x: 12, y: v.8, width: 360, height: 25), maxSize: size == .compact ? 12 : size == .standard ? 14 : size == .airy ? 17 : 19, bold: true)
         draw(label.priceCaption, in: CGRect(x: 12, y: v.9, width: 215, height: 27), maxSize: size == .compact ? 15 : size == .standard ? 19 : size == .airy ? 21 : 22, bold: true, alignment: .left)
         draw(price, in: CGRect(x: 223, y: v.10, width: 149, height: 50), maxSize: CGFloat(v.11), bold: true, alignment: .right)
     }
@@ -194,8 +194,8 @@ enum LabelError: LocalizedError {
     case invalidPrice, rasterFailure
     var errorDescription: String? {
         switch self {
-        case .invalidPrice: return "Prix invalide"
-        case .rasterFailure: return "Impossible de créer le bitmap"
+        case .invalidPrice: return NSLocalizedString("Prix invalide", comment: "Invalid price error")
+        case .rasterFailure: return NSLocalizedString("Impossible de créer le bitmap", comment: "Rasterization error")
         }
     }
 }

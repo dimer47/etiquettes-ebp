@@ -1,13 +1,15 @@
+import Foundation
+
 public enum LabelSize: String, CaseIterable, Identifiable {
     case compact, standard, airy, large
 
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .compact: "Compact"
-        case .standard: "Standard"
-        case .airy: "Rayon aéré"
-        case .large: "Grand"
+        case .compact: NSLocalizedString("Compact", comment: "Label size")
+        case .standard: NSLocalizedString("Standard", comment: "Label size")
+        case .airy: NSLocalizedString("Rayon aéré", comment: "Label size")
+        case .large: NSLocalizedString("Grand", comment: "Label size")
         }
     }
     public var heightDots: Int {
@@ -27,12 +29,12 @@ public enum LabelArrangement: String, CaseIterable, Identifiable {
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .current: "Rayon actuel"
-        case .priceFirst: "Prix en tête"
-        case .columns: "Deux colonnes"
-        case .barcodeFirst: "Code en tête"
-        case .centered: "Centrée"
-        case .barcodeLast: "Code en bas"
+        case .current: NSLocalizedString("Rayon actuel", comment: "Label arrangement")
+        case .priceFirst: NSLocalizedString("Prix en tête", comment: "Label arrangement")
+        case .columns: NSLocalizedString("Deux colonnes", comment: "Label arrangement")
+        case .barcodeFirst: NSLocalizedString("Code en tête", comment: "Label arrangement")
+        case .centered: NSLocalizedString("Centrée", comment: "Label arrangement")
+        case .barcodeLast: NSLocalizedString("Code en bas", comment: "Label arrangement")
         }
     }
 }

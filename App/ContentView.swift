@@ -11,7 +11,7 @@ struct ContentView: View {
     @State private var showingScanner = false
     @State private var message: String?
     @State private var selectedPage = 0
-    @State private var categories = (UserDefaults.standard.array(forKey: "savedCategories") as? [String]) ?? ["Peinture / Aérosols"]
+    @State private var categories = (UserDefaults.standard.array(forKey: "savedCategories") as? [String]) ?? [NSLocalizedString("Peinture / Aérosols", comment: "Sample category")]
     @State private var newCategory = ""
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
     @AppStorage("labelArrangement") private var selectedArrangement = LabelArrangement.current.rawValue
@@ -29,9 +29,9 @@ struct ContentView: View {
     private var eanMessage: String? {
         do {
             let completed = try EAN13.completed(label.ean)
-            return completed == label.ean ? nil : "Chiffre de contrôle calculé : \(completed)"
-        } catch EAN13Error.invalidChecksum { return "Chiffre de contrôle EAN incorrect" }
-        catch { return "Saisir 12 ou 13 chiffres EAN" }
+            return completed == label.ean ? nil : String(format: NSLocalizedString("Chiffre de contrôle calculé : %@", comment: "EAN validation"), completed)
+        } catch EAN13Error.invalidChecksum { return NSLocalizedString("Chiffre de contrôle EAN incorrect", comment: "EAN validation") }
+        catch { return NSLocalizedString("Saisir 12 ou 13 chiffres EAN", comment: "EAN validation") }
     }
 
     var body: some View {
@@ -114,16 +114,16 @@ struct ContentView: View {
                         Image(systemName: "printer.fill")
                             .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
                         VStack(alignment: .leading) {
-                            Text(printer.connected ? printer.displayName : "Imprimante").font(.headline)
+                            Text(printer.connected ? printer.displayName : NSLocalizedString("Imprimante", comment: "Printer card title")).font(.headline)
                             Text(printer.status).font(.subheadline)
                             if printer.connected {
-                                Label(printer.batteryPercent.map { "Batterie \($0) %" } ?? "Batterie en cours de lecture",
+                                Label(printer.batteryPercent.map { String(format: NSLocalizedString("Batterie %d %%", comment: "Printer battery"), $0) } ?? NSLocalizedString("Batterie en cours de lecture", comment: "Printer battery"),
                                       systemImage: printer.batteryPercent == nil ? "battery.0percent" : "battery.100percent")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }
                         Spacer()
-                        Button(printer.connected ? "Changer" : "Connecter") { printer.scan(); showingPrinters = true }
+                        Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { printer.scan(); showingPrinters = true }
                     }
                     .padding(16)
                     .modifier(PrintCardStyle())
@@ -167,7 +167,7 @@ struct ContentView: View {
                         printer.print(bitmap)
                         if !printer.connected { showingPrinters = true }
                     } label: {
-                        Label(printer.printing ? "Impression…" : "Imprimer", systemImage: "printer.fill")
+                        Label(printer.printing ? NSLocalizedString("Impression…", comment: "Printing progress") : NSLocalizedString("Imprimer", comment: "Print button"), systemImage: "printer.fill")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }
@@ -288,10 +288,10 @@ struct ContentView: View {
         .background(selected ? Color.blue.opacity(0.18) : Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected ? Color.blue : Color.clear, lineWidth: 2))
-        .accessibilityLabel("\(title)\(detail.isEmpty ? "" : ", \(detail)")\(selected ? ", sélectionné" : "")")
+        .accessibilityLabel("\(title)\(detail.isEmpty ? "" : ", \(detail)")\(selected ? NSLocalizedString(", sélectionné", comment: "Selected tile accessibility suffix") : "")")
     }
 
-    private func field(_ title: String, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
+    private func field(_ title: LocalizedStringKey, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(title).font(.subheadline.bold())
             TextField(title, text: text).keyboardType(keyboard)
@@ -312,7 +312,7 @@ struct ContentView: View {
                         VStack(alignment: .leading) {
                             let alias = UserDefaults.standard.string(forKey: "printerAlias.\(device.id.uuidString)") ?? ""
                             Text(alias.isEmpty ? device.name : alias).font(.headline)
-                            Text(alias.isEmpty ? "Signal : \(device.rssi) dBm" : "\(device.name) · \(device.rssi) dBm")
+                            Text(alias.isEmpty ? String(format: NSLocalizedString("Signal : %d dBm", comment: "Printer signal"), device.rssi) : "\(device.name) · \(device.rssi) dBm")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -332,7 +332,7 @@ struct ContentView: View {
                         Text(printer.connectedDeviceName ?? "Pocket Printer 5890")
                         TextField("Nom personnalisé", text: $printer.printerAlias)
                         if let battery = printer.batteryPercent {
-                            Label("Batterie : \(battery) %", systemImage: "battery.100percent")
+                            Label(String(format: NSLocalizedString("Batterie : %d %%", comment: "Printer battery"), battery), systemImage: "battery.100percent")
                         } else {
                             Text("Niveau de batterie en cours de lecture")
                                 .foregroundStyle(.secondary)
@@ -344,7 +344,7 @@ struct ContentView: View {
                 Section("Impression thermique") {
                 Picker("Densité", selection: $printer.density) {
                     ForEach(PrintDensity.allCases) { density in
-                        Text(density.title).tag(density)
+                        Text(NSLocalizedString(density.title, comment: "Print density")).tag(density)
                     }
                 }
                 Picker("Avance avant impression", selection: $printer.leadingFeedDots) {
@@ -377,7 +377,7 @@ struct ContentView: View {
                 }
                 Section("Test et connexion") {
                     Button("Imprimer une étiquette de test") {
-                        let test = ProductLabel(name: "TEST TEXTE 12 18 27", category: "5890 · 384 points", shelfReference: "RÉF RAYON : 12-04-08", productReference: "TRAITS | || |||", ean: "4006381333931", price: "5,95")
+                        let test = ProductLabel(name: NSLocalizedString("TEST TEXTE 12 18 27", comment: "Calibration label"), category: "5890 · 384 points", shelfReference: NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Calibration label"), productReference: NSLocalizedString("TRAITS | || |||", comment: "Calibration label"), ean: "4006381333931", price: "5,95")
                         do {
                             printer.print(try LabelRenderer.render(test, size: labelSize, arrangement: labelArrangement))
                             showingSettings = false

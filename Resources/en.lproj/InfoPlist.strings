@@ -1,1 +1,3 @@
 "CFBundleDisplayName" = "Pocket Labels";
+"NSBluetoothAlwaysUsageDescription" = "Connect to your 5890 thermal printer to print product labels.";
+"NSCameraUsageDescription" = "Scan a product's EAN-13 barcode to fill its label.";

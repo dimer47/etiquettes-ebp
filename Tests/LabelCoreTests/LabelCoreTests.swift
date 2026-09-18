@@ -32,9 +32,11 @@ final class LabelCoreTests: XCTestCase {
     }
 
     func testFrenchPrice() {
-        XCTAssertEqual(PriceFormatter.formatted("5,95"), "5,95 €")
-        XCTAssertEqual(PriceFormatter.formatted("5.95"), "5,95 €")
-        XCTAssertEqual(PriceFormatter.formatted("5.95", currency: .gbp), "5,95 £")
+        let french = Locale(identifier: "fr_FR")
+        XCTAssertEqual(PriceFormatter.formatted("5,95", locale: french), "5,95 €")
+        XCTAssertEqual(PriceFormatter.formatted("5.95", locale: french), "5,95 €")
+        XCTAssertEqual(PriceFormatter.formatted("5.95", currency: .gbp, locale: french), "5,95 £")
+        XCTAssertEqual(PriceFormatter.formatted("5,95", locale: Locale(identifier: "en_US")), "5.95 €")
         XCTAssertNil(PriceFormatter.formatted("abc"))
     }
 
