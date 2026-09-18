@@ -30,9 +30,11 @@ xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configu
 2. Ouvrir l'app. Appuyer sur **Connecter**, sélectionner `Mini Pocket Printer_BLE`. La dernière imprimante est recherchée au lancement suivant.
 3. Saisir nom, catégorie, référence rayon, référence produit, EAN et prix (`5,95` ou `5.95`). L'aperçu se met à jour avec les données valides.
 4. Appuyer sur **Imprimer**. En l'absence de connexion, l'app recherche l'imprimante avant d'envoyer le travail.
-5. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut) et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
+5. Dans **Réglages**, choisir la densité Faible, Moyenne ou Forte (Moyenne par défaut), ajuster l'avance après impression et lancer l'étiquette de calibration. Éviter une densité trop forte si les barres fusionnent.
 
-Le rouleau est continu. Une avance finale de 80 points, issue du projet d'origine, dégage l'étiquette de la tête ; la longueur totale de papier avancé dépasse donc 30 mm. Le test matériel doit vérifier le contraste, la lecture du code avec un scanner, la position horizontale sur le rouleau et la coupe réelle. Le simulateur de cet environnement n'est pas utilisable car CoreSimulator est plus ancien que Xcode ; la compilation iPhone et les tests du cœur ont été exécutés.
+Le rouleau est continu. L'avance finale vaut désormais **128 points**, soit environ **16 mm** selon la résolution documentée, contre 80 points (10 mm) auparavant. Les valeurs proposées dans les réglages sont 10, 15, 16 et 20 mm. Ce réglage ajoute du papier blanc après le prix avant la découpe ; il ne change pas la composition du bitmap de 30 mm. Le blanc en tête visible sur les impressions semble lié à la distance mécanique entre tête thermique et bord de découpe ; sa valeur exacte reste à mesurer sur le papier. Mesurer la hauteur totale du ticket découpé avant de choisir un porte-étiquette : les produits du commerce existent notamment pour des insertions de 30, 39/40 et 52 mm. Voir par exemple les [porte-étiquettes Provost 30 × 50 mm](https://www.provost.fr/fr/rayonnage-pour-magasins/569-porte-etiquette/) et les [réglettes VKF Renzel 26, 39 et 52 mm](https://www.vkf-renzel.com/no-shelf-edge-strip-26-mm-transparent-standard-adhesive-12-mm-20-0026-40.html).
+
+Le test matériel doit vérifier le contraste, la lecture du code avec un scanner, la position horizontale sur le rouleau et la hauteur réelle du ticket après découpe. La compilation iPhone, le lancement sur iPhone et le rendu sur simulateur ont été vérifiés ; l'impression physique dépend de l'imprimante connectée.
 
 ## Licence et attribution
 

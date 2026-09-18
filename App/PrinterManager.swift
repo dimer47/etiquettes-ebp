@@ -13,6 +13,11 @@ final class PrinterManager: ObservableObject {
     @Published var density: PrintDensity = .medium {
         didSet { UserDefaults.standard.set(Int(density.rawValue), forKey: "density") }
     }
+    /// Paper advanced after the final printed row. 128 dots is roughly 16 mm,
+    /// six millimetres more than the previous 80-dot default.
+    @Published var trailingFeedDots = 128 {
+        didSet { UserDefaults.standard.set(trailingFeedDots, forKey: "trailingFeedDots") }
+    }
     private var cancellables = Set<AnyCancellable>()
     private var pendingBitmap: MonochromeBitmap?
     private var automaticReconnect = false
@@ -21,6 +26,9 @@ final class PrinterManager: ObservableObject {
     init() {
         if UserDefaults.standard.object(forKey: "density") != nil,
            let saved = PrintDensity(rawValue: UInt8(clamping: UserDefaults.standard.integer(forKey: "density"))) { density = saved }
+        if UserDefaults.standard.object(forKey: "trailingFeedDots") != nil {
+            trailingFeedDots = UserDefaults.standard.integer(forKey: "trailingFeedDots")
+        }
         transport.$devices.sink { [weak self] found in
             guard let self else { return }
             self.devices = found
@@ -88,7 +96,7 @@ final class PrinterManager: ObservableObject {
     private func send(_ bitmap: MonochromeBitmap) {
         printing = true
         status = "Impression…"
-        let options = PrintOptions(width: .mm58, density: density, trailingFeedDots: 80, paperMode: .continuous)
+        let options = PrintOptions(width: .mm58, density: density, trailingFeedDots: trailingFeedDots, paperMode: .continuous)
         transport.send(PrintJobBuilder.segments(bitmap: bitmap, options: options))
         Task { @MainActor in
             // The transport exposes queue progress but no physical completion acknowledgement.

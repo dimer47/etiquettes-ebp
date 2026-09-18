@@ -110,6 +110,15 @@ struct ContentView: View {
                         Text(density.title).tag(density)
                     }
                 }
+                Picker("Avance après impression", selection: $printer.trailingFeedDots) {
+                    Text("10 mm").tag(80)
+                    Text("15 mm").tag(120)
+                    Text("16 mm").tag(128)
+                    Text("20 mm").tag(160)
+                }
+                Text("16 mm ajoute environ 6 mm de papier blanc après le prix par rapport au réglage précédent.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 Section("Calibration") {
                     Button("Imprimer une étiquette de test") {
                         let test = ProductLabel(name: "TEST TEXTE 12 18 27", category: "5890 · 384 points", shelfReference: "RÉF RAYON : 12-04-08", productReference: "TRAITS | || |||", ean: "4006381333931", price: "5,95")
