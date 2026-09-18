@@ -7,8 +7,11 @@ struct ContentView: View {
     @State private var showingPrinters = false
     @State private var showingSettings = false
     @State private var showingPresentation = false
+    @State private var showingScanner = false
     @State private var message: String?
     @State private var selectedPage = 0
+    @State private var categories = (UserDefaults.standard.array(forKey: "savedCategories") as? [String]) ?? ["Peinture / Aérosols"]
+    @State private var newCategory = ""
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
     @AppStorage("labelArrangement") private var selectedArrangement = LabelArrangement.current.rawValue
 
@@ -43,10 +46,45 @@ struct ContentView: View {
                     GroupBox("Informations produit") {
                         VStack(alignment: .leading, spacing: 14) {
                             field("Nom du produit", text: $label.name)
-                            field("Catégorie", text: $label.category)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Catégorie").font(.subheadline.bold())
+                                HStack {
+                                    TextField("Catégorie", text: $label.category)
+                                        .textFieldStyle(.roundedBorder)
+                                    Menu {
+                                        if categories.isEmpty { Text("Aucune catégorie enregistrée") }
+                                        ForEach(categories, id: \.self) { category in
+                                            Button(category) { label.category = category }
+                                        }
+                                    } label: {
+                                        Image(systemName: "chevron.down.circle")
+                                            .frame(width: 36, height: 36)
+                                    }
+                                    .accessibilityLabel("Choisir une catégorie")
+                                    Button {
+                                        categories = CategoryLibrary.adding(label.category, to: categories)
+                                    } label: {
+                                        Image(systemName: "plus.circle.fill")
+                                            .frame(width: 36, height: 36)
+                                    }
+                                    .accessibilityLabel("Enregistrer cette catégorie")
+                                    .disabled(CategoryLibrary.adding(label.category, to: categories) == categories)
+                                }
+                            }
                             field("Référence rayon", text: $label.shelfReference)
                             field("Référence produit", text: $label.productReference)
-                            field("Code-barres EAN-13", text: $label.ean, keyboard: .numberPad)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("Code-barres EAN-13").font(.subheadline.bold())
+                                HStack {
+                                    TextField("13 chiffres", text: $label.ean)
+                                        .textFieldStyle(.roundedBorder)
+                                        .keyboardType(.numberPad)
+                                    Button { showingScanner = true } label: {
+                                        Label("Scanner", systemImage: "barcode.viewfinder")
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
+                            }
                             if let eanMessage { Text(eanMessage).font(.caption).foregroundStyle(.orange) }
                             field("Libellé du prix", text: $label.priceCaption)
                             HStack(alignment: .bottom) {
@@ -126,11 +164,20 @@ struct ContentView: View {
             .sheet(isPresented: $showingPrinters) { printerSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
             .sheet(isPresented: $showingPresentation) { presentationSheet }
+            .sheet(isPresented: $showingScanner) {
+                BarcodeScannerView { code in
+                    label.ean = code
+                    showingScanner = false
+                }
+            }
             .alert("Impression", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("OK") { message = nil }
             } message: { Text(message ?? "") }
             .onChange(of: label) { _, newValue in
                 if let data = try? JSONEncoder().encode(newValue) { UserDefaults.standard.set(data, forKey: "lastLabel") }
+            }
+            .onChange(of: categories) { _, newValue in
+                UserDefaults.standard.set(newValue, forKey: "savedCategories")
             }
             .onAppear {
                 if LabelSize(rawValue: selectedSize) == nil { selectedSize = LabelSize.standard.rawValue }
@@ -244,8 +291,8 @@ struct ContentView: View {
     private var settingsSheet: some View {
         NavigationStack {
             Form {
-                if printer.connected {
-                    Section("Imprimante connectée") {
+                Section("Imprimante") {
+                    if printer.connected {
                         Text(printer.connectedDeviceName ?? "Pocket Printer 5890")
                         TextField("Nom personnalisé", text: $printer.printerAlias)
                         if let battery = printer.batteryPercent {
@@ -254,8 +301,11 @@ struct ContentView: View {
                             Text("Niveau de batterie en cours de lecture")
                                 .foregroundStyle(.secondary)
                         }
+                    } else {
+                        Text("Aucune imprimante connectée").foregroundStyle(.secondary)
                     }
                 }
+                Section("Impression thermique") {
                 Picker("Densité", selection: $printer.density) {
                     ForEach(PrintDensity.allCases) { density in
                         Text(density.title).tag(density)
@@ -288,7 +338,8 @@ struct ContentView: View {
                 Text("L’aperçu reste à l’endroit. Retournez le ticket après découpe pour lire l’étiquette avec le grand blanc en bas.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Section("Calibration") {
+                }
+                Section("Test et connexion") {
                     Button("Imprimer une étiquette de test") {
                         let test = ProductLabel(name: "TEST TEXTE 12 18 27", category: "5890 · 384 points", shelfReference: "RÉF RAYON : 12-04-08", productReference: "TRAITS | || |||", ean: "4006381333931", price: "5,95")
                         do {
@@ -297,8 +348,23 @@ struct ContentView: View {
                             if !printer.connected { printer.scan(); showingPrinters = true }
                         } catch { message = error.localizedDescription }
                     }
+                    if printer.connected { Button("Déconnecter") { printer.disconnect() } }
                 }
-                if printer.connected { Button("Déconnecter") { printer.disconnect() } }
+                Section("Catégories enregistrées") {
+                    HStack {
+                        TextField("Nouvelle catégorie", text: $newCategory)
+                        Button("Ajouter", systemImage: "plus") {
+                            categories = CategoryLibrary.adding(newCategory, to: categories)
+                            newCategory = ""
+                        }
+                        .disabled(CategoryLibrary.adding(newCategory, to: categories) == categories)
+                    }
+                    if categories.isEmpty { Text("Aucune catégorie enregistrée").foregroundStyle(.secondary) }
+                    ForEach(categories, id: \.self) { category in
+                        Text(category)
+                    }
+                    .onDelete { offsets in categories.remove(atOffsets: offsets) }
+                }
             }
             .navigationTitle("Réglages")
             .toolbar { Button("Fermer") { showingSettings = false } }

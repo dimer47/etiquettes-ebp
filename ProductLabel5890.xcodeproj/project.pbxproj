@@ -19,6 +19,8 @@
 		768929E14B9C95B327364A35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
 		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
 		A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */; };
+		B749FB7510124A76A786DA11 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */; };
+		B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA14 /* CategoryLibrary.swift */; };
 		A1B2C3D40004E5F600000004 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D40003E5F600000003 /* AppIntents.framework */; };
 /* End PBXBuildFile section */
 
@@ -35,6 +37,8 @@
 		B756FF8ED397B989BAB791EC /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThermalBitmapRotation.swift; sourceTree = "<group>"; };
 		A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelPresentation.swift; sourceTree = "<group>"; };
+		B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		B749FB7510124A76A786DA14 /* CategoryLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryLibrary.swift; sourceTree = "<group>"; };
 		C9485C1DE846860B7012E33A /* LabelRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelRenderer.swift; sourceTree = "<group>"; };
 		CC908DE1A132B9184DD689EE /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D36961784DCB2F5C609630FE /* PrinterSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSettings.swift; sourceTree = "<group>"; };
@@ -79,6 +83,7 @@
 				C9485C1DE846860B7012E33A /* LabelRenderer.swift */,
 				7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */,
 				2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */,
+				B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -90,6 +95,7 @@
 				516D0672BE4E8CAD47F01920 /* EAN13.swift */,
 				BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */,
 				A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */,
+				B749FB7510124A76A786DA14 /* CategoryLibrary.swift */,
 			);
 			name = LabelCore;
 			path = Sources/LabelCore;
@@ -202,6 +208,8 @@
 				0F84EF6A4D312FEDD83FD793 /* EAN13.swift in Sources */,
 				9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */,
 				A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */,
+				B749FB7510124A76A786DA11 /* BarcodeScannerView.swift in Sources */,
+				B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */,
 				29F2F0199AB875A9E2AC90F1 /* MonochromeBitmap+Rotation.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

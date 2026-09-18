@@ -7,6 +7,14 @@ final class LabelCoreTests: XCTestCase {
         XCTAssertEqual(LabelSize.allCases.map(\.heightMillimeters), [26, 30, 39, 52])
         XCTAssertEqual(LabelArrangement.allCases.count, 6)
     }
+
+    func testCategoryLibraryAvoidsEmptyAndDuplicateNames() {
+        let first = CategoryLibrary.adding("  Peinture / Aérosols  ", to: [])
+        XCTAssertEqual(first, ["Peinture / Aérosols"])
+        XCTAssertEqual(CategoryLibrary.adding("peinture / aerosols", to: first), first)
+        XCTAssertEqual(CategoryLibrary.adding(" ", to: first), first)
+        XCTAssertEqual(CategoryLibrary.adding("Quincaillerie", to: first).count, 2)
+    }
     func testChecksumAndCompletion() throws {
         XCTAssertEqual(try EAN13.checksum(for: "400638133393"), 1)
         XCTAssertEqual(try EAN13.completed("400638133393"), "4006381333931")
