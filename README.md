@@ -14,7 +14,7 @@ Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) doc
 - `App/ContentView.swift` : formulaire, aperçu issu du **même bitmap** que l'impression, état BLE et réglages.
 - Bibliothèque SwiftPM `PocketPrinter5890Kit` et `PocketPrinter5890BLE` : commandes de densité et d'activation, raster en bandes de 24 lignes, contrôle de flux BLE et transport CoreBluetooth. La dépendance est épinglée à la révision vérifiée dans ce projet.
 
-L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffres saisis. Les 95 modules sont dessinés à **3 points chacun** (sans redimensionnement), avec 10 modules blancs de chaque côté. Les barres font 59 points de haut. Le texte peut être antialiasé durant la composition, puis chaque point est converti en noir ou blanc par un seuil fixe de 160 ; aucun tramage photo n'est appliqué. Le bitmap résultant, large exactement de 384 points, part directement au protocole 5890.
+L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffres saisis. Les 95 modules sont dessinés à **3 points chacun** (sans redimensionnement), avec 10 modules blancs de chaque côté. Les barres font 70 points de haut. La composition reprend la maquette fournie : informations et nom alignés à gauche, chiffres EAN en trois groupes, référence sous le code, mention TTC à gauche et prix à droite. Le texte peut être antialiasé durant la composition, puis chaque point est converti en noir ou blanc par un seuil fixe de 160 ; aucun tramage photo n'est appliqué. Le bitmap résultant, large exactement de 384 points, part directement au protocole 5890.
 
 ## Compiler et installer
 

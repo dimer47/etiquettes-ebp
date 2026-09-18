@@ -17,14 +17,18 @@ enum LabelRenderer {
         let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { context in
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-            draw(label.category, in: CGRect(x: 15, y: 4, width: 354, height: 19), maxSize: 17, bold: false)
-            draw(label.shelfReference, in: CGRect(x: 15, y: 24, width: 354, height: 17), maxSize: 14, bold: false)
-            draw(label.name, in: CGRect(x: 12, y: 44, width: 360, height: 30), maxSize: 27, bold: true)
-            // The barcode is placed separately as exact integer-width modules.
-            draw(ean, in: CGRect(x: 12, y: 140, width: 360, height: 17), maxSize: 15, bold: false)
-            draw("RÉF : \(label.productReference)", in: CGRect(x: 12, y: 159, width: 360, height: 17), maxSize: 15, bold: false)
-            draw("Prix de vente TTC", in: CGRect(x: 12, y: 178, width: 360, height: 21), maxSize: 18, bold: true)
-            draw(price, in: CGRect(x: 10, y: 199, width: 364, height: 39), maxSize: 36, bold: true)
+            draw(label.category, in: CGRect(x: 12, y: 7, width: 360, height: 17), maxSize: 13, bold: true, alignment: .left)
+            draw(label.shelfReference, in: CGRect(x: 12, y: 26, width: 360, height: 16), maxSize: 12, bold: true, alignment: .left)
+            draw(label.name, in: CGRect(x: 12, y: 44, width: 360, height: 34), maxSize: 28, bold: true, alignment: .left)
+
+            // EAN-13's first digit sits outside the bars; the remaining digits
+            // align with the left and right groups of six modules each.
+            draw(String(ean.prefix(1)), in: CGRect(x: 22, y: 156, width: 27, height: 19), maxSize: 16, bold: true)
+            draw(String(ean.dropFirst().prefix(6)), in: CGRect(x: 58, y: 156, width: 135, height: 19), maxSize: 16, bold: true)
+            draw(String(ean.suffix(6)), in: CGRect(x: 208, y: 156, width: 135, height: 19), maxSize: 16, bold: true)
+            draw("Réf. \(label.productReference)", in: CGRect(x: 12, y: 178, width: 360, height: 18), maxSize: 14, bold: true)
+            draw("Prix de vente TTC", in: CGRect(x: 12, y: 208, width: 220, height: 25), maxSize: 19, bold: true, alignment: .left)
+            draw(price, in: CGRect(x: 227, y: 194, width: 145, height: 43), maxSize: 37, bold: true, alignment: .right)
         }
         guard let cgImage = image.cgImage else { throw LabelError.rasterFailure }
         // Read through a known RGBA layout; no resizing or interpolation.
@@ -44,7 +48,7 @@ enum LabelRenderer {
         let barcodeWidth = modules.count * barcodeModuleDots + 2 * quietZoneDots
         let left = (width - barcodeWidth) / 2 + quietZoneDots
         for (index, on) in modules.enumerated() where on {
-            for y in 79..<138 {
+            for y in 84..<154 {
                 for dot in 0..<barcodeModuleDots {
                     black[y * width + left + index * barcodeModuleDots + dot] = true
                 }
@@ -72,11 +76,11 @@ enum LabelRenderer {
         return UIImage(cgImage: image)
     }
 
-    private static func draw(_ text: String, in rect: CGRect, maxSize: CGFloat, bold: Bool) {
+    private static func draw(_ text: String, in rect: CGRect, maxSize: CGFloat, bold: Bool, alignment: NSTextAlignment = .center) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
+        paragraph.alignment = alignment
         paragraph.lineBreakMode = .byTruncatingTail
         var size = maxSize
         while size > 10 {
