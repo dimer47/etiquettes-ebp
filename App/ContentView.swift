@@ -38,10 +38,14 @@ struct ContentView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    HStack(spacing: 8) {
-                        pageButton("Produit", icon: "square.and.pencil", page: 0)
-                        pageButton("Impression", icon: "printer", page: 1)
+                    Picker("Écran", selection: $selectedPage) {
+                        Label("Produit", systemImage: "square.and.pencil").tag(0)
+                        Label("Impression", systemImage: "printer").tag(1)
                     }
+                    .pickerStyle(.segmented)
+                    .controlSize(.large)
+                    .frame(minHeight: 56)
+                    .accessibilityLabel("Produit ou impression")
                     if selectedPage == 0 {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Informations produit").font(.title3.bold())
@@ -99,9 +103,9 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .padding(16)
+                    .padding(18)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                    .modifier(ProductPanelStyle())
                     Button("Voir l’aperçu") { selectedPage = 1 }
                         .buttonStyle(.borderedProminent)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -175,7 +179,7 @@ struct ContentView: View {
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("PRODUCT LABEL 5890")
+            .navigationTitle("Étiquettes Pocket")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { Button("Réglages", systemImage: "gearshape") { showingSettings = true } }
             .sheet(isPresented: $showingPrinters) { printerSheet }
@@ -294,22 +298,6 @@ struct ContentView: View {
                 .textInputAutocapitalization(keyboard == .default ? .sentences : .never)
                 .modifier(ProductInputStyle())
         }
-    }
-
-    private func pageButton(_ title: String, icon: String, page: Int) -> some View {
-        let selected = selectedPage == page
-        return Button { selectedPage = page } label: {
-            Label(title, systemImage: icon)
-                .font(.subheadline.bold())
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .foregroundStyle(selected ? Color.white : Color.primary)
-                .background(selected ? Color.blue : Color(.secondarySystemGroupedBackground),
-                            in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(selected ? Color.clear : Color(.separator), lineWidth: 1))
-        }
-        .buttonStyle(ResponsiveCardStyle())
-        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private var printerSheet: some View {
@@ -432,10 +420,19 @@ private struct ResponsiveCardStyle: ButtonStyle {
 private struct ProductInputStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .padding(.horizontal, 14)
-            .frame(minHeight: 52)
-            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(.separator), lineWidth: 1))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 56)
+            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct ProductPanelStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+        } else {
+            content.background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+        }
     }
 }
 

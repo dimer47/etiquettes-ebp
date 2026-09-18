@@ -17,6 +17,7 @@
 		5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */ = {isa = PBXBuildFile; productRef = 8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */; };
 		623DC584C67D81177CE2957F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
 		768929E14B9C95B327364A35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
+		AA0000000000000000000004 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* InfoPlist.strings */; };
 		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
 		A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */; };
 		B749FB7510124A76A786DA11 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */; };
@@ -43,6 +44,8 @@
 		CC908DE1A132B9184DD689EE /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D36961784DCB2F5C609630FE /* PrinterSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSettings.swift; sourceTree = "<group>"; };
 		E3B2F6A22DEB550C9E61C92D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA0000000000000000000002 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0000000000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		EE657AD14653602D585DC52F /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProductLabel5890.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FE99AF2776C04A5A8568E934 /* ProductLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabel.swift; sourceTree = "<group>"; };
@@ -118,6 +121,7 @@
 				A1B2C3D40003E5F600000003 /* AppIntents.framework */,
 				B756FF8ED397B989BAB791EC /* Assets.xcassets */,
 				E3B2F6A22DEB550C9E61C92D /* Info.plist */,
+				AA0000000000000000000001 /* InfoPlist.strings */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -190,10 +194,23 @@
 			buildActionMask = 2147483647;
 			files = (
 				768929E14B9C95B327364A35 /* Assets.xcassets in Resources */,
+				AA0000000000000000000004 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		AA0000000000000000000001 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AA0000000000000000000002 /* fr */,
+				AA0000000000000000000003 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin PBXSourcesBuildPhase section */
 		E8C5E5BE4D4926E3ACC74ED8 /* Sources */ = {
