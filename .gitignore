@@ -19,3 +19,6 @@ xcuserdata/
 # Captures d'ecran regenerables par Tools/captures.sh
 Captures/
 .build-captures/
+
+# Xcode index data accidentally placed beside project
+*.xcodeproj/-Xcc/
