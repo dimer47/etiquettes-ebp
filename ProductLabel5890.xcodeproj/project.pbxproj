@@ -30,7 +30,26 @@
 		CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* BrotherPrinterService.swift */; };
 		CC0000000000000000000007 /* PrinterSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* PrinterSetup.swift */; };
 		CC0000000000000000000009 /* PrinterSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* PrinterSelectionView.swift */; };
+		DD0000000000000000000002 /* BRLMPrinterKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* BRLMPrinterKit.xcframework */; };
+		DD0000000000000000000003 /* BRLMPrinterKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* BRLMPrinterKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CC000000000000000000000B /* SystemReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* SystemReport.swift */; };
+		CC000000000000000000000D /* SystemReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000E /* SystemReportSheet.swift */; };
+		CC000000000000000000000F /* BrotherConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000010 /* BrotherConsoleView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DD0000000000000000000004 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				DD0000000000000000000003 /* BRLMPrinterKit.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "MonochromeBitmap+Rotation.swift"; sourceTree = "<group>"; };
@@ -58,6 +77,10 @@
 		CC0000000000000000000006 /* BrotherPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherPrinterService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000008 /* PrinterSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSetup.swift; sourceTree = "<group>"; };
 		CC000000000000000000000A /* PrinterSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSelectionView.swift; sourceTree = "<group>"; };
+		DD0000000000000000000001 /* BRLMPrinterKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = BRLMPrinterKit.xcframework; sourceTree = "<group>"; };
+		CC000000000000000000000C /* SystemReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReport.swift; sourceTree = "<group>"; };
+		CC000000000000000000000E /* SystemReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReportSheet.swift; sourceTree = "<group>"; };
+		CC0000000000000000000010 /* BrotherConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherConsoleView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +90,7 @@
 			files = (
 				423998305BE6E6DB90D59684 /* PocketPrinter5890Kit in Frameworks */,
 				5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */,
+				DD0000000000000000000002 /* BRLMPrinterKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,6 +115,8 @@
 				2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */,
 				B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */,
 				BB0000000000000000000004 /* LabelHistoryStore.swift */,
+				CC0000000000000000000010 /* BrotherConsoleView.swift */,
+				CC000000000000000000000E /* SystemReportSheet.swift */,
 				CC000000000000000000000A /* PrinterSelectionView.swift */,
 				CC0000000000000000000008 /* PrinterSetup.swift */,
 				CC0000000000000000000006 /* BrotherPrinterService.swift */,
@@ -107,6 +133,7 @@
 				A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */,
 				B749FB7510124A76A786DA14 /* CategoryLibrary.swift */,
 				BB0000000000000000000003 /* PrintedLabel.swift */,
+				CC000000000000000000000C /* SystemReport.swift */,
 				CC0000000000000000000004 /* LabelRasterGeometry.swift */,
 				CC0000000000000000000002 /* BrotherCatalog.swift */,
 			);
@@ -121,6 +148,7 @@
 				FE327CA3B2E41EE1F9D34690 /* Resources */,
 				4AF17906B199BA689DB52BAD /* Products */,
 				A1A26EFF352157F586C3AE6F /* LabelCore */,
+				DD0000000000000000000005 /* Vendor */,
 			);
 			sourceTree = "<group>";
 		};
@@ -135,6 +163,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		DD0000000000000000000005 /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000001 /* BRLMPrinterKit.xcframework */,
+			);
+			path = Vendor;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -145,6 +181,7 @@
 				E8C5E5BE4D4926E3ACC74ED8 /* Sources */,
 				1E3F4FD42CD5353AD63D7170 /* Frameworks */,
 				5EEC8E1CABA298AF9CB3BA60 /* Resources */,
+				DD0000000000000000000004 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -242,6 +279,9 @@
 				BB0000000000000000000001 /* PrintedLabel.swift in Sources */,
 				BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */,
 				29F2F0199AB875A9E2AC90F1 /* MonochromeBitmap+Rotation.swift in Sources */,
+				CC000000000000000000000F /* BrotherConsoleView.swift in Sources */,
+				CC000000000000000000000D /* SystemReportSheet.swift in Sources */,
+				CC000000000000000000000B /* SystemReport.swift in Sources */,
 				CC0000000000000000000009 /* PrinterSelectionView.swift in Sources */,
 				CC0000000000000000000007 /* PrinterSetup.swift in Sources */,
 				CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */,
@@ -285,6 +325,10 @@
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabel5890;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -335,6 +379,10 @@
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabel5890;
 				PRODUCT_NAME = "$(TARGET_NAME)";

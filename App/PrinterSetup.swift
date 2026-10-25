@@ -31,6 +31,11 @@ final class PrinterSetup: ObservableObject {
         didSet { store(cut, forKey: Key.cut) }
     }
 
+    /// Densité, qualité, tramage, décolleur et marge (TD Print Studio).
+    @Published var quality: BrotherQualityOptions {
+        didSet { store(quality, forKey: Key.quality) }
+    }
+
     @Published var copies: Int {
         didSet { defaults.set(copies, forKey: Key.copies) }
     }
@@ -48,6 +53,7 @@ final class PrinterSetup: ObservableObject {
         static let media = "printer.brother.media"
         static let cut = "printer.brother.cut"
         static let copies = "printer.brother.copies"
+        static let quality = "printer.brother.quality"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -58,12 +64,13 @@ final class PrinterSetup: ObservableObject {
         let media: BrotherMedia? = Self.decode(defaults.data(forKey: Key.media))
         brotherMedia = media.flatMap { $0.isCompatible(with: model) ? $0 : nil } ?? .defaultMedia(for: model)
         cut = (Self.decode(defaults.data(forKey: Key.cut)) ?? BrotherCutOptions()).restricted(to: model.series.cutter)
+        quality = Self.decode(defaults.data(forKey: Key.quality)) ?? BrotherQualityOptions()
         copies = min(99, max(1, defaults.object(forKey: Key.copies) as? Int ?? 1))
     }
 
     var brotherJob: BrotherJob {
         BrotherJob(model: brotherModel, media: brotherMedia,
-                   cut: cut.restricted(to: brotherModel.series.cutter), copies: copies)
+                   cut: cut.restricted(to: brotherModel.series.cutter), quality: quality, copies: copies)
     }
 
     private func ensureCompatibleMedia() {

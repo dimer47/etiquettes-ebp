@@ -3,10 +3,10 @@ import XCTest
 
 final class BrotherCatalogTests: XCTestCase {
     func testCatalogMatchesTheSDKEnumeration() {
-        // BRLMPrinterModel (SDK 4.13) : 90 modèles hors « Unknown ».
-        XCTAssertEqual(BrotherModel.allCases.count, 90)
-        for missing in ["RJ-2031", "RJ-2131", "PT-P750Wc"] {
-            XCTAssertNil(BrotherModel(rawValue: missing), missing)
+        // BRLMPrinterModel (SDK 4.13.2) : 93 modèles hors « Unknown ».
+        XCTAssertEqual(BrotherModel.allCases.count, 93)
+        for added in ["RJ-2031", "RJ-2131", "PT-P750Wc"] {
+            XCTAssertNotNil(BrotherModel(rawValue: added), added)
         }
     }
 
@@ -36,6 +36,7 @@ final class BrotherCatalogTests: XCTestCase {
         XCTAssertEqual(BrotherModel.matching(advertisedName: "Brother TD-4550DNWB"), .TD_4550DNWB)
         XCTAssertEqual(BrotherModel.matching(advertisedName: "Brother TD-4555DNWBF"), .TD_4555DNWBF)
         XCTAssertEqual(BrotherModel.matching(advertisedName: "Brother TD-2350DFSA"), .TD_2350DFSA_203)
+        XCTAssertEqual(BrotherModel.matching(advertisedName: "Brother PT-P750Wc"), .PT_P750Wc)
         XCTAssertNil(BrotherModel.matching(advertisedName: "Mini Pocket Printer_BLE"))
     }
 
@@ -95,7 +96,7 @@ final class BrotherCatalogTests: XCTestCase {
         XCTAssertTrue(BrotherSeries.td.cutter.supportsCutAtEnd)
         XCTAssertTrue(BrotherSeries.ql.cutter.supportsCutEvery)
         XCTAssertTrue(BrotherSeries.pt.cutter.isControllable)
-        XCTAssertFalse(BrotherSeries.pt.cutter.supportsCutEvery)
+        XCTAssertTrue(BrotherSeries.pt.cutter.supportsCutEvery)
         XCTAssertFalse(BrotherSeries.pt.cutter.supportsCutAtEnd)
         for series in [BrotherSeries.rj, .pj, .mw] {
             XCTAssertFalse(series.cutter.isControllable, series.rawValue)
@@ -112,7 +113,7 @@ final class BrotherCatalogTests: XCTestCase {
 
         let all = BrotherCutOptions(autoCut: true, cutEveryPages: 3, cutAtEnd: true)
         XCTAssertEqual(all.restricted(to: .optionalUnit), all)
-        XCTAssertEqual(all.restricted(to: .autoCutOnly), BrotherCutOptions(autoCut: true))
+        XCTAssertEqual(all.restricted(to: .autoCutOnly), BrotherCutOptions(autoCut: true, cutEveryPages: 3))
         XCTAssertEqual(all.restricted(to: .none), BrotherCutOptions())
     }
 
@@ -123,6 +124,25 @@ final class BrotherCatalogTests: XCTestCase {
             let data = try JSONEncoder().encode(media)
             XCTAssertEqual(try JSONDecoder().decode(BrotherMedia.self, from: data), media)
         }
+    }
+
+    func testQualityOptionsDefaultsAndMapping() throws {
+        let quality = BrotherQualityOptions()
+        XCTAssertNil(quality.density)
+        XCTAssertNil(quality.tdDensityRawValue)
+        XCTAssertEqual(quality.halftone, .threshold)
+        XCTAssertEqual(quality.clampedThreshold, 127)
+        var strong = quality
+        strong.density = 9
+        XCTAssertEqual(strong.tdDensityRawValue, 10)
+        strong.density = -1
+        XCTAssertEqual(strong.tdDensityRawValue, 4)
+        strong.feedMarginMM = 2
+        XCTAssertEqual(strong.feedMarginDots(ydpi: 300), 24)
+        // Réglages enregistrés partiellement : les autres gardent leur défaut.
+        let partial = try JSONDecoder().decode(BrotherQualityOptions.self, from: Data(#"{"density":2}"#.utf8))
+        XCTAssertEqual(partial.density, 2)
+        XCTAssertEqual(partial.threshold, 127)
     }
 
     func testPrintableAreaPerMedia() {

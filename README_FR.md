@@ -64,7 +64,7 @@ Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas
 
 ## Imprimantes Brother
 
-L'app imprime aussi sur les imprimantes Brother, en priorité la TD-4550DNWB en Bluetooth LE, avec le Brother Print SDK officiel. Le SDK est propriétaire et absent du dépôt : sans lui, l'app compile et affiche « Brother Print SDK absent ». Ajout du SDK dans Xcode, papiers, coupe et points à vérifier : [docs/BROTHER_FR.md](docs/BROTHER_FR.md).
+L'app imprime aussi sur les imprimantes Brother, en priorité la TD-4550DNWB en Bluetooth LE, avec le Brother Print SDK officiel. Le SDK 4.13.2 est livré dans `Vendor/`, avec la licence et l'autorisation de redistribution de Brother. Le volet Brother reprend [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio), testé sur TD-4550DNWB. Papiers, coupe, qualité, infos, rapport système et points à vérifier : [docs/BROTHER_FR.md](docs/BROTHER_FR.md).
 
 ## Langues
 
@@ -85,3 +85,5 @@ Les cinq nouvelles dispositions sont présentées dans [docs/DISPOSITIONS_PROPOS
 ## Licence et attribution
 
 Code du projet sous [licence MIT](LICENSE), copyright 2026 Dimitri Iachi. La bibliothèque [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) est également sous MIT et conserve sa propre attribution et licence dans son dépôt. Les photos des imprimantes ci-dessus proviennent du même dépôt et sont reprises avec attribution selon sa licence MIT. Le projet reprend la configuration Xcode et le choix de cette bibliothèque de [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), également annoncé MIT dans son README ; il ne modifie pas ce dépôt.
+
+Le Brother Print SDK de `Vendor/` appartient à Brother Industries et reste sous sa propre licence ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)) ; [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) autorise la redistribution des fichiers du dossier `libs` du SDK. Brother et les noms de modèles sont des marques de Brother Industries ; ce projet n'est ni affilié à Brother, ni approuvé par Brother.

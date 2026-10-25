@@ -3,7 +3,8 @@ import PocketPrinter5890Kit
 
 /// Écran « Imprimante », dans l'ordre : 1. imprimante (Pocket 5890 ou
 /// Brother, puis le modèle), 2. papier compatible, 3. coupe et copies,
-/// puis la connexion. Ouvert par le bouton Connecter / Changer.
+/// 4. qualité, puis la connexion. Ouvert par le bouton Connecter / Changer.
+/// Le volet Brother reprend TD Print Studio.
 struct PrinterSelectionView: View {
     @ObservedObject var printer: PrinterManager
     @ObservedObject var setup: PrinterSetup
@@ -42,6 +43,7 @@ struct PrinterSelectionView: View {
                 } else {
                     BrotherPaperSection(setup: setup, brother: brother)
                     BrotherCutSection(setup: setup)
+                    BrotherQualitySection(setup: setup)
                     BrotherConnectionSections(setup: setup, brother: brother)
                 }
             }
@@ -51,6 +53,12 @@ struct PrinterSelectionView: View {
             .onChange(of: setup.brand) { _, brand in
                 if brand == .pocket5890 { printer.scan() } else { brother.cancelSearch() }
             }
+        }
+        // Attachée à l'écran entier : sur une section, la feuille se refermait
+        // dès que la section sortait de l'écran (TD Print Studio).
+        .sheet(isPresented: Binding(get: { brother.systemReport != nil },
+                                    set: { if !$0 { brother.systemReport = nil } })) {
+            SystemReportSheet(report: SystemReport(parsing: brother.systemReport ?? ""))
         }
         .presentationDetents([.medium, .large])
     }
@@ -312,6 +320,13 @@ struct BrotherCutSection: View {
                     Toggle("Coupe après la dernière page", isOn: $setup.cut.cutAtEnd)
                 }
             }
+            if setup.brotherModel.series == .td {
+                Toggle("Décolleur d’étiquettes", isOn: $setup.quality.peelLabel)
+                Stepper(value: $setup.quality.feedMarginMM, in: 0...20, step: 0.5) {
+                    Text(String(format: NSLocalizedString("Marge haut/bas : %.1f mm", comment: "Feed margin"),
+                                setup.quality.feedMarginMM))
+                }
+            }
             Stepper(value: $setup.copies, in: 1...99) {
                 Text(String(format: NSLocalizedString("Copies : %d", comment: "Copies"), setup.copies))
             }
@@ -324,10 +339,51 @@ struct BrotherCutSection: View {
             case .builtIn:
                 Text("Massicot intégré.")
             case .autoCutOnly:
-                Text("Sur les P-touch, seule la coupe automatique est pilotable ; certains modèles n’ont qu’une coupe manuelle.")
+                Text("Sur les P-touch, pas de coupe en fin d’impression ; certains modèles n’ont qu’une coupe manuelle.")
             case .none:
                 Text("Pas de coupe pilotable sur cette série : détachez l’étiquette à la main.")
             }
+        }
+    }
+}
+
+// MARK: - 4. Qualité
+
+struct BrotherQualitySection: View {
+    @ObservedObject var setup: PrinterSetup
+
+    var body: some View {
+        Section {
+            if setup.brotherModel.series == .td {
+                Toggle("Densité de l’imprimante", isOn: Binding(
+                    get: { setup.quality.density == nil },
+                    set: { setup.quality.density = $0 ? nil : 0 }))
+                if let density = setup.quality.density {
+                    Stepper(value: Binding(get: { density }, set: { setup.quality.density = $0 }), in: -5...5) {
+                        Text(String(format: NSLocalizedString("Densité : %@", comment: "Brother density"),
+                                    density > 0 ? "+\(density)" : "\(density)"))
+                    }
+                }
+            }
+            Toggle("Meilleure qualité (plus lent)", isOn: $setup.quality.bestQuality)
+            Picker("Tramage", selection: $setup.quality.halftone) {
+                Text("Seuil (texte, codes)").tag(BrotherQualityOptions.Halftone.threshold)
+                Text("Diffusion d’erreur (photos)").tag(BrotherQualityOptions.Halftone.errorDiffusion)
+                Text("Motif").tag(BrotherQualityOptions.Halftone.patternDither)
+            }
+            if setup.quality.halftone == .threshold {
+                VStack(alignment: .leading) {
+                    Text(String(format: NSLocalizedString("Seuil noir/blanc : %d", comment: "Brother threshold"),
+                                setup.quality.threshold))
+                    Slider(value: Binding(get: { Double(setup.quality.threshold) },
+                                          set: { setup.quality.threshold = Int($0) }),
+                           in: 0...255, step: 1)
+                }
+            }
+        } header: {
+            Text("4. Qualité d’impression")
+        } footer: {
+            Text("La densité ne s’applique qu’aux TD. Gardez le tramage par seuil pour des codes-barres nets.")
         }
     }
 }
@@ -386,6 +442,9 @@ struct BrotherConnectionSections: View {
             Text(brother.status)
                 .font(.callout)
                 .foregroundStyle(brother.statusIsError ? .red : .secondary)
+            if brother.activity == .printing {
+                Button("Annuler l’impression", role: .destructive) { brother.cancelPrint() }
+            }
         } header: {
             Text("Connexion")
         }
@@ -393,10 +452,23 @@ struct BrotherConnectionSections: View {
         if !brother.found.isEmpty {
             Section("Imprimantes trouvées") {
                 ForEach(brother.found) { found in
-                    Button { brother.select(found) } label: {
+                    Button {
+                        brother.select(found)
+                        // Le modèle détecté prime : c'est lui qui fixe le papier
+                        // et les réglages acceptés (TD Print Studio).
+                        if let detected = found.advertisedModel { setup.brotherModel = detected }
+                    } label: {
                         TargetRow(printer: found, isSelected: found == brother.target)
                     }
                 }
+            }
+        }
+
+        Section {
+            NavigationLink {
+                BrotherConsoleView(brother: brother)
+            } label: {
+                LabeledContent("Journal Brother", value: "\(brother.events.count)")
             }
         }
 
@@ -417,6 +489,10 @@ struct BrotherConnectionSections: View {
                     }
                 }
                 Button("Tester la connexion et lire l’état") { brother.checkStatus(selectedModel: model) }
+                    .disabled(brother.isBusy || !BrotherPrinterService.isSDKAvailable)
+                Button("Infos de l’imprimante") { brother.readInfo() }
+                    .disabled(brother.isBusy || !BrotherPrinterService.isSDKAvailable)
+                Button("Rapport système") { brother.readSystemReport() }
                     .disabled(brother.isBusy || !BrotherPrinterService.isSDKAvailable)
                 Button("Oublier cette imprimante", role: .destructive) { brother.forget() }
                     .disabled(brother.isBusy)

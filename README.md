@@ -60,7 +60,7 @@ See [label sizes](docs/FORMATS_PROPOSES.md) and [layout variants](docs/DISPOSITI
 
 ## Brother printers
 
-The app can also print on Brother printers, first of all the TD-4550DNWB over Bluetooth LE, through the official Brother Print SDK. The SDK is proprietary and is not in this repository: without it the app still builds and shows “Brother Print SDK missing”. Setup steps, paper and cutter options and the hardware checklist are in [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).
+The app can also print on Brother printers, first of all the TD-4550DNWB over Bluetooth LE, through the official Brother Print SDK. Brother Print SDK 4.13.2 ships in `Vendor/` with Brother's license and redistribution notice. The Brother side mirrors [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio), tested on a TD-4550DNWB. Paper, cutter and quality options, printer info, system report and the hardware checklist are in [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).
 
 ## Known limits
 
@@ -71,3 +71,5 @@ Print history records jobs submitted to the BLE transport, not a physical paper 
 ## License and attribution
 
 ProductLabel5890 is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository. The TRONIC and SILVERCREST photos above are reused from that repository with attribution under its MIT license. The project derives its Xcode setup and choice of BLE package from [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), whose README also states MIT; that repository is unchanged.
+
+The Brother Print SDK in `Vendor/` belongs to Brother Industries and is under its own license ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)); [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) allows redistribution of the files in the SDK `libs` folder. Brother and the model names are trademarks of Brother Industries; this project is neither affiliated with nor endorsed by Brother.

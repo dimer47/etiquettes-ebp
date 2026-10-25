@@ -149,7 +149,9 @@ struct ContentView: View {
                                     .foregroundStyle(brother.statusIsError ? .red : .secondary)
                             }
                             Spacer()
-                            if brother.isBusy { ProgressView() }
+                            if brother.activity == .printing {
+                                Button("Annuler", role: .destructive) { brother.cancelPrint() }
+                            } else if brother.isBusy { ProgressView() }
                             Button(brother.target == nil ? NSLocalizedString("Connecter", comment: "Connect printer") : NSLocalizedString("Changer", comment: "Change printer")) { showingPrinters = true }
                         } else {
                         Image(systemName: "printer.fill")
@@ -458,6 +460,17 @@ struct ContentView: View {
                         }
                     } else {
                         Text("Aucune imprimante connectée").foregroundStyle(.secondary)
+                    }
+                }
+                if isBrother {
+                    BrotherCutSection(setup: setup)
+                    BrotherQualitySection(setup: setup)
+                    Section {
+                        NavigationLink {
+                            BrotherConsoleView(brother: brother)
+                        } label: {
+                            LabeledContent("Journal Brother", value: "\(brother.events.count)")
+                        }
                     }
                 }
                 Section("Impression thermique (Pocket 5890)") {

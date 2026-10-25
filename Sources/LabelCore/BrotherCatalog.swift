@@ -65,7 +65,8 @@ public enum BrotherSeries: String, CaseIterable, Identifiable, Codable, Sendable
     ///
     /// TD : `autoCut`, `autoCutForEachPageCount`, `cutAtEnd`, mais le
     /// massicot est un accessoire matériel. QL : les trois, massicot intégré.
-    /// PT : seule `autoCut` est proposée. RJ, PJ, MW : aucune.
+    /// PT : `autoCut` et `autoCutForEachPageCount`, pas de `cutAtEnd`.
+    /// RJ, PJ, MW : aucune.
     public var cutter: BrotherCutterSupport {
         switch self {
         case .td: return .optionalUnit
@@ -83,13 +84,15 @@ public enum BrotherCutterSupport: String, Codable, Sendable {
     case builtIn
     /// Massicot vendu en option (TD) : à installer sur l'imprimante.
     case optionalUnit
-    /// Coupe automatique seulement (PT).
+    /// Coupe automatique sans coupe en fin (PT) ; certaines P-touch n'ont
+    /// qu'une coupe manuelle.
     case autoCutOnly
 
     public var isControllable: Bool { self != .none }
-    /// `autoCutForEachPageCount` et `cutAtEnd` : TD et QL seulement.
-    public var supportsCutEvery: Bool { self == .optionalUnit || self == .builtIn }
-    public var supportsCutAtEnd: Bool { supportsCutEvery }
+    /// `autoCutForEachPageCount` : TD, QL et PT (BRLMPTPrintSettings.h).
+    public var supportsCutEvery: Bool { self != .none }
+    /// `cutAtEnd` : TD et QL seulement.
+    public var supportsCutAtEnd: Bool { self == .optionalUnit || self == .builtIn }
 }
 
 /// Interface de communication.
@@ -115,11 +118,11 @@ public enum BrotherConnection: String, CaseIterable, Identifiable, Codable, Send
 
 // MARK: - Modèles
 
-/// Modèles de l'énumération `BRLMPrinterModel` (BRLMPrinterDefine.h, SDK 4.13).
+/// Modèles de l'énumération `BRLMPrinterModel` (BRLMPrinterDefine.h, SDK 4.13.2).
 ///
 /// Le nom des cas reprend celui du SDK ; la valeur brute est la référence
-/// commerciale. RJ-2031, RJ-2131 et PT-P750Wc n'existent pas dans le SDK
-/// 4.13 et ne sont donc pas proposés.
+/// commerciale. RJ-2031, RJ-2131 et PT-P750Wc n'existent qu'à partir du
+/// SDK 4.13.2 (absents des 4.13.0 et 4.13.1).
 public enum BrotherModel: String, CaseIterable, Identifiable, Codable, Sendable {
     // swiftlint:disable identifier_name
     case PJ_673 = "PJ-673"
@@ -134,7 +137,9 @@ public enum BrotherModel: String, CaseIterable, Identifiable, Codable, Sendable 
     case MW_260MFi = "MW-260MFi"
     case MW_170 = "MW-170"
     case MW_270 = "MW-270"
+    case RJ_2031 = "RJ-2031"
     case RJ_2050 = "RJ-2050"
+    case RJ_2131 = "RJ-2131"
     case RJ_2140 = "RJ-2140"
     case RJ_2150 = "RJ-2150"
     case RJ_3050 = "RJ-3050"
@@ -209,6 +214,7 @@ public enum BrotherModel: String, CaseIterable, Identifiable, Codable, Sendable 
     case PT_P710BT = "PT-P710BT"
     case PT_P715eBT = "PT-P715eBT"
     case PT_P750W = "PT-P750W"
+    case PT_P750Wc = "PT-P750Wc"
     case PT_P900W = "PT-P900W"
     case PT_P910BT = "PT-P910BT"
     case PT_P950NW = "PT-P950NW"
@@ -248,7 +254,7 @@ public enum BrotherModel: String, CaseIterable, Identifiable, Codable, Sendable 
         case .PJ_673, .PJ_773, .RJ_4040, .RJ_3050, .RJ_3150, .RJ_2140,
              .TD_2120N, .TD_2130N, .TD_4420DN, .TD_4520DN,
              .QL_710W, .QL_720NW, .QL_810W,
-             .PT_E550W, .PT_P750W, .PT_D800W, .PT_E800W,
+             .PT_E550W, .PT_P750W, .PT_P750Wc, .PT_D800W, .PT_E800W,
              .PT_E850TKW, .PT_P900W, .PT_P950NW,
              .TD_2125N, .TD_2135N,
              .TD_2320D_203, .TD_2320D_300, .TD_2320DF_203, .TD_2320DF_300,
@@ -256,7 +262,8 @@ public enum BrotherModel: String, CaseIterable, Identifiable, Codable, Sendable 
              .TD_4425DN, .TD_4525DN, .TD_4425DNF:
             return [.wifi]
         case .PJ_763MFi, .MW_145MFi, .MW_260MFi, .MW_170, .MW_270,
-             .RJ_4030Ai, .PT_E310BT, .PT_E560BT, .PT_E720BT, .PT_E920BT:
+             .RJ_4030Ai, .PT_E310BT, .PT_E560BT, .PT_E720BT, .PT_E920BT,
+             .RJ_2031, .RJ_2131:
             return [.bluetoothClassic]
         case .RJ_3050Ai, .RJ_3150Ai, .RJ_2050, .RJ_2150,
              .QL_820NWB, .QL_1110NWB, .QL_1115NWB:
@@ -629,4 +636,50 @@ public struct BrotherCutOptions: Hashable, Codable, Sendable {
     }
 
     public var isAnyCutRequested: Bool { autoCut || cutAtEnd }
+}
+
+/// Réglages de rendu transmis au SDK Brother (repris de TD Print Studio).
+public struct BrotherQualityOptions: Hashable, Codable, Sendable {
+    public enum Halftone: String, Codable, CaseIterable, Sendable {
+        case threshold, errorDiffusion, patternDither
+    }
+
+    /// De -5 (plus clair) à +5 (plus foncé). `nil` : réglage de l'imprimante.
+    /// Pris en compte seulement par les TD (`BRLMTDPrintSettingsDensity`).
+    public var density: Int?
+    /// `printQuality` : `.best` si vrai, `.fast` sinon.
+    public var bestQuality = false
+    /// Seuil par défaut : texte et codes-barres nets, sans trame.
+    public var halftone: Halftone = .threshold
+    /// `halftoneThreshold`, utilisé seulement avec le tramage par seuil.
+    public var threshold = 127
+    /// Décolleur d'étiquettes (`peelLabel`, accessoire). TD seulement.
+    public var peelLabel = false
+    /// Marge ajoutée en haut et en bas (`feedDirectionMargins`), en mm. TD seulement.
+    public var feedMarginMM = 0.0
+
+    public init() {}
+
+    /// Valeur SDK de `BRLMTDPrintSettingsDensity` : WeakLevel5 (0) à
+    /// StrongLevel5 (10), Neutral (5) au milieu ; nil = UsePrinterSetting.
+    public var tdDensityRawValue: Int? { density.map { min(5, max(-5, $0)) + 5 } }
+
+    public var clampedThreshold: UInt8 { UInt8(clamping: min(255, max(0, threshold))) }
+
+    /// Marge en points de la tête pour une résolution verticale donnée.
+    public func feedMarginDots(ydpi: Double) -> UInt {
+        UInt(max(0, (feedMarginMM / 25.4 * (ydpi > 0 ? ydpi : 203)).rounded()))
+    }
+
+    // Lecture tolérante : un réglage absent d'une ancienne version garde sa
+    // valeur par défaut au lieu d'effacer les autres.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        density = try c.decodeIfPresent(Int.self, forKey: .density)
+        bestQuality = try c.decodeIfPresent(Bool.self, forKey: .bestQuality) ?? false
+        halftone = try c.decodeIfPresent(Halftone.self, forKey: .halftone) ?? .threshold
+        threshold = try c.decodeIfPresent(Int.self, forKey: .threshold) ?? 127
+        peelLabel = try c.decodeIfPresent(Bool.self, forKey: .peelLabel) ?? false
+        feedMarginMM = try c.decodeIfPresent(Double.self, forKey: .feedMarginMM) ?? 0
+    }
 }
