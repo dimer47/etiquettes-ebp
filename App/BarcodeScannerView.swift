@@ -71,7 +71,7 @@ private struct BarcodeCameraView: UIViewControllerRepresentable {
 
 private final class BarcodeCameraController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     private let session = AVCaptureSession()
-    private let sessionQueue = DispatchQueue(label: "ProductLabel5890.camera")
+    private let sessionQueue = DispatchQueue(label: "ProductLabels.camera")
     private let previewLayer = AVCaptureVideoPreviewLayer()
     private let onScan: (String) -> Void
     private let onError: (String) -> Void

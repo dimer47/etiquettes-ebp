@@ -1,8 +1,8 @@
-# ProductLabel5890
+# ProductLabels
 
 *[English version](README.md)*
 
-**Étiquettes Pocket** est le nom affiché de l’application iPhone.
+**Étiquettes Produit** est le nom affiché de l’application iPhone.
 
 | TRONIC | SILVERCREST |
 |---|---|
@@ -12,7 +12,7 @@
 |---|---|
 | <img src="docs/images/app-editor-fr.png" alt="Formulaire produit en français" width="300"> | <img src="docs/images/app-print-fr.png" alt="Aperçu d’étiquette et impression" width="300"> |
 
-**Étiquettes Pocket** (nom anglais : **Pocket Labels**) est une application iPhone native pour saisir une fiche produit, voir son étiquette et l'imprimer directement en Bluetooth Low Energy sur une Pocket Printer 5890. Aucun AirPrint, export d'image, compte ou accès Internet n'est nécessaire après installation.
+**Étiquettes Produit** (nom anglais : **Product Labels**) est une application iPhone native pour saisir une fiche produit, voir son étiquette et l'imprimer directement en Bluetooth Low Energy sur une Pocket Printer 5890 ou une imprimante d'étiquettes Brother. Aucun AirPrint, export d'image, compte ou accès Internet n'est nécessaire après installation.
 
 ## Matériel et dimensions
 
@@ -23,6 +23,9 @@ Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) doc
 - `Sources/LabelCore` : données produit, choix de présentation, validation et encodage EAN‑13, prix français, rotation exacte du bitmap 1 bit ; testable sans iOS.
 - `App/LabelRenderer.swift` : composition à la résolution native, seuillage direct à 1 bit, barres EAN en modules entiers.
 - `App/PrinterManager.swift` : découverte, sélection, reconnexion, densité et impression directe.
+- `Sources/LabelCore/BrotherCatalog.swift` et `LabelRasterGeometry.swift` : catalogue des modèles Brother (séries, connexions, papiers, coupe) et géométrie du rendu agrandi, sans dépendance au SDK.
+- `App/BrotherPrinterService.swift` : seul fichier qui utilise le Brother Print SDK (recherche, état, validation, impression hors du fil principal).
+- `App/PrinterSetup.swift` et `App/PrinterSelectionView.swift` : choix imprimante → papier → coupe, conservé dans `UserDefaults`.
 - `App/LabelHistoryStore.swift` : historique local des impressions et restauration des paramètres associés.
 - `App/ContentView.swift` : formulaire, aperçu à l'endroit issu du **bitmap source** de l'impression, état BLE et réglages.
 - Bibliothèque SwiftPM `PocketPrinter5890Kit` et `PocketPrinter5890BLE` : commandes de densité et d'activation, raster en bandes de 24 lignes, contrôle de flux BLE et transport CoreBluetooth. La dépendance est épinglée à la révision vérifiée dans ce projet.
@@ -31,10 +34,10 @@ L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffre
 
 ## Compiler et installer
 
-Prérequis : Xcode compatible avec le SDK iOS, iOS 17 ou plus récent et un compte de signature Apple pour déployer sur iPhone. Ouvrir `ProductLabel5890.xcodeproj`, sélectionner le schéma `ProductLabel5890`, choisir son iPhone, configurer l'équipe de signature si nécessaire, puis lancer. Le paquet SwiftPM est téléchargé lors de la première compilation. Test du cœur : `swift test`. Compilation vérifiée sans signature avec :
+Prérequis : Xcode compatible avec le SDK iOS, iOS 17 ou plus récent et un compte de signature Apple pour déployer sur iPhone. Ouvrir `ProductLabels.xcodeproj`, sélectionner le schéma `ProductLabels`, choisir son iPhone, configurer l'équipe de signature si nécessaire, puis lancer. Le paquet SwiftPM est téléchargé lors de la première compilation. Test du cœur : `swift test`. Compilation vérifiée sans signature avec :
 
 ```sh
-xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ProductLabels.xcodeproj -scheme ProductLabels -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
 ```
 
 ## Utilisation
@@ -59,13 +62,17 @@ Le test matériel doit vérifier le contraste, la lecture du code avec un scanne
 
 Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas vérifiable sur le simulateur. Le numéro lu est validé comme EAN‑13 avant de remplacer le champ. Le scanner choisit une caméra arrière virtuelle triple ou double large lorsqu'elle existe, puis une caméra simple en repli. Sur les appareils compatibles, AVFoundation peut alors passer de l'objectif principal à l'ultra grand-angle pour une mise au point rapprochée selon la distance et la lumière. L'image démarre au champ de vision de l'objectif principal. Le scanner utilise l'autofocus continu ; toucher l'image déclenche une nouvelle mise au point à cet endroit, puis réactive le suivi continu. Le changement d'objectif réel et la lisibilité d'un code très proche restent à vérifier sur chaque modèle d'iPhone. Les catégories sont stockées localement dans `UserDefaults` sur l'appareil, sans synchronisation réseau.
 
+## Imprimantes Brother
+
+L'app imprime aussi sur les imprimantes Brother, en priorité la TD-4550DNWB en Bluetooth LE, avec le Brother Print SDK officiel. Le SDK 4.13.2 est livré dans `Vendor/`, avec la licence et l'autorisation de redistribution de Brother. Le volet Brother reprend [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio), testé sur TD-4550DNWB. Papiers, coupe, qualité, infos, rapport système et points à vérifier : [docs/BROTHER_FR.md](docs/BROTHER_FR.md).
+
 ## Langues
 
 L'interface est disponible en **français** (langue de développement) et en **anglais**. Les textes des écrans, états Bluetooth, noms de présentations et autorisations système se trouvent dans `Resources/fr.lproj` et `Resources/en.lproj` (`Localizable.strings` et `InfoPlist.strings`). La devise et la ponctuation du prix imprimé suivent les réglages régionaux de l'iPhone ; la saisie accepte toujours la virgule et le point. Les champs produit et noms de catégories déjà enregistrés restent tels que saisis : changer la langue de l'iPhone ne traduit pas les données personnelles existantes. Les langues autres que le français et l'anglais utilisent le français en repli.
 
 Dans **Réglages → Application**, le bouton de langue ouvre la page de l'application dans les réglages iOS. Le choix de langue par application y est géré par le système : il permet de choisir l'anglais ou le français sans maintenir deux mécanismes de traduction concurrents dans l'app.
 
-Le projet Xcode ne contient plus les références inactives aux anciens écrans de prévisualisation, à une extension de partage ou à App Intents. La bibliothèque `PocketPrinter5890` reste une dépendance volontaire pour le protocole et le transport BLE ; le nom interne du projet et son identifiant de paquet ne changent pas, afin de préserver l'installation et les préférences de l'app.
+Le projet Xcode ne contient plus les références inactives aux anciens écrans de prévisualisation, à une extension de partage ou à App Intents. La bibliothèque `PocketPrinter5890` reste une dépendance volontaire pour le protocole et le transport BLE . Le projet s'appelle `ProductLabels` et l'identifiant de l'app est `dimer47.productlabels` : une installation faite sous l'ancien identifiant (`dimer47.productlabel5890`) reste à part, avec ses propres données ; la supprimer de l'iPhone après la première installation.
 
 La documentation du protocole ne décrit aucune commande permettant d'éteindre immédiatement la 5890 par Bluetooth. Une commande de réglage du délai d'extinction automatique existe dans la bibliothèque, mais son fonctionnement sur l'A2Y n'a pas été vérifié ; l'application n'affiche donc pas de bouton « Éteindre ».
 
@@ -78,3 +85,5 @@ Les cinq nouvelles dispositions sont présentées dans [docs/DISPOSITIONS_PROPOS
 ## Licence et attribution
 
 Code du projet sous [licence MIT](LICENSE), copyright 2026 Dimitri Iachi. La bibliothèque [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) est également sous MIT et conserve sa propre attribution et licence dans son dépôt. Les photos des imprimantes ci-dessus proviennent du même dépôt et sont reprises avec attribution selon sa licence MIT. Le projet reprend la configuration Xcode et le choix de cette bibliothèque de [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), également annoncé MIT dans son README ; il ne modifie pas ce dépôt.
+
+Le Brother Print SDK de `Vendor/` appartient à Brother Industries et reste sous sa propre licence ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)) ; [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) autorise la redistribution des fichiers du dossier `libs` du SDK. Brother et les noms de modèles sont des marques de Brother Industries ; ce projet n'est ni affilié à Brother, ni approuvé par Brother.

@@ -3,6 +3,8 @@ import PocketPrinter5890Kit
 
 struct ContentView: View {
     @StateObject private var printer = PrinterManager()
+    @StateObject private var setup = PrinterSetup()
+    @StateObject private var brother = BrotherPrinterService()
     @StateObject private var thumbnailStore = LabelThumbnailStore()
     @StateObject private var history = LabelHistoryStore()
     @State private var label = (UserDefaults.standard.data(forKey: "lastLabel").flatMap { try? JSONDecoder().decode(ProductLabel.self, from: $0) }) ?? ProductLabel()
@@ -20,6 +22,25 @@ struct ContentView: View {
 
     private var labelSize: LabelSize { LabelSize(rawValue: selectedSize) ?? .standard }
     private var labelArrangement: LabelArrangement { LabelArrangement(rawValue: selectedArrangement) ?? .current }
+
+    private var isBrother: Bool { setup.brand == .brother }
+    /// Prête à recevoir un travail : 5890 connectée, ou Brother choisie avec
+    /// une connexion que le modèle accepte.
+    private var printerReady: Bool {
+        if isBrother {
+            guard brother.canPrint, let target = brother.target else { return false }
+            return setup.brotherModel.appConnections.contains(target.connection)
+        }
+        return printer.connected
+    }
+    private var isPrinting: Bool { isBrother ? brother.isBusy : printer.printing }
+    private var printedSizeText: String {
+        guard isBrother else { return "48 × \(labelSize.heightMillimeters) mm" }
+        let area = setup.brotherMedia.printableAreaMM(for: setup.brotherModel)
+        let fitted = LabelRasterGeometry.fittedSizeMM(layoutHeight: labelSize.heightDots, area: area)
+        return String(format: NSLocalizedString("≈ %.0f × %.0f mm sur %@", comment: "Brother printed size"),
+                      fitted.width, fitted.height, setup.brotherModel.title)
+    }
 
     private var bitmap: MonochromeBitmap? {
         try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement)
@@ -117,6 +138,24 @@ struct ContentView: View {
                     .controlSize(.large)
                     } else {
                     HStack {
+                        if isBrother {
+                            Image(systemName: "printer.fill")
+                                .font(.title3).foregroundStyle(printerReady ? .green : .secondary)
+                            VStack(alignment: .leading) {
+                                Text(String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)).font(.headline)
+                                Text(brother.target?.displayName ?? NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status"))
+                                    .font(.subheadline)
+                                if brother.target != nil || brother.status != NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status") {
+                                    Text(brother.status).font(.caption)
+                                        .foregroundStyle(brother.statusIsError ? .red : .secondary)
+                                }
+                            }
+                            Spacer()
+                            if brother.activity == .printing {
+                                Button("Annuler", role: .destructive) { brother.cancelPrint() }
+                            } else if brother.isBusy { ProgressView() }
+                            Button(brother.target == nil ? NSLocalizedString("Connecter", comment: "Connect printer") : NSLocalizedString("Changer", comment: "Change printer")) { openPrinters() }
+                        } else {
                         Image(systemName: "printer.fill")
                             .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
                         VStack(alignment: .leading) {
@@ -129,10 +168,15 @@ struct ContentView: View {
                             }
                         }
                         Spacer()
-                        Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { printer.scan(); showingPrinters = true }
+                        Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
+                        }
                     }
                     .padding(16)
                     .modifier(PrintCardStyle())
+                    // Toute la carte ouvre l'écran Imprimante, où tout se règle.
+                    .contentShape(RoundedRectangle(cornerRadius: 14))
+                    .onTapGesture { openPrinters() }
+                    .accessibilityAction(named: Text("Réglages de l’imprimante")) { openPrinters() }
                     Button {
                         showingPresentation = true
                         thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
@@ -143,7 +187,7 @@ struct ContentView: View {
                                 .font(.title3).foregroundStyle(.primary)
                             VStack(alignment: .leading) {
                                 Text("Présentation de l’étiquette").font(.headline)
-                                Text("\(labelArrangement.title) · \(labelSize.title) (48 × \(labelSize.heightMillimeters) mm)")
+                                Text("\(labelArrangement.title) · \(labelSize.title) (\(printedSizeText))")
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -169,19 +213,19 @@ struct ContentView: View {
                     .padding(16)
                     .modifier(PrintCardStyle())
                     Button { printCurrentLabel() } label: {
-                        Label(printer.printing ? NSLocalizedString("Impression…", comment: "Printing progress") : NSLocalizedString("Imprimer", comment: "Print button"), systemImage: "printer.fill")
+                        Label(isPrinting ? NSLocalizedString("Impression…", comment: "Printing progress") : NSLocalizedString("Imprimer", comment: "Print button"), systemImage: "printer.fill")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
-                    .disabled(bitmap == nil || printer.printing || !printer.connected)
+                    .disabled(bitmap == nil || isPrinting || !printerReady)
                     }
                 }
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Étiquettes Pocket")
+            .navigationTitle("Étiquettes Produit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -220,22 +264,42 @@ struct ContentView: View {
                     thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement)
                 }
             }
+            .onChange(of: brother.activity) { old, new in
+                // Erreur d'impression Brother : la montrer comme celles de la 5890.
+                if old == .printing, new == .idle, brother.statusIsError { message = brother.status }
+            }
             .onAppear {
                 if LabelSize(rawValue: selectedSize) == nil { selectedSize = LabelSize.standard.rawValue }
                 if LabelArrangement(rawValue: selectedArrangement) == nil { selectedArrangement = LabelArrangement.current.rawValue }
-                printer.reconnect()
+                setup.supportedLabels = { model in BrotherPrinterService.supportedLabelIndices(for: model) }
+                if !isBrother { printer.reconnect() }
             }
         }
     }
 
     private func printCurrentLabel() {
-        guard printer.connected, let bitmap else { return }
+        guard printerReady, bitmap != nil else { return }
         let entry = PrintedLabel(label: label, size: labelSize, arrangement: labelArrangement,
                                  densityValue: printer.density.rawValue,
                                  leadingFeedDots: printer.leadingFeedDots,
                                  trailingFeedDots: printer.trailingFeedDots,
                                  rotateContent180: printer.rotateContent180)
-        printer.print(bitmap) { history.record(entry) }
+        do { try submit(label, size: labelSize, arrangement: labelArrangement) { history.record(entry) } }
+        catch { message = error.localizedDescription }
+    }
+
+    /// Envoie l'étiquette à l'imprimante choisie. La 5890 reçoit le bitmap
+    /// de 384 points comme avant ; une Brother reçoit la même mise en page
+    /// dessinée hors du fil principal à la résolution de sa tête.
+    private func submit(_ label: ProductLabel, size: LabelSize, arrangement: LabelArrangement,
+                        onQueued: (() -> Void)? = nil) throws {
+        if isBrother {
+            brother.print(job: setup.brotherJob, layoutHeight: size.heightDots, render: { scale in
+                try LabelRenderer.grayImage(LabelRenderer.render(label, size: size, arrangement: arrangement, scale: scale))
+            }, onSuccess: onQueued)
+        } else {
+            printer.print(try LabelRenderer.render(label, size: size, arrangement: arrangement), onQueued: onQueued)
+        }
     }
 
     private func restore(_ entry: PrintedLabel) {
@@ -251,15 +315,15 @@ struct ContentView: View {
     }
 
     private func reprint(_ entry: PrintedLabel) {
-        guard printer.connected else { return }
+        guard printerReady else { return }
         restore(entry)
         do {
-            let bitmap = try LabelRenderer.render(entry.label, size: entry.size, arrangement: entry.arrangement)
+            _ = try LabelRenderer.render(entry.label, size: entry.size, arrangement: entry.arrangement)
             let copy = PrintedLabel(label: entry.label, size: entry.size, arrangement: entry.arrangement,
                                     densityValue: entry.densityValue, leadingFeedDots: entry.leadingFeedDots,
                                     trailingFeedDots: entry.trailingFeedDots,
                                     rotateContent180: entry.rotateContent180)
-            printer.print(bitmap) { history.record(copy) }
+            try submit(entry.label, size: entry.size, arrangement: entry.arrangement) { history.record(copy) }
         } catch { message = error.localizedDescription }
     }
 
@@ -280,7 +344,7 @@ struct ContentView: View {
                                 .buttonStyle(.bordered)
                             Button("Réimprimer") { reprint(entry) }
                                 .buttonStyle(.borderedProminent)
-                                .disabled(!printer.connected || printer.printing)
+                                .disabled(!printerReady || isPrinting)
                         }
                     }
                     .padding(.vertical, 4)
@@ -375,90 +439,37 @@ struct ContentView: View {
     }
 
     private var printerSheet: some View {
-        NavigationStack {
-            List {
-                if printer.devices.isEmpty { Text(printer.status) }
-                ForEach(printer.devices.filter(\.isLikelyL13)) { device in
-                    Button {
-                        printer.connect(device)
-                        showingPrinters = false
-                    } label: {
-                        VStack(alignment: .leading) {
-                            let alias = UserDefaults.standard.string(forKey: "printerAlias.\(device.id.uuidString)") ?? ""
-                            Text(alias.isEmpty ? device.name : alias).font(.headline)
-                            Text(alias.isEmpty ? String(format: NSLocalizedString("Signal : %d dBm", comment: "Printer signal"), device.rssi) : "\(device.name) · \(device.rssi) dBm")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Choisir la 5890")
-            .toolbar { Button("Fermer") { showingPrinters = false } }
-        }
-        .presentationDetents([.medium, .large])
+        PrinterSelectionView(printer: printer, setup: setup, brother: brother,
+                             canTestPrint: printerReady && !isPrinting,
+                             onTestPrint: printTestLabel,
+                             onClose: { showingPrinters = false })
+    }
+
+    private func openPrinters() {
+        if !isBrother { printer.scan() }
+        showingPrinters = true
+    }
+
+    private func printTestLabel() {
+        let test = ProductLabel(name: NSLocalizedString("TEST TEXTE 12 18 27", comment: "Calibration label"), category: "5890 · 384 points", shelfReference: NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Calibration label"), productReference: NSLocalizedString("TRAITS | || |||", comment: "Calibration label"), ean: "4006381333931", price: "5,95")
+        do {
+            try submit(test, size: labelSize, arrangement: labelArrangement)
+            showingPrinters = false
+        } catch { message = error.localizedDescription }
     }
 
     private var settingsSheet: some View {
         NavigationStack {
             Form {
                 Section("Imprimante") {
-                    if printer.connected {
-                        Text(printer.connectedDeviceName ?? "Pocket Printer 5890")
-                        TextField("Nom personnalisé", text: $printer.printerAlias)
-                        if let battery = printer.batteryPercent {
-                            Label(String(format: NSLocalizedString("Batterie : %d %%", comment: "Printer battery"), battery), systemImage: "battery.100percent")
-                        } else {
-                            Text("Niveau de batterie en cours de lecture")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        Text("Aucune imprimante connectée").foregroundStyle(.secondary)
+                    LabeledContent("Imprimante", value: isBrother
+                                   ? String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)
+                                   : "Pocket 5890")
+                    Button("Choisir l’imprimante et le papier") {
+                        showingSettings = false
+                        // Une feuille ne s'ouvre qu'après la fermeture de la précédente.
+                        Task { try? await Task.sleep(for: .milliseconds(450)); openPrinters() }
                     }
-                }
-                Section("Impression thermique") {
-                Picker("Densité", selection: $printer.density) {
-                    ForEach(PrintDensity.allCases) { density in
-                        Text(NSLocalizedString(density.title, comment: "Print density")).tag(density)
-                    }
-                }
-                Picker("Avance avant impression", selection: $printer.leadingFeedDots) {
-                    Text("0 mm").tag(0)
-                    Text("1 mm").tag(8)
-                    Text("2 mm").tag(16)
-                    Text("3 mm").tag(24)
-                    Text("5 mm").tag(40)
-                    Text("10 mm").tag(80)
-                }
-                Picker("Avance après impression", selection: $printer.trailingFeedDots) {
-                    Text("10 mm").tag(80)
-                    Text("12 mm").tag(96)
-                    Text("13 mm").tag(104)
-                    Text("14 mm").tag(112)
-                    Text("15 mm").tag(120)
-                    Text("16 mm").tag(128)
-                    Text("20 mm").tag(160)
-                }
-                Text("13 mm ajoute environ 3 mm de papier blanc après le prix par rapport au réglage initial.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("L’avance avant impression vaut 0 mm par défaut. Elle ajoute du papier avant le premier point imprimé.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Toggle("Tourner l’impression de 180°", isOn: $printer.rotateContent180)
-                Text("L’aperçu reste à l’endroit. Retournez le ticket après découpe pour lire l’étiquette avec le grand blanc en bas.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
-                Section("Test et connexion") {
-                    Button("Imprimer une étiquette de test") {
-                        let test = ProductLabel(name: NSLocalizedString("TEST TEXTE 12 18 27", comment: "Calibration label"), category: "5890 · 384 points", shelfReference: NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Calibration label"), productReference: NSLocalizedString("TRAITS | || |||", comment: "Calibration label"), ean: "4006381333931", price: "5,95")
-                        do {
-                            printer.print(try LabelRenderer.render(test, size: labelSize, arrangement: labelArrangement))
-                            showingSettings = false
-                        } catch { message = error.localizedDescription }
-                    }
-                    .disabled(!printer.connected || printer.printing)
-                    if printer.connected { Button("Déconnecter") { printer.disconnect() } }
                 }
                 Section("Application") {
                     LabeledContent("Langue de l’application", value: Bundle.main.preferredLocalizations.first == "en" ? "English" : "Français")
