@@ -58,6 +58,7 @@ final class BrotherPrinterService: ObservableObject {
 
     private static let targetKey = "brother.target"
     private let queue = DispatchQueue(label: "ProductLabel5890.brother", qos: .userInitiated)
+    private var searchCanceled = false
 
     init() {
         status = Self.isSDKAvailable
@@ -84,6 +85,7 @@ final class BrotherPrinterService: ObservableObject {
         guard activity == .idle else { return }
         guard Self.isSDKAvailable else { return report(NSLocalizedString("Brother Print SDK absent", comment: "Brother status"), isError: true) }
         found.removeAll()
+        searchCanceled = false
         activity = .searching
         report(String(format: NSLocalizedString("Recherche %@ pendant %d s…", comment: "Brother search"),
                       connection.title, Int(duration)))
@@ -112,8 +114,11 @@ final class BrotherPrinterService: ObservableObject {
     }
 
     func cancelSearch() {
+        guard activity == .searching else { return }
+        searchCanceled = true
         #if canImport(BRLMPrinterKit)
-        queue.async {
+        // Pas sur `queue` : la recherche en cours l'occupe jusqu'à la fin.
+        DispatchQueue.global(qos: .userInitiated).async {
             BRLMPrinterSearcher.cancelBLESearch()
             BRLMPrinterSearcher.cancelNetworkSearch()
         }
@@ -145,6 +150,7 @@ final class BrotherPrinterService: ObservableObject {
     private func finishSearch(errorMessage: String?) {
         activity = .idle
         if let errorMessage { report(errorMessage, isError: true) }
+        else if searchCanceled { report(String(format: NSLocalizedString("Recherche arrêtée. %d imprimante(s) trouvée(s)", comment: "Brother search"), found.count)) }
         else if found.isEmpty { report(NSLocalizedString("Aucune imprimante Brother trouvée. Vérifiez qu’elle est allumée, que son Bluetooth ou son Wi-Fi est actif et qu’elle n’est pas connectée à un autre appareil.", comment: "Brother search"), isError: true) }
         else { report(String(format: NSLocalizedString("%d imprimante(s) trouvée(s)", comment: "Brother search"), found.count)) }
     }
