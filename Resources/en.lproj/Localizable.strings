@@ -146,7 +146,6 @@
 "Position de la marque : %@ mm" = "Mark position: %@ mm";
 "Hauteur de la marque : %@ mm" = "Mark height: %@ mm";
 "La marque noire est imprimée au dos du rouleau ; sa position se mesure depuis le début de l’étiquette." = "The black mark is printed on the back of the roll; its position is measured from the start of the label.";
-"Marges : %@ mm" = "Margins: %@ mm";
 "Continu %@ mm" = "Continuous %@ mm";
 "Prédécoupé %@ × %@ mm" = "Die-cut %@ × %@ mm";
 "Marque noire %@ × %@ mm" = "Black mark %@ × %@ mm";
@@ -214,7 +213,6 @@
 "Annuler" = "Cancel";
 "Journal Brother" = "Brother log";
 "Décolleur d’étiquettes" = "Label peeler";
-"Marge haut/bas : %.1f mm" = "Top/bottom margin: %.1f mm";
 "Sur les P-touch, pas de coupe en fin d’impression ; certains modèles n’ont qu’une coupe manuelle." = "On P-touch printers there is no cut at the end of the job; some models only have a manual cutter.";
 "Densité de l’imprimante" = "Printer density";
 "Densité : %@" = "Density: %@";
@@ -273,3 +271,14 @@
 "Journal Brother vide : recherchez ou imprimez pour le remplir." = "Brother log is empty: search or print to fill it.";
 "Effacer" = "Clear";
 "Batterie" = "Battery";
+"Test" = "Test";
+"3. Impression thermique" = "3. Thermal printing";
+"Imprimante connectée" = "Connected printer";
+"Réglages de l’imprimante" = "Printer settings";
+"Marge haute : %@ mm" = "Top margin: %@ mm";
+"Marge basse : %@ mm" = "Bottom margin: %@ mm";
+"Marge gauche : %@ mm" = "Left margin: %@ mm";
+"Marge droite : %@ mm" = "Right margin: %@ mm";
+"Marge basse : sans effet en continu (le SDK l’ignore)." = "Bottom margin: no effect on continuous rolls (the SDK ignores it).";
+"Marge d’avance (haut et bas) : %.1f mm" = "Feed margin (top and bottom): %.1f mm";
+"Une seule valeur, imposée par le SDK, ajoutée en haut et en bas de chaque étiquette." = "A single value, set by the SDK, added at the top and bottom of each label.";

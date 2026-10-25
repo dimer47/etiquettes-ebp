@@ -145,14 +145,16 @@ struct ContentView: View {
                                 Text(String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)).font(.headline)
                                 Text(brother.target?.displayName ?? NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status"))
                                     .font(.subheadline)
-                                Text(brother.status).font(.caption)
-                                    .foregroundStyle(brother.statusIsError ? .red : .secondary)
+                                if brother.target != nil || brother.status != NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status") {
+                                    Text(brother.status).font(.caption)
+                                        .foregroundStyle(brother.statusIsError ? .red : .secondary)
+                                }
                             }
                             Spacer()
                             if brother.activity == .printing {
                                 Button("Annuler", role: .destructive) { brother.cancelPrint() }
                             } else if brother.isBusy { ProgressView() }
-                            Button(brother.target == nil ? NSLocalizedString("Connecter", comment: "Connect printer") : NSLocalizedString("Changer", comment: "Change printer")) { showingPrinters = true }
+                            Button(brother.target == nil ? NSLocalizedString("Connecter", comment: "Connect printer") : NSLocalizedString("Changer", comment: "Change printer")) { openPrinters() }
                         } else {
                         Image(systemName: "printer.fill")
                             .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
@@ -166,11 +168,15 @@ struct ContentView: View {
                             }
                         }
                         Spacer()
-                        Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { printer.scan(); showingPrinters = true }
+                        Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
                         }
                     }
                     .padding(16)
                     .modifier(PrintCardStyle())
+                    // Toute la carte ouvre l'écran Imprimante, où tout se règle.
+                    .contentShape(RoundedRectangle(cornerRadius: 14))
+                    .onTapGesture { openPrinters() }
+                    .accessibilityAction(named: Text("Réglages de l’imprimante")) { openPrinters() }
                     Button {
                         showingPresentation = true
                         thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
@@ -433,95 +439,37 @@ struct ContentView: View {
     }
 
     private var printerSheet: some View {
-        PrinterSelectionView(printer: printer, setup: setup, brother: brother) { showingPrinters = false }
+        PrinterSelectionView(printer: printer, setup: setup, brother: brother,
+                             canTestPrint: printerReady && !isPrinting,
+                             onTestPrint: printTestLabel,
+                             onClose: { showingPrinters = false })
+    }
+
+    private func openPrinters() {
+        if !isBrother { printer.scan() }
+        showingPrinters = true
+    }
+
+    private func printTestLabel() {
+        let test = ProductLabel(name: NSLocalizedString("TEST TEXTE 12 18 27", comment: "Calibration label"), category: "5890 · 384 points", shelfReference: NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Calibration label"), productReference: NSLocalizedString("TRAITS | || |||", comment: "Calibration label"), ean: "4006381333931", price: "5,95")
+        do {
+            try submit(test, size: labelSize, arrangement: labelArrangement)
+            showingPrinters = false
+        } catch { message = error.localizedDescription }
     }
 
     private var settingsSheet: some View {
         NavigationStack {
             Form {
                 Section("Imprimante") {
-                    if isBrother {
-                        LabeledContent("Modèle", value: setup.brotherModel.title)
-                        Text(brother.target?.displayName ?? NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status"))
-                            .foregroundStyle(.secondary)
-                        Button("Choisir l’imprimante et le papier") {
-                            showingSettings = false
-                            // Une feuille ne s'ouvre qu'après la fermeture de la précédente.
-                            Task { try? await Task.sleep(for: .milliseconds(450)); showingPrinters = true }
-                        }
-                    } else if printer.connected {
-                        Text(printer.connectedDeviceName ?? "Pocket Printer 5890")
-                        TextField("Nom personnalisé", text: $printer.printerAlias)
-                        if let battery = printer.batteryPercent {
-                            Label(String(format: NSLocalizedString("Batterie : %d %%", comment: "Printer battery"), battery), systemImage: "battery.100percent")
-                        } else {
-                            Text("Niveau de batterie en cours de lecture")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        Text("Aucune imprimante connectée").foregroundStyle(.secondary)
+                    LabeledContent("Imprimante", value: isBrother
+                                   ? String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)
+                                   : "Pocket 5890")
+                    Button("Choisir l’imprimante et le papier") {
+                        showingSettings = false
+                        // Une feuille ne s'ouvre qu'après la fermeture de la précédente.
+                        Task { try? await Task.sleep(for: .milliseconds(450)); openPrinters() }
                     }
-                }
-                if isBrother {
-                    BrotherCutSection(setup: setup)
-                    BrotherQualitySection(setup: setup)
-                    Section {
-                        NavigationLink {
-                            BrotherConsoleView(brother: brother)
-                        } label: {
-                            LabeledContent("Journal Brother", value: "\(brother.events.count)")
-                        }
-                    }
-                }
-                Section("Impression thermique (Pocket 5890)") {
-                Picker("Densité", selection: $printer.density) {
-                    ForEach(PrintDensity.allCases) { density in
-                        Text(NSLocalizedString(density.title, comment: "Print density")).tag(density)
-                    }
-                }
-                Picker("Avance avant impression", selection: $printer.leadingFeedDots) {
-                    Text("0 mm").tag(0)
-                    Text("1 mm").tag(8)
-                    Text("2 mm").tag(16)
-                    Text("3 mm").tag(24)
-                    Text("5 mm").tag(40)
-                    Text("10 mm").tag(80)
-                }
-                Picker("Avance après impression", selection: $printer.trailingFeedDots) {
-                    Text("10 mm").tag(80)
-                    Text("12 mm").tag(96)
-                    Text("13 mm").tag(104)
-                    Text("14 mm").tag(112)
-                    Text("15 mm").tag(120)
-                    Text("16 mm").tag(128)
-                    Text("20 mm").tag(160)
-                }
-                Text("13 mm ajoute environ 3 mm de papier blanc après le prix par rapport au réglage initial.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Text("L’avance avant impression vaut 0 mm par défaut. Elle ajoute du papier avant le premier point imprimé.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Toggle("Tourner l’impression de 180°", isOn: $printer.rotateContent180)
-                Text("L’aperçu reste à l’endroit. Retournez le ticket après découpe pour lire l’étiquette avec le grand blanc en bas.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                }
-                Section("Test et connexion") {
-                    Button("Imprimer une étiquette de test") {
-                        let test = ProductLabel(name: NSLocalizedString("TEST TEXTE 12 18 27", comment: "Calibration label"), category: "5890 · 384 points", shelfReference: NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Calibration label"), productReference: NSLocalizedString("TRAITS | || |||", comment: "Calibration label"), ean: "4006381333931", price: "5,95")
-                        do {
-                            try submit(test, size: labelSize, arrangement: labelArrangement)
-                            showingSettings = false
-                        } catch { message = error.localizedDescription }
-                    }
-                    .disabled(!printerReady || isPrinting)
-                    if isBrother {
-                        Button("Tester la connexion et lire l’état") { brother.checkStatus(selectedModel: setup.brotherModel) }
-                            .disabled(brother.target == nil || brother.isBusy)
-                        Text(brother.status).font(.footnote)
-                            .foregroundStyle(brother.statusIsError ? .red : .secondary)
-                    } else if printer.connected { Button("Déconnecter") { printer.disconnect() } }
                 }
                 Section("Application") {
                     LabeledContent("Langue de l’application", value: Bundle.main.preferredLocalizations.first == "en" ? "English" : "Français")

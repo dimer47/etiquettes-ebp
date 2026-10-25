@@ -599,8 +599,8 @@ enum BrotherSDKBridge {
     }
 
     private static func customPaperSize(_ paper: BrotherPaper) -> BRLMCustomPaperSize {
-        let margin = CGFloat(paper.marginMM)
-        let margins = BRLMCustomPaperSizeMargins(top: margin, left: margin, bottom: margin, right: margin)
+        let margins = BRLMCustomPaperSizeMargins(top: CGFloat(paper.topMarginMM), left: CGFloat(paper.leftMarginMM),
+                                                 bottom: CGFloat(paper.bottomMarginMM), right: CGFloat(paper.rightMarginMM))
         switch paper.kind {
         case .roll:
             return BRLMCustomPaperSize(rollWithTapeWidth: CGFloat(paper.widthMM),

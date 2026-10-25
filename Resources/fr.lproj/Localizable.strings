@@ -146,7 +146,6 @@
 "Position de la marque : %@ mm" = "Position de la marque : %@ mm";
 "Hauteur de la marque : %@ mm" = "Hauteur de la marque : %@ mm";
 "La marque noire est imprimée au dos du rouleau ; sa position se mesure depuis le début de l’étiquette." = "La marque noire est imprimée au dos du rouleau ; sa position se mesure depuis le début de l’étiquette.";
-"Marges : %@ mm" = "Marges : %@ mm";
 "Continu %@ mm" = "Continu %@ mm";
 "Prédécoupé %@ × %@ mm" = "Prédécoupé %@ × %@ mm";
 "Marque noire %@ × %@ mm" = "Marque noire %@ × %@ mm";
@@ -214,7 +213,6 @@
 "Annuler" = "Annuler";
 "Journal Brother" = "Journal Brother";
 "Décolleur d’étiquettes" = "Décolleur d’étiquettes";
-"Marge haut/bas : %.1f mm" = "Marge haut/bas : %.1f mm";
 "Sur les P-touch, pas de coupe en fin d’impression ; certains modèles n’ont qu’une coupe manuelle." = "Sur les P-touch, pas de coupe en fin d’impression ; certains modèles n’ont qu’une coupe manuelle.";
 "Densité de l’imprimante" = "Densité de l’imprimante";
 "Densité : %@" = "Densité : %@";
@@ -273,3 +271,14 @@
 "Journal Brother vide : recherchez ou imprimez pour le remplir." = "Journal Brother vide : recherchez ou imprimez pour le remplir.";
 "Effacer" = "Effacer";
 "Batterie" = "Batterie";
+"Test" = "Test";
+"3. Impression thermique" = "3. Impression thermique";
+"Imprimante connectée" = "Imprimante connectée";
+"Réglages de l’imprimante" = "Réglages de l’imprimante";
+"Marge haute : %@ mm" = "Marge haute : %@ mm";
+"Marge basse : %@ mm" = "Marge basse : %@ mm";
+"Marge gauche : %@ mm" = "Marge gauche : %@ mm";
+"Marge droite : %@ mm" = "Marge droite : %@ mm";
+"Marge basse : sans effet en continu (le SDK l’ignore)." = "Marge basse : sans effet en continu (le SDK l’ignore).";
+"Marge d’avance (haut et bas) : %.1f mm" = "Marge d’avance (haut et bas) : %.1f mm";
+"Une seule valeur, imposée par le SDK, ajoutée en haut et en bas de chaque étiquette." = "Une seule valeur, imposée par le SDK, ajoutée en haut et en bas de chaque étiquette.";

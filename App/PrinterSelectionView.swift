@@ -3,12 +3,15 @@ import PocketPrinter5890Kit
 
 /// Écran « Imprimante », dans l'ordre : 1. imprimante (Pocket 5890 ou
 /// Brother, puis le modèle), 2. papier compatible, 3. coupe et copies,
-/// 4. qualité, puis la connexion. Ouvert par le bouton Connecter / Changer.
+/// 4. qualité, puis la connexion et le test. Seul endroit où se règle
+/// l'imprimante : Réglages n'y renvoie que par un lien.
 /// Le volet Brother reprend TD Print Studio.
 struct PrinterSelectionView: View {
     @ObservedObject var printer: PrinterManager
     @ObservedObject var setup: PrinterSetup
     @ObservedObject var brother: BrotherPrinterService
+    let canTestPrint: Bool
+    let onTestPrint: () -> Void
     let onClose: () -> Void
 
     var body: some View {
@@ -46,6 +49,11 @@ struct PrinterSelectionView: View {
                     BrotherQualitySection(setup: setup)
                     BrotherConnectionSections(setup: setup, brother: brother)
                 }
+
+                Section("Test") {
+                    Button("Imprimer une étiquette de test", action: onTestPrint)
+                        .disabled(!canTestPrint)
+                }
             }
             .navigationTitle("Imprimante")
             .navigationBarTitleDisplayMode(.inline)
@@ -69,6 +77,51 @@ struct PrinterSelectionView: View {
             Text("Rouleau ticket 58 mm continu (48 mm imprimables)")
             Text("Le format de l’étiquette se choisit dans Présentation de l’étiquette.")
                 .font(.footnote).foregroundStyle(.secondary)
+        }
+        Section {
+            Picker("Densité", selection: $printer.density) {
+                ForEach(PrintDensity.allCases) { density in
+                    Text(NSLocalizedString(density.title, comment: "Print density")).tag(density)
+                }
+            }
+            Picker("Avance avant impression", selection: $printer.leadingFeedDots) {
+                Text("0 mm").tag(0)
+                Text("1 mm").tag(8)
+                Text("2 mm").tag(16)
+                Text("3 mm").tag(24)
+                Text("5 mm").tag(40)
+                Text("10 mm").tag(80)
+            }
+            Picker("Avance après impression", selection: $printer.trailingFeedDots) {
+                Text("10 mm").tag(80)
+                Text("12 mm").tag(96)
+                Text("13 mm").tag(104)
+                Text("14 mm").tag(112)
+                Text("15 mm").tag(120)
+                Text("16 mm").tag(128)
+                Text("20 mm").tag(160)
+            }
+            Toggle("Tourner l’impression de 180°", isOn: $printer.rotateContent180)
+        } header: {
+            Text("3. Impression thermique")
+        } footer: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("13 mm ajoute environ 3 mm de papier blanc après le prix par rapport au réglage initial.")
+                Text("L’avance avant impression vaut 0 mm par défaut. Elle ajoute du papier avant le premier point imprimé.")
+                Text("L’aperçu reste à l’endroit. Retournez le ticket après découpe pour lire l’étiquette avec le grand blanc en bas.")
+            }
+        }
+        if printer.connected {
+            Section("Imprimante connectée") {
+                Text(printer.connectedDeviceName ?? "Pocket Printer 5890")
+                TextField("Nom personnalisé", text: $printer.printerAlias)
+                if let battery = printer.batteryPercent {
+                    Label(String(format: NSLocalizedString("Batterie : %d %%", comment: "Printer battery"), battery), systemImage: "battery.100percent")
+                } else {
+                    Text("Niveau de batterie en cours de lecture").foregroundStyle(.secondary)
+                }
+                Button("Déconnecter", role: .destructive) { printer.disconnect() }
+            }
         }
         Section("Pocket 5890 à proximité") {
             if printer.devices.filter(\.isLikelyL13).isEmpty { Text(printer.status) }
@@ -255,8 +308,21 @@ struct CustomPaperEditor: View {
             Text("La marque noire est imprimée au dos du rouleau ; sa position se mesure depuis le début de l’étiquette.")
                 .font(.caption).foregroundStyle(.secondary)
         }
-        Stepper(value: binding(\.marginMM), in: 0...10, step: 0.5) {
-            Text(String(format: NSLocalizedString("Marges : %@ mm", comment: "Paper"), BrotherPaper.format(paper.marginMM)))
+        marginStepper("Marge haute : %@ mm", \.topMarginMM)
+        if paper.kind.hasFixedLength {
+            marginStepper("Marge basse : %@ mm", \.bottomMarginMM)
+        } else {
+            // Le SDK ignore la marge du bas en continu.
+            Text("Marge basse : sans effet en continu (le SDK l’ignore).")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+        marginStepper("Marge gauche : %@ mm", \.leftMarginMM)
+        marginStepper("Marge droite : %@ mm", \.rightMarginMM)
+    }
+
+    private func marginStepper(_ format: String, _ keyPath: WritableKeyPath<BrotherPaper, Double>) -> some View {
+        Stepper(value: binding(keyPath), in: 0...10, step: 0.5) {
+            Text(String(format: NSLocalizedString(format, comment: "Paper margin"), BrotherPaper.format(paper[keyPath: keyPath])))
         }
     }
 
@@ -323,9 +389,11 @@ struct BrotherCutSection: View {
             if setup.brotherModel.series == .td {
                 Toggle("Décolleur d’étiquettes", isOn: $setup.quality.peelLabel)
                 Stepper(value: $setup.quality.feedMarginMM, in: 0...20, step: 0.5) {
-                    Text(String(format: NSLocalizedString("Marge haut/bas : %.1f mm", comment: "Feed margin"),
+                    Text(String(format: NSLocalizedString("Marge d’avance (haut et bas) : %.1f mm", comment: "Feed margin"),
                                 setup.quality.feedMarginMM))
                 }
+                Text("Une seule valeur, imposée par le SDK, ajoutée en haut et en bas de chaque étiquette.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             Stepper(value: $setup.copies, in: 1...99) {
                 Text(String(format: NSLocalizedString("Copies : %d", comment: "Copies"), setup.copies))

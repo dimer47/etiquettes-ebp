@@ -81,6 +81,24 @@ final class BrotherCatalogTests: XCTestCase {
         XCTAssertEqual(BrotherPaper.dieCut(widthMM: 102, lengthMM: 51).printableLengthMM, 48)
     }
 
+    func testSeparateMarginsShapeThePrintableArea() {
+        var paper = BrotherPaper.dieCut(widthMM: 102, lengthMM: 51)
+        paper.topMarginMM = 4
+        paper.bottomMarginMM = 1
+        paper.leftMarginMM = 2
+        paper.rightMarginMM = 0
+        XCTAssertEqual(paper.printableWidthMM, 100)
+        XCTAssertEqual(paper.printableLengthMM, 46)
+    }
+
+    func testLegacySingleMarginIsReadOnAllSides() throws {
+        let json = #"{"kind":"roll","widthMM":102,"lengthMM":0,"gapMM":0,"marginMM":2,"markOffsetMM":0,"markLengthMM":0}"#
+        let paper = try JSONDecoder().decode(BrotherPaper.self, from: Data(json.utf8))
+        XCTAssertEqual([paper.topMarginMM, paper.leftMarginMM, paper.bottomMarginMM, paper.rightMarginMM], [2, 2, 2, 2])
+        let again = try JSONDecoder().decode(BrotherPaper.self, from: JSONEncoder().encode(paper))
+        XCTAssertEqual(again, paper)
+    }
+
     func testSDKLabelOrderMatchesTheHeaders() {
         XCTAssertEqual(BrotherLabelSize.ql.count, 33)
         XCTAssertEqual(BrotherLabelSize.ql.first?.name, "DieCutW17H54")

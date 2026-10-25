@@ -394,8 +394,12 @@ public struct BrotherPaper: Hashable, Codable, Sendable, Identifiable {
     public var lengthMM: Double
     /// Espace entre deux étiquettes (`gapLength`), en prédécoupé.
     public var gapMM: Double
-    /// Marge appliquée sur les quatre côtés.
-    public var marginMM: Double
+    /// Marges de `BRLMCustomPaperSizeMargins`, côté par côté. En continu, le
+    /// SDK ignore la marge du bas (« disable bottomMargin »).
+    public var topMarginMM: Double
+    public var leftMarginMM: Double
+    public var bottomMarginMM: Double
+    public var rightMarginMM: Double
     /// `markPosition` : décalage de la marque depuis le début de l'étiquette.
     public var markOffsetMM: Double
     /// `markHeight` : hauteur de la marque noire.
@@ -407,7 +411,10 @@ public struct BrotherPaper: Hashable, Codable, Sendable, Identifiable {
         self.widthMM = widthMM
         self.lengthMM = lengthMM
         self.gapMM = gapMM
-        self.marginMM = marginMM
+        self.topMarginMM = marginMM
+        self.leftMarginMM = marginMM
+        self.bottomMarginMM = marginMM
+        self.rightMarginMM = marginMM
         self.markOffsetMM = markOffsetMM
         self.markLengthMM = markLengthMM
     }
@@ -449,8 +456,46 @@ public struct BrotherPaper: Hashable, Codable, Sendable, Identifiable {
         return paper
     }
 
-    public var printableWidthMM: Double { max(1, widthMM - marginMM * 2) }
-    public var printableLengthMM: Double? { kind.hasFixedLength ? max(1, lengthMM - marginMM * 2) : nil }
+    public var printableWidthMM: Double { max(1, widthMM - leftMarginMM - rightMarginMM) }
+    public var printableLengthMM: Double? {
+        kind.hasFixedLength ? max(1, lengthMM - topMarginMM - bottomMarginMM) : nil
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, widthMM, lengthMM, gapMM, markOffsetMM, markLengthMM
+        case topMarginMM, leftMarginMM, bottomMarginMM, rightMarginMM
+        /// Ancienne marge unique, relue pour les réglages déjà enregistrés.
+        case marginMM
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try c.decode(Kind.self, forKey: .kind)
+        widthMM = try c.decode(Double.self, forKey: .widthMM)
+        lengthMM = try c.decode(Double.self, forKey: .lengthMM)
+        gapMM = try c.decode(Double.self, forKey: .gapMM)
+        markOffsetMM = try c.decode(Double.self, forKey: .markOffsetMM)
+        markLengthMM = try c.decode(Double.self, forKey: .markLengthMM)
+        let legacy = try c.decodeIfPresent(Double.self, forKey: .marginMM) ?? 1.5
+        topMarginMM = try c.decodeIfPresent(Double.self, forKey: .topMarginMM) ?? legacy
+        leftMarginMM = try c.decodeIfPresent(Double.self, forKey: .leftMarginMM) ?? legacy
+        bottomMarginMM = try c.decodeIfPresent(Double.self, forKey: .bottomMarginMM) ?? legacy
+        rightMarginMM = try c.decodeIfPresent(Double.self, forKey: .rightMarginMM) ?? legacy
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(kind, forKey: .kind)
+        try c.encode(widthMM, forKey: .widthMM)
+        try c.encode(lengthMM, forKey: .lengthMM)
+        try c.encode(gapMM, forKey: .gapMM)
+        try c.encode(markOffsetMM, forKey: .markOffsetMM)
+        try c.encode(markLengthMM, forKey: .markLengthMM)
+        try c.encode(topMarginMM, forKey: .topMarginMM)
+        try c.encode(leftMarginMM, forKey: .leftMarginMM)
+        try c.encode(bottomMarginMM, forKey: .bottomMarginMM)
+        try c.encode(rightMarginMM, forKey: .rightMarginMM)
+    }
 
     public static func format(_ value: Double) -> String {
         value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value)
