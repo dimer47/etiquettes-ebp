@@ -219,7 +219,7 @@ struct ContentView: View {
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Étiquettes Pocket")
+            .navigationTitle("Étiquettes Produit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

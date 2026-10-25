@@ -2,7 +2,7 @@
 
 *[Version française](README_FR.md)*
 
-**Pocket Labels** (French: **Étiquettes Pocket**) is a native iPhone app for creating product price labels and printing them directly over Bluetooth Low Energy to a Pocket Printer 5890. No AirPrint, image export, account, or internet connection is needed after installation.
+**Product Labels** (French: **Étiquettes Produit**) is a native iPhone app for creating product price labels and printing them directly over Bluetooth Low Energy to a Pocket Printer 5890 or a Brother label printer. No AirPrint, image export, account, or internet connection is needed after installation.
 
 | TRONIC | SILVERCREST |
 |---|---|
@@ -10,7 +10,7 @@
 
 | Product editor | Label preview and print |
 |---|---|
-| <img src="docs/images/app-editor-en.png" alt="Pocket Labels product editor" width="300"> | <img src="docs/images/app-print-fr.png" alt="Pocket Labels print preview, shown in French" width="300"> |
+| <img src="docs/images/app-editor-en.png" alt="Product Labels product editor" width="300"> | <img src="docs/images/app-print-fr.png" alt="Product Labels print preview, shown in French" width="300"> |
 
 ## What the app does
 

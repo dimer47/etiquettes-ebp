@@ -1,6 +1,6 @@
 # Imprimantes Brother
 
-**Étiquettes Pocket** imprime aussi sur les imprimantes Brother, en priorité la
+**Étiquettes Produit** imprime aussi sur les imprimantes Brother, en priorité la
 **TD-4550DNWB en Bluetooth Low Energy**, avec le Brother Print SDK officiel
 pour iPhone. L'impression sur la Pocket 5890 (SilverCrest / Tronic) ne change
 pas : elle reste le choix par défaut et passe toujours par la librairie

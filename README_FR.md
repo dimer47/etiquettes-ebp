@@ -2,7 +2,7 @@
 
 *[English version](README.md)*
 
-**Étiquettes Pocket** est le nom affiché de l’application iPhone.
+**Étiquettes Produit** est le nom affiché de l’application iPhone.
 
 | TRONIC | SILVERCREST |
 |---|---|
@@ -12,7 +12,7 @@
 |---|---|
 | <img src="docs/images/app-editor-fr.png" alt="Formulaire produit en français" width="300"> | <img src="docs/images/app-print-fr.png" alt="Aperçu d’étiquette et impression" width="300"> |
 
-**Étiquettes Pocket** (nom anglais : **Pocket Labels**) est une application iPhone native pour saisir une fiche produit, voir son étiquette et l'imprimer directement en Bluetooth Low Energy sur une Pocket Printer 5890. Aucun AirPrint, export d'image, compte ou accès Internet n'est nécessaire après installation.
+**Étiquettes Produit** (nom anglais : **Product Labels**) est une application iPhone native pour saisir une fiche produit, voir son étiquette et l'imprimer directement en Bluetooth Low Energy sur une Pocket Printer 5890 ou une imprimante d'étiquettes Brother. Aucun AirPrint, export d'image, compte ou accès Internet n'est nécessaire après installation.
 
 ## Matériel et dimensions
 
