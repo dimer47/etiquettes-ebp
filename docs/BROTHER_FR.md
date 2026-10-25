@@ -146,7 +146,7 @@ rotation 180°) ne concernent que la 5890.
 | Emplacement | `Vendor/BRLMPrinterKit.xcframework` (iPhone et simulateur) |
 | Projet | lié et intégré (*Embed & Sign*), macro `WLAN_ONLY`, `LD_RUNPATH_SEARCH_PATHS = @executable_path/Frameworks` |
 
-Rien à faire dans Xcode : ouvrir `ProductLabel5890.xcodeproj`, choisir son
+Rien à faire dans Xcode : ouvrir `ProductLabels.xcodeproj`, choisir son
 équipe de signature et lancer sur un iPhone.
 
 - `.gitattributes` (`Vendor/** -text -diff`) interdit à Git de toucher aux
@@ -174,7 +174,7 @@ Les appels au SDK sont ceux de TD Print Studio. Dans TD Print Studio, sur
 TD-4550DNWB : recherche BLE, test de connexion, infos de l'imprimante et
 impression (texte, QR code) sont testés ; densité, qualité, tramage, PDF,
 rapport système, annulation, coupe, décolleur, marge et Wi-Fi sont codés mais
-pas vérifiés sur papier. Dans ProductLabel5890, rien n'a encore été lancé.
+pas vérifiés sur papier. Dans ProductLabels, rien n'a encore été lancé.
 
 - Compilation sur Mac et lancement sur iPhone (le framework se charge).
 - Bluetooth activé sur l'imprimante, qui n'est connectée à aucun autre

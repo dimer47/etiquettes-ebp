@@ -1,4 +1,4 @@
-# ProductLabel5890
+# ProductLabels
 
 *[English version](README.md)*
 
@@ -34,10 +34,10 @@ L'EAN‑13 accepte 12 chiffres et calcule le contrôle, ou valide les 13 chiffre
 
 ## Compiler et installer
 
-Prérequis : Xcode compatible avec le SDK iOS, iOS 17 ou plus récent et un compte de signature Apple pour déployer sur iPhone. Ouvrir `ProductLabel5890.xcodeproj`, sélectionner le schéma `ProductLabel5890`, choisir son iPhone, configurer l'équipe de signature si nécessaire, puis lancer. Le paquet SwiftPM est téléchargé lors de la première compilation. Test du cœur : `swift test`. Compilation vérifiée sans signature avec :
+Prérequis : Xcode compatible avec le SDK iOS, iOS 17 ou plus récent et un compte de signature Apple pour déployer sur iPhone. Ouvrir `ProductLabels.xcodeproj`, sélectionner le schéma `ProductLabels`, choisir son iPhone, configurer l'équipe de signature si nécessaire, puis lancer. Le paquet SwiftPM est téléchargé lors de la première compilation. Test du cœur : `swift test`. Compilation vérifiée sans signature avec :
 
 ```sh
-xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ProductLabels.xcodeproj -scheme ProductLabels -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
 ```
 
 ## Utilisation
@@ -72,7 +72,7 @@ L'interface est disponible en **français** (langue de développement) et en **a
 
 Dans **Réglages → Application**, le bouton de langue ouvre la page de l'application dans les réglages iOS. Le choix de langue par application y est géré par le système : il permet de choisir l'anglais ou le français sans maintenir deux mécanismes de traduction concurrents dans l'app.
 
-Le projet Xcode ne contient plus les références inactives aux anciens écrans de prévisualisation, à une extension de partage ou à App Intents. La bibliothèque `PocketPrinter5890` reste une dépendance volontaire pour le protocole et le transport BLE ; le nom interne du projet et son identifiant de paquet ne changent pas, afin de préserver l'installation et les préférences de l'app.
+Le projet Xcode ne contient plus les références inactives aux anciens écrans de prévisualisation, à une extension de partage ou à App Intents. La bibliothèque `PocketPrinter5890` reste une dépendance volontaire pour le protocole et le transport BLE . Le projet s'appelle `ProductLabels` et l'identifiant de l'app est `dimer47.productlabels` : une installation faite sous l'ancien identifiant (`dimer47.productlabel5890`) reste à part, avec ses propres données ; la supprimer de l'iPhone après la première installation.
 
 La documentation du protocole ne décrit aucune commande permettant d'éteindre immédiatement la 5890 par Bluetooth. Une commande de réglage du délai d'extinction automatique existe dans la bibliothèque, mais son fonctionnement sur l'A2Y n'a pas été vérifié ; l'application n'affiche donc pas de bouton « Éteindre ».
 

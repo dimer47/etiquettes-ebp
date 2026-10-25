@@ -1,4 +1,4 @@
-# ProductLabel5890
+# ProductLabels
 
 *[Version française](README_FR.md)*
 
@@ -28,10 +28,10 @@ The four image heights are 208, 240, 312 and 416 dots. EAN‑13's 95 modules are
 
 ## Build and use
 
-Use Xcode with an iOS SDK, an iPhone running iOS 17 or newer, and an Apple signing team for installation. Open `ProductLabel5890.xcodeproj`, select the `ProductLabel5890` scheme and your iPhone, set the signing team if needed, then run. Xcode resolves the Swift package dependency on the first build. The core tests run with `swift test`. A device build without signing can be checked with:
+Use Xcode with an iOS SDK, an iPhone running iOS 17 or newer, and an Apple signing team for installation. Open `ProductLabels.xcodeproj`, select the `ProductLabels` scheme and your iPhone, set the signing team if needed, then run. Xcode resolves the Swift package dependency on the first build. The core tests run with `swift test`. A device build without signing can be checked with:
 
 ```sh
-xcodebuild -project ProductLabel5890.xcodeproj -scheme ProductLabel5890 -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ProductLabels.xcodeproj -scheme ProductLabels -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
 ```
 
 1. Turn on the 5890 and iPhone Bluetooth.
@@ -58,6 +58,8 @@ The printer panel shows a battery percentage when the device reports one. A cust
 
 See [label sizes](docs/FORMATS_PROPOSES.md) and [layout variants](docs/DISPOSITIONS_PROPOSEES.md) for the proposed presentations. The app uses its own native renderer; the Python mockups in those documents were used for visual exploration only.
 
+The Xcode project is `ProductLabels` and the app identifier is `dimer47.productlabels`. A copy installed under the previous identifier (`dimer47.productlabel5890`) stays separate, with its own data; delete it from the iPhone after the first install.
+
 ## Brother printers
 
 The app can also print on Brother printers, first of all the TD-4550DNWB over Bluetooth LE, through the official Brother Print SDK. Brother Print SDK 4.13.2 ships in `Vendor/` with Brother's license and redistribution notice. The Brother side mirrors [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio), tested on a TD-4550DNWB. Paper, cutter and quality options, printer info, system report and the hardware checklist are in [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).
@@ -70,6 +72,6 @@ Print history records jobs submitted to the BLE transport, not a physical paper 
 
 ## License and attribution
 
-ProductLabel5890 is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository. The TRONIC and SILVERCREST photos above are reused from that repository with attribution under its MIT license. The project derives its Xcode setup and choice of BLE package from [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), whose README also states MIT; that repository is unchanged.
+ProductLabels is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository. The TRONIC and SILVERCREST photos above are reused from that repository with attribution under its MIT license. The project derives its Xcode setup and choice of BLE package from [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), whose README also states MIT; that repository is unchanged.
 
 The Brother Print SDK in `Vendor/` belongs to Brother Industries and is under its own license ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)); [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) allows redistribution of the files in the SDK `libs` folder. Brother and the model names are trademarks of Brother Industries; this project is neither affiliated with nor endorsed by Brother.

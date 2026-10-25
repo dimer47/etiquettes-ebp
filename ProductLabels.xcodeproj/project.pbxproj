@@ -70,7 +70,7 @@
 		AA0000000000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		AA0000000000000000000006 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		AA0000000000000000000007 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProductLabel5890.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6C433ACAC2A27CC06A06258 /* ProductLabels.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProductLabels.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FE99AF2776C04A5A8568E934 /* ProductLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabel.swift; sourceTree = "<group>"; };
 		CC0000000000000000000002 /* BrotherCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherCatalog.swift; sourceTree = "<group>"; };
 		CC0000000000000000000004 /* LabelRasterGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelRasterGeometry.swift; sourceTree = "<group>"; };
@@ -100,7 +100,7 @@
 		4AF17906B199BA689DB52BAD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */,
+				F6C433ACAC2A27CC06A06258 /* ProductLabels.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -174,9 +174,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0E8A3AD980EC179856012B7E /* ProductLabel5890 */ = {
+		0E8A3AD980EC179856012B7E /* ProductLabels */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 011485B2EE57B7D61ACA51C9 /* Build configuration list for PBXNativeTarget "ProductLabel5890" */;
+			buildConfigurationList = 011485B2EE57B7D61ACA51C9 /* Build configuration list for PBXNativeTarget "ProductLabels" */;
 			buildPhases = (
 				E8C5E5BE4D4926E3ACC74ED8 /* Sources */,
 				1E3F4FD42CD5353AD63D7170 /* Frameworks */,
@@ -187,13 +187,13 @@
 			);
 			dependencies = (
 			);
-			name = ProductLabel5890;
+			name = ProductLabels;
 			packageProductDependencies = (
 				6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */,
 				8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */,
 			);
-			productName = ProductLabel5890;
-			productReference = F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */;
+			productName = ProductLabels;
+			productReference = F6C433ACAC2A27CC06A06258 /* ProductLabels.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -206,7 +206,7 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 			};
-			buildConfigurationList = 15FD5A6CB082B2EEE99CAC7F /* Build configuration list for PBXProject "ProductLabel5890" */;
+			buildConfigurationList = 15FD5A6CB082B2EEE99CAC7F /* Build configuration list for PBXProject "ProductLabels" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = fr;
 			hasScannedForEncodings = 0;
@@ -222,7 +222,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0E8A3AD980EC179856012B7E /* ProductLabel5890 */,
+				0E8A3AD980EC179856012B7E /* ProductLabels */,
 			);
 		};
 /* End PBXProject section */
@@ -330,7 +330,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabel5890;
+				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabels;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -384,7 +384,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabel5890;
+				PRODUCT_BUNDLE_IDENTIFIER = dimer47.productlabels;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -398,7 +398,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		011485B2EE57B7D61ACA51C9 /* Build configuration list for PBXNativeTarget "ProductLabel5890" */ = {
+		011485B2EE57B7D61ACA51C9 /* Build configuration list for PBXNativeTarget "ProductLabels" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DA91CBAE90107435CBDE17DA /* Debug */,
@@ -407,7 +407,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		15FD5A6CB082B2EEE99CAC7F /* Build configuration list for PBXProject "ProductLabel5890" */ = {
+		15FD5A6CB082B2EEE99CAC7F /* Build configuration list for PBXProject "ProductLabels" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				F090C939548C3369FCA5A08C /* Debug */,

@@ -97,7 +97,7 @@ final class BrotherPrinterService: ObservableObject {
     }
 
     private static let targetKey = "brother.target"
-    private let queue = DispatchQueue(label: "ProductLabel5890.brother", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "ProductLabels.brother", qos: .userInitiated)
     private var searchCanceled = false
 
     init() {
