@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Étiquettes Pocket";
-"NSBluetoothAlwaysUsageDescription" = "Connexion à votre imprimante thermique 5890 pour imprimer les étiquettes.";
+"NSBluetoothAlwaysUsageDescription" = "Connexion à votre imprimante Pocket 5890 ou Brother en Bluetooth pour imprimer les étiquettes.";
+"NSLocalNetworkUsageDescription" = "Recherche et connexion de votre imprimante Brother en Wi-Fi sur le réseau local.";
 "NSCameraUsageDescription" = "Scanner le code-barres EAN-13 d’un produit pour remplir son étiquette.";

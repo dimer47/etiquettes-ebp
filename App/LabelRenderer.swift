@@ -7,17 +7,26 @@ enum LabelRenderer {
     static let barcodeModuleDots = 3
     static let quietZoneDots = 30 // 10 modules on each side
 
+    /// `scale` dessine la même mise en page plus grande, pour une Brother :
+    /// le texte est composé à cette résolution, les modules EAN gardent un
+    /// nombre entier de points. À 1, c'est exactement le bitmap de la 5890.
     static func render(_ label: ProductLabel, size: LabelSize = .standard,
-                       arrangement: LabelArrangement = .current) throws -> MonochromeBitmap {
+                       arrangement: LabelArrangement = .current,
+                       scale: Double = 1) throws -> MonochromeBitmap {
         let ean = try EAN13.completed(label.ean)
         guard let price = PriceFormatter.formatted(label.price, currency: label.currency) else { throw LabelError.invalidPrice }
-        let height = size.heightDots
+        let geometry = LabelRasterGeometry(layoutHeight: size.heightDots, scale: scale)
+        let width = geometry.width
+        let height = geometry.height
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
         let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { context in
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            // Coordonnées de mise en page (384 points) mises à l'échelle.
+            context.cgContext.scaleBy(x: CGFloat(width) / CGFloat(Self.width),
+                                      y: CGFloat(height) / CGFloat(size.heightDots))
             drawComposition(label, ean: ean, price: price, size: size, arrangement: arrangement)
         }
         guard let cgImage = image.cgImage else { throw LabelError.rasterFailure }
@@ -27,6 +36,7 @@ enum LabelRenderer {
         guard let bitmapContext = CGContext(data: &rgba, width: width, height: height, bitsPerComponent: 8,
                                             bytesPerRow: width * 4, space: colorSpace,
                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { throw LabelError.rasterFailure }
+        bitmapContext.interpolationQuality = .none
         bitmapContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         var black = [Bool](repeating: false, count: width * height)
         for i in black.indices {
@@ -35,16 +45,31 @@ enum LabelRenderer {
             black[i] = (Int(rgba[p]) * 299 + Int(rgba[p + 1]) * 587 + Int(rgba[p + 2]) * 114) < 160_000
         }
         let modules = try EAN13.modules(for: ean)
-        let barcodeWidth = modules.count * barcodeModuleDots + 2 * quietZoneDots
-        let left = (width - barcodeWidth) / 2 + quietZoneDots
+        let module = geometry.moduleDots
+        let left = geometry.barcodeLeft
+        let rows = geometry.rows(barcodeRows(size: size, arrangement: arrangement))
         for (index, on) in modules.enumerated() where on {
-            for y in barcodeRows(size: size, arrangement: arrangement) {
-                for dot in 0..<barcodeModuleDots {
-                    black[y * width + left + index * barcodeModuleDots + dot] = true
+            for y in rows {
+                for dot in 0..<module {
+                    black[y * width + left + index * module + dot] = true
                 }
             }
         }
         return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+    }
+
+    /// Image en niveaux de gris (noir ou blanc seulement) pour le SDK Brother.
+    /// Aucune interpolation : le SDK reçoit les points tels quels.
+    static func grayImage(_ bitmap: MonochromeBitmap) throws -> CGImage {
+        let gray = try PackedBitmap.grayscale(bitmap.bytes, width: bitmap.width, height: bitmap.height)
+        guard let provider = CGDataProvider(data: Data(gray) as CFData),
+              let image = CGImage(width: bitmap.width, height: bitmap.height, bitsPerComponent: 8,
+                                  bitsPerPixel: 8, bytesPerRow: bitmap.width,
+                                  space: CGColorSpaceCreateDeviceGray(),
+                                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+                                  provider: provider, decode: nil, shouldInterpolate: false,
+                                  intent: .defaultIntent) else { throw LabelError.rasterFailure }
+        return image
     }
 
     private static func barcodeRows(size: LabelSize, arrangement: LabelArrangement) -> Range<Int> {

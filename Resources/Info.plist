@@ -2,7 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleDisplayName</key><string>Étiquettes Pocket</string>
-<key>NSBluetoothAlwaysUsageDescription</key><string>Connexion à votre imprimante thermique 5890 pour imprimer les étiquettes.</string>
+<key>NSBluetoothAlwaysUsageDescription</key><string>Connexion à votre imprimante Pocket 5890 ou Brother en Bluetooth pour imprimer les étiquettes.</string>
+<key>NSLocalNetworkUsageDescription</key><string>Recherche et connexion de votre imprimante Brother en Wi-Fi sur le réseau local.</string>
+<key>NSBonjourServices</key>
+<array>
+    <string>_pdl-datastream._tcp</string>
+    <string>_printer._tcp</string>
+    <string>_ipp._tcp</string>
+</array>
 <key>NSCameraUsageDescription</key><string>Scanner le code-barres EAN-13 d’un produit pour remplir son étiquette.</string>
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key>

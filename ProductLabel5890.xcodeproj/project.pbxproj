@@ -25,6 +25,11 @@
 		B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA14 /* CategoryLibrary.swift */; };
 		BB0000000000000000000001 /* PrintedLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* PrintedLabel.swift */; };
 		BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* LabelHistoryStore.swift */; };
+		CC0000000000000000000001 /* BrotherCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000002 /* BrotherCatalog.swift */; };
+		CC0000000000000000000003 /* LabelRasterGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000004 /* LabelRasterGeometry.swift */; };
+		CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* BrotherPrinterService.swift */; };
+		CC0000000000000000000007 /* PrinterSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* PrinterSetup.swift */; };
+		CC0000000000000000000009 /* PrinterSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* PrinterSelectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +53,11 @@
 		AA0000000000000000000007 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		F6C433ACAC2A27CC06A06258 /* ProductLabel5890.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProductLabel5890.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FE99AF2776C04A5A8568E934 /* ProductLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabel.swift; sourceTree = "<group>"; };
+		CC0000000000000000000002 /* BrotherCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherCatalog.swift; sourceTree = "<group>"; };
+		CC0000000000000000000004 /* LabelRasterGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelRasterGeometry.swift; sourceTree = "<group>"; };
+		CC0000000000000000000006 /* BrotherPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherPrinterService.swift; sourceTree = "<group>"; };
+		CC0000000000000000000008 /* PrinterSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSetup.swift; sourceTree = "<group>"; };
+		CC000000000000000000000A /* PrinterSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSelectionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +91,9 @@
 				2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */,
 				B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */,
 				BB0000000000000000000004 /* LabelHistoryStore.swift */,
+				CC000000000000000000000A /* PrinterSelectionView.swift */,
+				CC0000000000000000000008 /* PrinterSetup.swift */,
+				CC0000000000000000000006 /* BrotherPrinterService.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -94,6 +107,8 @@
 				A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */,
 				B749FB7510124A76A786DA14 /* CategoryLibrary.swift */,
 				BB0000000000000000000003 /* PrintedLabel.swift */,
+				CC0000000000000000000004 /* LabelRasterGeometry.swift */,
+				CC0000000000000000000002 /* BrotherCatalog.swift */,
 			);
 			name = LabelCore;
 			path = Sources/LabelCore;
@@ -227,6 +242,11 @@
 				BB0000000000000000000001 /* PrintedLabel.swift in Sources */,
 				BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */,
 				29F2F0199AB875A9E2AC90F1 /* MonochromeBitmap+Rotation.swift in Sources */,
+				CC0000000000000000000009 /* PrinterSelectionView.swift in Sources */,
+				CC0000000000000000000007 /* PrinterSetup.swift in Sources */,
+				CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */,
+				CC0000000000000000000003 /* LabelRasterGeometry.swift in Sources */,
+				CC0000000000000000000001 /* BrotherCatalog.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -257,6 +277,10 @@
 				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 5D6QHL72QC;
 				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					WLAN_ONLY,
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -303,6 +327,10 @@
 				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = 5D6QHL72QC;
 				ENABLE_PREVIEWS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					WLAN_ONLY,
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

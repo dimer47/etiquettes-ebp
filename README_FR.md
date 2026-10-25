@@ -23,6 +23,9 @@ Le dépôt [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) doc
 - `Sources/LabelCore` : données produit, choix de présentation, validation et encodage EAN‑13, prix français, rotation exacte du bitmap 1 bit ; testable sans iOS.
 - `App/LabelRenderer.swift` : composition à la résolution native, seuillage direct à 1 bit, barres EAN en modules entiers.
 - `App/PrinterManager.swift` : découverte, sélection, reconnexion, densité et impression directe.
+- `Sources/LabelCore/BrotherCatalog.swift` et `LabelRasterGeometry.swift` : catalogue des modèles Brother (séries, connexions, papiers, coupe) et géométrie du rendu agrandi, sans dépendance au SDK.
+- `App/BrotherPrinterService.swift` : seul fichier qui utilise le Brother Print SDK (recherche, état, validation, impression hors du fil principal).
+- `App/PrinterSetup.swift` et `App/PrinterSelectionView.swift` : choix imprimante → papier → coupe, conservé dans `UserDefaults`.
 - `App/LabelHistoryStore.swift` : historique local des impressions et restauration des paramètres associés.
 - `App/ContentView.swift` : formulaire, aperçu à l'endroit issu du **bitmap source** de l'impression, état BLE et réglages.
 - Bibliothèque SwiftPM `PocketPrinter5890Kit` et `PocketPrinter5890BLE` : commandes de densité et d'activation, raster en bandes de 24 lignes, contrôle de flux BLE et transport CoreBluetooth. La dépendance est épinglée à la révision vérifiée dans ce projet.
@@ -58,6 +61,10 @@ Le rouleau est continu. L'avance avant impression est réglable de 0 à 10 mm et
 Le test matériel doit vérifier le contraste, la lecture du code avec un scanner, la position horizontale sur le rouleau et la hauteur réelle du ticket après découpe. La compilation iPhone, le lancement sur iPhone et le rendu sur simulateur ont été vérifiés ; l'impression physique dépend de l'imprimante connectée.
 
 Le scan caméra demande un iPhone réel avec autorisation caméra ; il n'est pas vérifiable sur le simulateur. Le numéro lu est validé comme EAN‑13 avant de remplacer le champ. Le scanner choisit une caméra arrière virtuelle triple ou double large lorsqu'elle existe, puis une caméra simple en repli. Sur les appareils compatibles, AVFoundation peut alors passer de l'objectif principal à l'ultra grand-angle pour une mise au point rapprochée selon la distance et la lumière. L'image démarre au champ de vision de l'objectif principal. Le scanner utilise l'autofocus continu ; toucher l'image déclenche une nouvelle mise au point à cet endroit, puis réactive le suivi continu. Le changement d'objectif réel et la lisibilité d'un code très proche restent à vérifier sur chaque modèle d'iPhone. Les catégories sont stockées localement dans `UserDefaults` sur l'appareil, sans synchronisation réseau.
+
+## Imprimantes Brother
+
+L'app imprime aussi sur les imprimantes Brother, en priorité la TD-4550DNWB en Bluetooth LE, avec le Brother Print SDK officiel. Le SDK est propriétaire et absent du dépôt : sans lui, l'app compile et affiche « Brother Print SDK absent ». Ajout du SDK dans Xcode, papiers, coupe et points à vérifier : [docs/BROTHER_FR.md](docs/BROTHER_FR.md).
 
 ## Langues
 

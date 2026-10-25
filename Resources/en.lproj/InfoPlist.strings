@@ -1,3 +1,4 @@
 "CFBundleDisplayName" = "Pocket Labels";
-"NSBluetoothAlwaysUsageDescription" = "Connect to your 5890 thermal printer to print product labels.";
+"NSBluetoothAlwaysUsageDescription" = "Connect to your Pocket 5890 or Brother printer over Bluetooth to print product labels.";
+"NSLocalNetworkUsageDescription" = "Find and connect to your Brother printer over Wi-Fi on the local network.";
 "NSCameraUsageDescription" = "Scan a product's EAN-13 barcode to fill its label.";

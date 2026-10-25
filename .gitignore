@@ -25,3 +25,9 @@ __pycache__/
 
 # Xcode index data accidentally placed beside project
 *.xcodeproj/-Xcc/
+
+# Brother Print SDK : binaire propriétaire Brother, jamais commité.
+# Copier libs/Net/BRLMPrinterKit.xcframework dans Vendor/ (voir docs/BROTHER_FR.md).
+Vendor/
+BRLMPrinterKit.xcframework/
+bpsdki*.zip

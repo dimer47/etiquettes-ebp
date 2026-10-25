@@ -51,9 +51,16 @@ The printer panel shows a battery percentage when the device reports one. A cust
 | `App/PrinterManager.swift` | Discovery, selection, reconnection, density and direct printing |
 | `App/LabelHistoryStore.swift` | Local print history and restoration of print parameters |
 | `App/ContentView.swift` | Editor, bitmap-based preview, printer status and settings |
+| `Sources/LabelCore/BrotherCatalog.swift`, `LabelRasterGeometry.swift` | Brother model catalog (series, connections, paper, cutter) and scaled raster geometry, no SDK dependency |
+| `App/BrotherPrinterService.swift` | The only file that uses the Brother Print SDK: search, status, validation and printing off the main thread |
+| `App/PrinterSetup.swift`, `App/PrinterSelectionView.swift` | Printer → paper → cutting choice, saved in `UserDefaults` |
 | `PocketPrinter5890Kit` and `PocketPrinter5890BLE` | Swift package with 5890 commands, 24-row raster bands, flow control and CoreBluetooth transport |
 
 See [label sizes](docs/FORMATS_PROPOSES.md) and [layout variants](docs/DISPOSITIONS_PROPOSEES.md) for the proposed presentations. The app uses its own native renderer; the Python mockups in those documents were used for visual exploration only.
+
+## Brother printers
+
+The app can also print on Brother printers, first of all the TD-4550DNWB over Bluetooth LE, through the official Brother Print SDK. The SDK is proprietary and is not in this repository: without it the app still builds and shows “Brother Print SDK missing”. Setup steps, paper and cutter options and the hardware checklist are in [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).
 
 ## Known limits
 
