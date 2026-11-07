@@ -35,6 +35,10 @@
 		CC000000000000000000000B /* SystemReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* SystemReport.swift */; };
 		CC000000000000000000000D /* SystemReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000E /* SystemReportSheet.swift */; };
 		CC000000000000000000000F /* BrotherConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000010 /* BrotherConsoleView.swift */; };
+		CC0000000000000000000011 /* NetumPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* NetumPrinterService.swift */; };
+		CC0000000000000000000013 /* NetumSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000014 /* NetumSettingsView.swift */; };
+		CC0000000000000000000015 /* NetumPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000016 /* NetumPrinter.swift */; };
+		CC0000000000000000000017 /* WideLabelLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000018 /* WideLabelLayout.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -81,6 +85,10 @@
 		CC000000000000000000000C /* SystemReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReport.swift; sourceTree = "<group>"; };
 		CC000000000000000000000E /* SystemReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReportSheet.swift; sourceTree = "<group>"; };
 		CC0000000000000000000010 /* BrotherConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherConsoleView.swift; sourceTree = "<group>"; };
+		CC0000000000000000000012 /* NetumPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinterService.swift; sourceTree = "<group>"; };
+		CC0000000000000000000014 /* NetumSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumSettingsView.swift; sourceTree = "<group>"; };
+		CC0000000000000000000016 /* NetumPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinter.swift; sourceTree = "<group>"; };
+		CC0000000000000000000018 /* WideLabelLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WideLabelLayout.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +124,8 @@
 				B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */,
 				BB0000000000000000000004 /* LabelHistoryStore.swift */,
 				CC0000000000000000000010 /* BrotherConsoleView.swift */,
+				CC0000000000000000000012 /* NetumPrinterService.swift */,
+				CC0000000000000000000014 /* NetumSettingsView.swift */,
 				CC000000000000000000000E /* SystemReportSheet.swift */,
 				CC000000000000000000000A /* PrinterSelectionView.swift */,
 				CC0000000000000000000008 /* PrinterSetup.swift */,
@@ -136,6 +146,8 @@
 				CC000000000000000000000C /* SystemReport.swift */,
 				CC0000000000000000000004 /* LabelRasterGeometry.swift */,
 				CC0000000000000000000002 /* BrotherCatalog.swift */,
+				CC0000000000000000000016 /* NetumPrinter.swift */,
+				CC0000000000000000000018 /* WideLabelLayout.swift */,
 			);
 			name = LabelCore;
 			path = Sources/LabelCore;
@@ -287,6 +299,10 @@
 				CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */,
 				CC0000000000000000000003 /* LabelRasterGeometry.swift in Sources */,
 				CC0000000000000000000001 /* BrotherCatalog.swift in Sources */,
+				CC0000000000000000000011 /* NetumPrinterService.swift in Sources */,
+				CC0000000000000000000013 /* NetumSettingsView.swift in Sources */,
+				CC0000000000000000000015 /* NetumPrinter.swift in Sources */,
+				CC0000000000000000000017 /* WideLabelLayout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

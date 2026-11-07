@@ -60,6 +60,10 @@ See [label sizes](docs/FORMATS_PROPOSES.md) and [layout variants](docs/DISPOSITI
 
 The Xcode project is `ProductLabels` and the app identifier is `dimer47.productlabels`. A copy installed under the previous identifier (`dimer47.productlabel5890`) stays separate, with its own data; delete it from the iPhone after the first install.
 
+## NETUM NT-H861
+
+The app also prints on the NETUM NT-H861 80 mm receipt printer over Bluetooth LE, with auto cutter, optional beep and status check. See [docs/NETUM_FR.md](docs/NETUM_FR.md) (French).
+
 ## Brother printers
 
 The app can also print on Brother printers, first of all the TD-4550DNWB over Bluetooth LE, through the official Brother Print SDK. Brother Print SDK 4.13.2 ships in `Vendor/` with Brother's license and redistribution notice. The Brother side mirrors [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio), tested on a TD-4550DNWB. Paper, cutter and quality options, printer info, system report and the hardware checklist are in [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).

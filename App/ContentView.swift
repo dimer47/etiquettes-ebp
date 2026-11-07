@@ -5,6 +5,7 @@ struct ContentView: View {
     @StateObject private var printer = PrinterManager()
     @StateObject private var setup = PrinterSetup()
     @StateObject private var brother = BrotherPrinterService()
+    @StateObject private var netum = NetumPrinterService()
     @StateObject private var thumbnailStore = LabelThumbnailStore()
     @StateObject private var history = LabelHistoryStore()
     @State private var label = (UserDefaults.standard.data(forKey: "lastLabel").flatMap { try? JSONDecoder().decode(ProductLabel.self, from: $0) }) ?? ProductLabel()
@@ -24,18 +25,23 @@ struct ContentView: View {
     private var labelArrangement: LabelArrangement { LabelArrangement(rawValue: selectedArrangement) ?? .current }
 
     private var isBrother: Bool { setup.brand == .brother }
+    private var isNetum: Bool { setup.brand == .netum }
+    /// 576 points pour les dispositions 80 mm de la NETUM, 384 sinon.
+    private var layoutWidth: Int { isNetum ? setup.netum.paper.layoutWidth : LabelRenderer.width }
+    private var layoutWidthMM: Int { layoutWidth / 8 }
     /// Prête à recevoir un travail : 5890 connectée, ou Brother choisie avec
     /// une connexion que le modèle accepte.
     private var printerReady: Bool {
+        if isNetum { return netum.connected }
         if isBrother {
             guard brother.canPrint, let target = brother.target else { return false }
             return setup.brotherModel.appConnections.contains(target.connection)
         }
         return printer.connected
     }
-    private var isPrinting: Bool { isBrother ? brother.isBusy : printer.printing }
+    private var isPrinting: Bool { isNetum ? netum.isBusy : isBrother ? brother.isBusy : printer.printing }
     private var printedSizeText: String {
-        guard isBrother else { return "48 × \(labelSize.heightMillimeters) mm" }
+        guard isBrother else { return "\(layoutWidthMM) × \(labelSize.heightMillimeters) mm" }
         let area = setup.brotherMedia.printableAreaMM(for: setup.brotherModel)
         let fitted = LabelRasterGeometry.fittedSizeMM(layoutHeight: labelSize.heightDots, area: area)
         return String(format: NSLocalizedString("≈ %.0f × %.0f mm sur %@", comment: "Brother printed size"),
@@ -43,7 +49,7 @@ struct ContentView: View {
     }
 
     private var bitmap: MonochromeBitmap? {
-        try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement)
+        try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)
     }
     private var selectionPreviewLabel: ProductLabel {
         ((try? EAN13.completed(label.ean)) != nil &&
@@ -138,7 +144,20 @@ struct ContentView: View {
                     .controlSize(.large)
                     } else {
                     HStack {
-                        if isBrother {
+                        if isNetum {
+                            Image(systemName: "printer.fill")
+                                .font(.title3).foregroundStyle(netum.connected ? .green : .secondary)
+                            VStack(alignment: .leading) {
+                                Text(netum.connected ? (netum.connectedName ?? "NETUM") : NSLocalizedString("NETUM NT-H861", comment: "NETUM card title")).font(.headline)
+                                Text(netum.status).font(.subheadline)
+                                    .foregroundStyle(netum.statusIsError ? .red : .primary)
+                                Text(setup.netum.paper.title + " · " + setup.netum.cut.title)
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if netum.isBusy { ProgressView(value: netum.progress).frame(width: 44) }
+                            Button(netum.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
+                        } else if isBrother {
                             Image(systemName: "printer.fill")
                                 .font(.title3).foregroundStyle(printerReady ? .green : .secondary)
                             VStack(alignment: .leading) {
@@ -180,7 +199,7 @@ struct ContentView: View {
                     Button {
                         showingPresentation = true
                         thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
-                                               arrangement: labelArrangement, reset: true)
+                                               arrangement: labelArrangement, width: layoutWidth, reset: true)
                     } label: {
                         HStack {
                             Image(systemName: "square.grid.2x2.fill")
@@ -256,13 +275,17 @@ struct ContentView: View {
             }
             .onChange(of: selectedSize) { _, _ in
                 if showingPresentation {
-                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement)
+                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement, width: layoutWidth)
                 }
             }
             .onChange(of: selectedArrangement) { _, _ in
                 if showingPresentation {
-                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement)
+                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement, width: layoutWidth)
                 }
+            }
+            .onChange(of: netum.activity) { old, new in
+                // Impression refusée (capot, papier, massicot) ou connexion perdue.
+                if old == .checking || old == .printing, new == .idle, netum.statusIsError { message = netum.status }
             }
             .onChange(of: brother.activity) { old, new in
                 // Erreur d'impression Brother : la montrer comme celles de la 5890.
@@ -272,7 +295,7 @@ struct ContentView: View {
                 if LabelSize(rawValue: selectedSize) == nil { selectedSize = LabelSize.standard.rawValue }
                 if LabelArrangement(rawValue: selectedArrangement) == nil { selectedArrangement = LabelArrangement.current.rawValue }
                 setup.supportedLabels = { model in BrotherPrinterService.supportedLabelIndices(for: model) }
-                if !isBrother { printer.reconnect() }
+                if isNetum { netum.reconnect() } else if !isBrother { printer.reconnect() }
             }
         }
     }
@@ -290,10 +313,16 @@ struct ContentView: View {
 
     /// Envoie l'étiquette à l'imprimante choisie. La 5890 reçoit le bitmap
     /// de 384 points comme avant ; une Brother reçoit la même mise en page
-    /// dessinée hors du fil principal à la résolution de sa tête.
+    /// dessinée hors du fil principal à la résolution de sa tête ; la NETUM
+    /// reçoit une disposition 80 mm (576 points) ou celle de la 5890 sur 58 mm.
     private func submit(_ label: ProductLabel, size: LabelSize, arrangement: LabelArrangement,
                         onQueued: (() -> Void)? = nil) throws {
-        if isBrother {
+        if isNetum {
+            var bitmap = try LabelRenderer.render(label, size: size, arrangement: arrangement, layoutWidth: layoutWidth)
+            if setup.netum.rotateContent180 { bitmap = try bitmap.rotated180() }
+            netum.print(bitmap: bitmap.bytes, width: bitmap.width, height: bitmap.height,
+                        options: setup.netum, onQueued: onQueued)
+        } else if isBrother {
             brother.print(job: setup.brotherJob, layoutHeight: size.heightDots, render: { scale in
                 try LabelRenderer.grayImage(LabelRenderer.render(label, size: size, arrangement: arrangement, scale: scale))
             }, onSuccess: onQueued)
@@ -361,12 +390,14 @@ struct ContentView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Format").font(.title3.bold())
-                    Text("Choisissez la hauteur de la zone imprimée. La largeur reste de 48 mm sur la 5890.")
+                    Text(isNetum && layoutWidth == WideLabelLayout.width
+                         ? NSLocalizedString("Choisissez la hauteur de la zone imprimée. La largeur est de 72 mm sur rouleau 80 mm.", comment: "Presentation help")
+                         : NSLocalizedString("Choisissez la hauteur de la zone imprimée. La largeur reste de 48 mm sur la 5890.", comment: "Presentation help"))
                         .font(.footnote).foregroundStyle(.secondary)
                     VStack(spacing: 12) {
                         ForEach(LabelSize.allCases) { size in
                             Button { selectedSize = size.rawValue } label: {
-                                presentationTile(title: size.title, detail: "48 × \(size.heightMillimeters) mm",
+                                presentationTile(title: size.title, detail: "\(layoutWidthMM) × \(size.heightMillimeters) mm",
                                                  size: size, arrangement: labelArrangement,
                                                  selected: labelSize == size, fullWidth: true)
                             }
@@ -401,11 +432,11 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 7) {
             ZStack {
                 Color.white
-                if let image = thumbnailStore.images[LabelThumbnailStore.key(size: size, arrangement: arrangement)] {
+                if let image = thumbnailStore.images[LabelThumbnailStore.key(size: size, arrangement: arrangement, width: layoutWidth)] {
                     Image(uiImage: image).interpolation(.high).resizable()
-                        .aspectRatio(CGFloat(LabelRenderer.width) / CGFloat(size.heightDots), contentMode: .fit)
+                        .aspectRatio(CGFloat(layoutWidth) / CGFloat(size.heightDots), contentMode: .fit)
                         .padding(5)
-                } else if thumbnailStore.failed.contains(LabelThumbnailStore.key(size: size, arrangement: arrangement)) {
+                } else if thumbnailStore.failed.contains(LabelThumbnailStore.key(size: size, arrangement: arrangement, width: layoutWidth)) {
                     Text("Aperçu indisponible").font(.caption).foregroundStyle(.secondary)
                 } else {
                     ProgressView().tint(.blue)
@@ -439,14 +470,14 @@ struct ContentView: View {
     }
 
     private var printerSheet: some View {
-        PrinterSelectionView(printer: printer, setup: setup, brother: brother,
+        PrinterSelectionView(printer: printer, setup: setup, brother: brother, netum: netum,
                              canTestPrint: printerReady && !isPrinting,
                              onTestPrint: printTestLabel,
                              onClose: { showingPrinters = false })
     }
 
     private func openPrinters() {
-        if !isBrother { printer.scan() }
+        if isNetum { netum.scan() } else if !isBrother { printer.scan() }
         showingPrinters = true
     }
 
@@ -462,7 +493,7 @@ struct ContentView: View {
         NavigationStack {
             Form {
                 Section("Imprimante") {
-                    LabeledContent("Imprimante", value: isBrother
+                    LabeledContent("Imprimante", value: isNetum ? "NETUM NT-H861" : isBrother
                                    ? String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)
                                    : "Pocket 5890")
                     Button("Choisir l’imprimante et le papier") {
@@ -544,11 +575,12 @@ private final class LabelThumbnailStore: ObservableObject {
     private var pending: Set<String> = []
     private var generation = 0
 
-    nonisolated static func key(size: LabelSize, arrangement: LabelArrangement) -> String {
-        "\(size.rawValue).\(arrangement.rawValue)"
+    nonisolated static func key(size: LabelSize, arrangement: LabelArrangement, width: Int) -> String {
+        "\(size.rawValue).\(arrangement.rawValue).\(width)"
     }
 
-    func prepare(label: ProductLabel, size: LabelSize, arrangement: LabelArrangement, reset: Bool = false) {
+    func prepare(label: ProductLabel, size: LabelSize, arrangement: LabelArrangement,
+                 width: Int, reset: Bool = false) {
         if reset {
             generation += 1
             images.removeAll()
@@ -559,16 +591,17 @@ private final class LabelThumbnailStore: ObservableObject {
         let combinations = LabelSize.allCases.map { ($0, arrangement) }
             + LabelArrangement.allCases.map { (size, $0) }
         let missing = combinations.filter { combination in
-            let imageKey = Self.key(size: combination.0, arrangement: combination.1)
+            let imageKey = Self.key(size: combination.0, arrangement: combination.1, width: width)
             guard images[imageKey] == nil, !pending.contains(imageKey) else { return false }
             pending.insert(imageKey)
             return true
         }
         Task.detached(priority: .userInitiated) { [weak self] in
             for (imageSize, imageArrangement) in missing {
-                let bitmap = try? LabelRenderer.render(label, size: imageSize, arrangement: imageArrangement)
+                let bitmap = try? LabelRenderer.render(label, size: imageSize, arrangement: imageArrangement,
+                                                       layoutWidth: width)
                 let image = bitmap.flatMap(LabelRenderer.preview)
-                let imageKey = Self.key(size: imageSize, arrangement: imageArrangement)
+                let imageKey = Self.key(size: imageSize, arrangement: imageArrangement, width: width)
                 await self?.accept(image, for: imageKey, generation: currentGeneration)
             }
         }

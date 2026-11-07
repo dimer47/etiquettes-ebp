@@ -10,6 +10,7 @@ struct PrinterSelectionView: View {
     @ObservedObject var printer: PrinterManager
     @ObservedObject var setup: PrinterSetup
     @ObservedObject var brother: BrotherPrinterService
+    @ObservedObject var netum: NetumPrinterService
     let canTestPrint: Bool
     let onTestPrint: () -> Void
     let onClose: () -> Void
@@ -21,6 +22,7 @@ struct PrinterSelectionView: View {
                     Picker("Imprimante", selection: $setup.brand) {
                         Text("Pocket 5890").tag(PrinterBrand.pocket5890)
                         Text("Brother").tag(PrinterBrand.brother)
+                        Text("NETUM").tag(PrinterBrand.netum)
                     }
                     .pickerStyle(.segmented)
                     if setup.brand == .brother {
@@ -36,6 +38,8 @@ struct PrinterSelectionView: View {
                 } footer: {
                     if setup.brand == .pocket5890 {
                         Text("SilverCrest / Tronic 5890 en Bluetooth LE, tête de 384 points.")
+                    } else if setup.brand == .netum {
+                        Text("NETUM NT-H861 en Bluetooth LE : tête 80 mm de 576 points, massicot, ESC/POS.")
                     } else {
                         Text("Brother Print SDK : Bluetooth LE ou Wi-Fi selon le modèle.")
                     }
@@ -43,6 +47,8 @@ struct PrinterSelectionView: View {
 
                 if setup.brand == .pocket5890 {
                     pocketSections
+                } else if setup.brand == .netum {
+                    NetumSections(setup: setup, netum: netum, onConnected: onClose)
                 } else {
                     BrotherPaperSection(setup: setup, brother: brother)
                     BrotherCutSection(setup: setup)
@@ -59,7 +65,11 @@ struct PrinterSelectionView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { Button("Fermer", action: onClose) }
             .onChange(of: setup.brand) { _, brand in
-                if brand == .pocket5890 { printer.scan() } else { brother.cancelSearch() }
+                switch brand {
+                case .pocket5890: netum.stopScan(); printer.scan()
+                case .netum: brother.cancelSearch(); netum.scan()
+                case .brother: netum.stopScan(); brother.cancelSearch()
+                }
             }
         }
         // Attachée à l'écran entier : sur une section, la feuille se refermait

@@ -10,24 +10,86 @@ enum LabelRenderer {
     /// `scale` dessine la même mise en page plus grande, pour une Brother :
     /// le texte est composé à cette résolution, les modules EAN gardent un
     /// nombre entier de points. À 1, c'est exactement le bitmap de la 5890.
+    /// `layoutWidth` à 576 choisit les mises en page 80 mm de la NETUM
+    /// (`WideLabelLayout`), dessinées à leur taille exacte.
     static func render(_ label: ProductLabel, size: LabelSize = .standard,
                        arrangement: LabelArrangement = .current,
-                       scale: Double = 1) throws -> MonochromeBitmap {
+                       scale: Double = 1, layoutWidth: Int = width) throws -> MonochromeBitmap {
         let ean = try EAN13.completed(label.ean)
         guard let price = PriceFormatter.formatted(label.price, currency: label.currency) else { throw LabelError.invalidPrice }
+        if layoutWidth == WideLabelLayout.width {
+            return try renderWide(label, ean: ean, price: price, layout: .layout(size: size, arrangement: arrangement))
+        }
         let geometry = LabelRasterGeometry(layoutHeight: size.heightDots, scale: scale)
         let width = geometry.width
         let height = geometry.height
+        var black = try rasterize(width: width, height: height) { context in
+            // Coordonnées de mise en page (384 points) mises à l'échelle.
+            context.cgContext.scaleBy(x: CGFloat(width) / CGFloat(Self.width),
+                                      y: CGFloat(height) / CGFloat(size.heightDots))
+            drawComposition(label, ean: ean, price: price, size: size, arrangement: arrangement)
+        }
+        let modules = try EAN13.modules(for: ean)
+        let module = geometry.moduleDots
+        let left = geometry.barcodeLeft
+        let rows = geometry.rows(barcodeRows(size: size, arrangement: arrangement))
+        for (index, on) in modules.enumerated() where on {
+            for y in rows {
+                for dot in 0..<module {
+                    black[y * width + left + index * module + dot] = true
+                }
+            }
+        }
+        return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+    }
+
+    /// Étiquette 80 mm : 576 points, sans mise à l'échelle.
+    private static func renderWide(_ label: ProductLabel, ean: String, price: String,
+                                   layout: WideLabelLayout) throws -> MonochromeBitmap {
+        let width = WideLabelLayout.width
+        let height = layout.height
+        let reference = String(format: NSLocalizedString("Réf. %@", comment: "Product reference on label"), label.productReference)
+        var black = try rasterize(width: width, height: height) { _ in
+            for box in layout.boxes {
+                let text: String
+                switch box.field {
+                case .category: text = label.category
+                case .shelfReference: text = label.shelfReference
+                case .name: text = label.name
+                case .reference: text = reference
+                case .priceCaption: text = label.priceCaption
+                case .price: text = price
+                case .eanFirstDigit: text = String(ean.prefix(1))
+                case .eanLeftDigits: text = String(ean.dropFirst().prefix(6))
+                case .eanRightDigits: text = String(ean.suffix(6))
+                }
+                let alignment: NSTextAlignment = box.alignment == .left ? .left : box.alignment == .right ? .right : .center
+                draw(text, in: CGRect(x: box.x, y: box.y, width: box.width, height: box.height),
+                     maxSize: CGFloat(box.fontSize), bold: true, alignment: alignment)
+            }
+        }
+        let modules = try EAN13.modules(for: ean)
+        let module = WideLabelLayout.moduleDots
+        for (index, on) in modules.enumerated() where on {
+            for y in layout.barcodeRows {
+                for dot in 0..<module {
+                    black[y * width + layout.barcodeLeft + index * module + dot] = true
+                }
+            }
+        }
+        return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+    }
+
+    /// Dessine sur fond blanc puis seuille chaque point en noir ou blanc.
+    private static func rasterize(width: Int, height: Int,
+                                  _ drawing: (UIGraphicsImageRendererContext) -> Void) throws -> [Bool] {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = true
         let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { context in
             UIColor.white.setFill()
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-            // Coordonnées de mise en page (384 points) mises à l'échelle.
-            context.cgContext.scaleBy(x: CGFloat(width) / CGFloat(Self.width),
-                                      y: CGFloat(height) / CGFloat(size.heightDots))
-            drawComposition(label, ean: ean, price: price, size: size, arrangement: arrangement)
+            drawing(context)
         }
         guard let cgImage = image.cgImage else { throw LabelError.rasterFailure }
         // Read through a known RGBA layout; no resizing or interpolation.
@@ -44,18 +106,7 @@ enum LabelRenderer {
             // Hard threshold keeps the printed output strictly black or white.
             black[i] = (Int(rgba[p]) * 299 + Int(rgba[p + 1]) * 587 + Int(rgba[p + 2]) * 114) < 160_000
         }
-        let modules = try EAN13.modules(for: ean)
-        let module = geometry.moduleDots
-        let left = geometry.barcodeLeft
-        let rows = geometry.rows(barcodeRows(size: size, arrangement: arrangement))
-        for (index, on) in modules.enumerated() where on {
-            for y in rows {
-                for dot in 0..<module {
-                    black[y * width + left + index * module + dot] = true
-                }
-            }
-        }
-        return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+        return black
     }
 
     /// Image en niveaux de gris (noir ou blanc seulement) pour le SDK Brother.

@@ -40,6 +40,16 @@ final class PrinterSetup: ObservableObject {
         didSet { defaults.set(copies, forKey: Key.copies) }
     }
 
+    /// Papier, coupe, bip et transport de la NETUM NT-H861.
+    @Published var netum: NetumOptions {
+        didSet {
+            // Réaffecter ici ne relance pas `didSet` : on enregistre ensuite.
+            let normalized = netum.normalized
+            if normalized != netum { netum = normalized }
+            store(netum, forKey: Key.netum)
+        }
+    }
+
     /// Liste du SDK des étiquettes QL / rubans PT acceptés par un modèle.
     var supportedLabels: (BrotherModel) -> Set<Int>? = { _ in nil } {
         didSet { ensureCompatibleMedia() }
@@ -54,6 +64,7 @@ final class PrinterSetup: ObservableObject {
         static let cut = "printer.brother.cut"
         static let copies = "printer.brother.copies"
         static let quality = "printer.brother.quality"
+        static let netum = "printer.netum.options"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -66,6 +77,7 @@ final class PrinterSetup: ObservableObject {
         cut = (Self.decode(defaults.data(forKey: Key.cut)) ?? BrotherCutOptions()).restricted(to: model.series.cutter)
         quality = Self.decode(defaults.data(forKey: Key.quality)) ?? BrotherQualityOptions()
         copies = min(99, max(1, defaults.object(forKey: Key.copies) as? Int ?? 1))
+        netum = (Self.decode(defaults.data(forKey: Key.netum)) ?? NetumOptions()).normalized
     }
 
     var brotherJob: BrotherJob {

@@ -17,6 +17,8 @@ public enum PrinterBrand: String, CaseIterable, Identifiable, Codable, Sendable 
     case pocket5890
     /// Imprimantes Brother pilotées par le Brother Print SDK.
     case brother
+    /// Imprimante ticket NETUM NT-H861 (80 mm, massicot), en ESC/POS sur BLE.
+    case netum
 
     public var id: String { rawValue }
 }
