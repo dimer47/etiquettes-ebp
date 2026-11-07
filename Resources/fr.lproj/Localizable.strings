@@ -335,3 +335,5 @@
 "NETUM NT-H861 en Bluetooth LE : tête 80 mm de 576 points, massicot, ESC/POS." = "NETUM NT-H861 en Bluetooth LE : tête 80 mm de 576 points, massicot, ESC/POS.";
 "NETUM NT-H861" = "NETUM NT-H861";
 "Choisissez la hauteur de la zone imprimée. La largeur est de 72 mm sur rouleau 80 mm." = "Choisissez la hauteur de la zone imprimée. La largeur est de 72 mm sur rouleau 80 mm.";
+"NETUM introuvable" = "NETUM introuvable";
+"Impression déjà en cours" = "Impression déjà en cours";

@@ -11,10 +11,13 @@ public struct PrintedLabel: Codable, Equatable, Identifiable {
     public let leadingFeedDots: Int
     public let trailingFeedDots: Int
     public let rotateContent180: Bool
+    /// Réglages NETUM du travail ; nil pour la 5890 et Brother.
+    public let netum: NetumOptions?
 
     public init(id: UUID = UUID(), printedAt: Date = Date(), label: ProductLabel,
                 size: LabelSize, arrangement: LabelArrangement, densityValue: UInt8,
-                leadingFeedDots: Int, trailingFeedDots: Int, rotateContent180: Bool) {
+                leadingFeedDots: Int, trailingFeedDots: Int, rotateContent180: Bool,
+                netum: NetumOptions? = nil) {
         self.id = id
         self.printedAt = printedAt
         self.label = label
@@ -24,5 +27,6 @@ public struct PrintedLabel: Codable, Equatable, Identifiable {
         self.leadingFeedDots = leadingFeedDots
         self.trailingFeedDots = trailingFeedDots
         self.rotateContent180 = rotateContent180
+        self.netum = netum
     }
 }

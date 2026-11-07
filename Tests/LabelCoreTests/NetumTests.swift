@@ -134,6 +134,20 @@ final class NetumTests: XCTestCase {
         XCTAssertFalse(NetumBLE.looksLikePrinter(name: "AirPods", advertisedServices: ["180A"]))
     }
 
+    func testHistoryKeepsNetumOptionsAndReadsOldEntries() throws {
+        var options = NetumOptions()
+        options.cut = .partial
+        let entry = PrintedLabel(label: ProductLabel(), size: .standard, arrangement: .current, densityValue: 1,
+                                 leadingFeedDots: 0, trailingFeedDots: 104, rotateContent180: false, netum: options)
+        let decoded = try JSONDecoder().decode(PrintedLabel.self, from: JSONEncoder().encode(entry))
+        XCTAssertEqual(decoded.netum?.cut, .partial)
+        // Entrée enregistrée avant la NETUM : pas de champ `netum`.
+        var old = try JSONSerialization.jsonObject(with: JSONEncoder().encode(entry)) as! [String: Any]
+        old.removeValue(forKey: "netum")
+        let legacy = try JSONDecoder().decode(PrintedLabel.self, from: JSONSerialization.data(withJSONObject: old))
+        XCTAssertNil(legacy.netum)
+    }
+
     // MARK: - Mises en page 80 mm
 
     func testWideLayoutsStayInsideTheLabel() {

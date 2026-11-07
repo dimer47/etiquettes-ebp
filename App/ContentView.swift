@@ -283,9 +283,11 @@ struct ContentView: View {
                     thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement, width: layoutWidth)
                 }
             }
-            .onChange(of: netum.activity) { old, new in
+            .onChange(of: netum.jobError) { _, error in
                 // Impression refusée (capot, papier, massicot) ou connexion perdue.
-                if old == .checking || old == .printing, new == .idle, netum.statusIsError { message = netum.status }
+                guard let error else { return }
+                message = error
+                netum.jobError = nil
             }
             .onChange(of: brother.activity) { old, new in
                 // Erreur d'impression Brother : la montrer comme celles de la 5890.
@@ -306,7 +308,8 @@ struct ContentView: View {
                                  densityValue: printer.density.rawValue,
                                  leadingFeedDots: printer.leadingFeedDots,
                                  trailingFeedDots: printer.trailingFeedDots,
-                                 rotateContent180: printer.rotateContent180)
+                                 rotateContent180: printer.rotateContent180,
+                                 netum: isNetum ? setup.netum : nil)
         do { try submit(label, size: labelSize, arrangement: labelArrangement) { history.record(entry) } }
         catch { message = error.localizedDescription }
     }
@@ -335,10 +338,19 @@ struct ContentView: View {
         label = entry.label
         selectedSize = entry.size.rawValue
         selectedArrangement = entry.arrangement.rawValue
-        printer.density = PrintDensity(rawValue: entry.densityValue) ?? .medium
-        printer.leadingFeedDots = entry.leadingFeedDots
-        printer.trailingFeedDots = entry.trailingFeedDots
-        printer.rotateContent180 = entry.rotateContent180
+        if let options = entry.netum {
+            // Travail NETUM : ses réglages, sans toucher à ceux de la 5890.
+            // Transport Bluetooth gardé tel quel : il dépend de l'appareil.
+            var restored = options
+            restored.writeWithResponse = setup.netum.writeWithResponse
+            restored.packetDelayMS = setup.netum.packetDelayMS
+            setup.netum = restored
+        } else {
+            printer.density = PrintDensity(rawValue: entry.densityValue) ?? .medium
+            printer.leadingFeedDots = entry.leadingFeedDots
+            printer.trailingFeedDots = entry.trailingFeedDots
+            printer.rotateContent180 = entry.rotateContent180
+        }
         selectedPage = 1
         showingHistory = false
     }
@@ -351,7 +363,8 @@ struct ContentView: View {
             let copy = PrintedLabel(label: entry.label, size: entry.size, arrangement: entry.arrangement,
                                     densityValue: entry.densityValue, leadingFeedDots: entry.leadingFeedDots,
                                     trailingFeedDots: entry.trailingFeedDots,
-                                    rotateContent180: entry.rotateContent180)
+                                    rotateContent180: entry.rotateContent180,
+                                    netum: isNetum ? setup.netum : nil)
             try submit(entry.label, size: entry.size, arrangement: entry.arrangement) { history.record(copy) }
         } catch { message = error.localizedDescription }
     }
