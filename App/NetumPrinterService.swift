@@ -54,6 +54,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
     private var servicesPending = 0
     /// Reconnexions automatiques successives sans succès.
     private var reconnectAttempts = 0
+    /// `didConnect` reçu pour la tentative en cours.
+    private var linkEstablished = false
     private var waitingForDelay = false
     private var watchdogArmed = false
     private var statusReader = NetumStatusReader()
@@ -77,7 +79,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
     // MARK: - Recherche et connexion
 
     func scan(automaticReconnect: Bool = false) {
-        self.automaticReconnect = automaticReconnect
+        // Un travail en attente garde la reconnexion automatique.
+        self.automaticReconnect = automaticReconnect || pendingJob != nil
         guard let central, central.state == .poweredOn else {
             // Au lancement l'état vaut encore `.unknown` : `poweredOn` relancera.
             if central?.state == .unknown { return }
@@ -85,6 +88,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
             setStatus(NSLocalizedString("Activez Bluetooth pour rechercher la NETUM", comment: "NETUM status"), error: true)
             return
         }
+        // Connexion en cours : ne pas vider la liste ni relancer de recherche.
+        guard activity != .connecting else { return }
         allDevices.removeAll()
         devices.removeAll()
         peripherals.removeAll()
@@ -127,6 +132,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
     func connect(_ device: Device) {
         guard let target = peripherals[device.id] else { return }
         stopScan()
+        // Autre imprimante choisie à la main : le travail en attente visait la précédente.
+        if UserDefaults.standard.string(forKey: Self.savedIDKey) != device.id.uuidString { failPendingJob() }
         // Même imprimante déjà connectée ou en cours : rien à refaire.
         if peripheral?.identifier == device.id, connected || activity == .connecting { return }
         if let old = peripheral {
@@ -144,6 +151,7 @@ final class NetumPrinterService: NSObject, ObservableObject {
         connectedName = device.name
         peripheral = target
         target.delegate = self
+        linkEstablished = false
         central?.connect(target)
         // CoreBluetooth n'expire jamais une connexion : on le fait ici.
         connectTimeout?.cancel()
@@ -469,6 +477,7 @@ extension NetumPrinterService: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
             guard peripheral === self.peripheral else { return }
+            linkEstablished = true
             setStatus(NSLocalizedString("Découverte des services…", comment: "NETUM status"))
             peripheral.discoverServices(nil)
         }
@@ -488,7 +497,7 @@ extension NetumPrinterService: CBCentralManagerDelegate {
             // Ancienne imprimante après un changement : ne pas casser la nouvelle.
             // Pendant une nouvelle tentative, un échec passe par `didFailToConnect` :
             // une déconnexion reçue alors vient de l'ancienne connexion.
-            guard self.peripheral?.identifier == id, activity != .connecting else { return }
+            guard self.peripheral?.identifier == id, activity != .connecting || linkEstablished else { return }
             reset(NSLocalizedString("Aucune NETUM connectée", comment: "NETUM status"))
             if !userDisconnected { autoReconnect() }
         }
