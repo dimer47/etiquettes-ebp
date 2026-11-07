@@ -48,6 +48,12 @@ final class NetumPrinterService: NSObject, ObservableObject {
     private var packetDelay: TimeInterval = 0
     private var waitingForWrite = false
     private var writeToken = 0
+    /// Incrémenté à chaque `reset` : les délais d'une connexion passée l'ignorent.
+    private var linkGeneration = 0
+    /// Services dont on attend encore les caractéristiques.
+    private var servicesPending = 0
+    /// Reconnexions automatiques successives sans succès.
+    private var reconnectAttempts = 0
     private var waitingForDelay = false
     private var watchdogArmed = false
     private var statusReader = NetumStatusReader()
@@ -86,6 +92,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
         for known in central.retrieveConnectedPeripherals(withServices: NetumBLE.serviceUUIDs.map { CBUUID(string: $0) }) {
             remember(known, name: known.name ?? "NETUM", rssi: 0, services: NetumBLE.serviceUUIDs)
         }
+        // `remember` a pu lancer la connexion à l'imprimante déjà reliée.
+        guard activity != .connecting else { return }
         central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
         if activity == .idle { activity = .scanning }
         setStatus(NSLocalizedString("Recherche de la NETUM…", comment: "NETUM status"))
@@ -112,6 +120,7 @@ final class NetumPrinterService: NSObject, ObservableObject {
     }
 
     func reconnect() {
+        reconnectAttempts = 0
         if UserDefaults.standard.string(forKey: Self.savedIDKey) != nil { scan(automaticReconnect: true) }
     }
 
@@ -208,6 +217,10 @@ final class NetumPrinterService: NSObject, ObservableObject {
     }
 
     private func run(_ bytes: [UInt8], options: NetumOptions, onQueued: (() -> Void)?) async {
+        guard connected, peripheral != nil else {
+            activity = .idle
+            return
+        }
         writeType = options.writeWithResponse && writeCharacteristic?.properties.contains(.write) == true
             ? .withResponse : preferredWriteType
         packetDelay = Double(options.packetDelayMS) / 1000
@@ -319,13 +332,15 @@ final class NetumPrinterService: NSObject, ObservableObject {
                 guard let self, self.waitingForWrite, self.writeToken == token, let current = self.peripheral else { return }
                 self.central?.cancelPeripheralConnection(current)
                 self.reset(NSLocalizedString("L’imprimante ne répond plus", comment: "NETUM status"), error: true)
-                if !self.userDisconnected { self.scan(automaticReconnect: true) }
+                if !self.userDisconnected { self.autoReconnect() }
             }
         } else if packetDelay > 0 {
             waitingForDelay = true
+            let generation = linkGeneration
             DispatchQueue.main.asyncAfter(deadline: .now() + packetDelay) { [weak self] in
-                self?.waitingForDelay = false
-                self?.drain()
+                guard let self, self.linkGeneration == generation else { return }
+                self.waitingForDelay = false
+                self.drain()
             }
         } else {
             DispatchQueue.main.async { [weak self] in self?.drain() }
@@ -335,9 +350,11 @@ final class NetumPrinterService: NSObject, ObservableObject {
     private func armWatchdog() {
         guard !watchdogArmed else { return }
         watchdogArmed = true
+        let generation = linkGeneration
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            self?.watchdogArmed = false
-            self?.drain()
+            guard let self, self.linkGeneration == generation else { return }
+            self.watchdogArmed = false
+            self.drain()
         }
     }
 
@@ -371,6 +388,9 @@ final class NetumPrinterService: NSObject, ObservableObject {
         let wasPrinting = inJob || activity == .printing
         if wasPrinting { jobError = NSLocalizedString("Connexion perdue pendant l’impression", comment: "Printer status") }
         inJob = false
+        linkGeneration += 1
+        watchdogArmed = false
+        servicesPending = 0
         connected = false
         writeCharacteristic = nil
         peripheral = nil
@@ -391,6 +411,13 @@ final class NetumPrinterService: NSObject, ObservableObject {
         statusIsError = error
     }
 
+    /// Reconnexion automatique, trois fois au plus à la suite.
+    private func autoReconnect() {
+        guard reconnectAttempts < 3 else { return }
+        reconnectAttempts += 1
+        scan(automaticReconnect: true)
+    }
+
     private func failPendingJob() {
         guard pendingJob != nil else { return }
         pendingJob = nil
@@ -399,6 +426,7 @@ final class NetumPrinterService: NSObject, ObservableObject {
 
     private func ready() {
         connectTimeout?.cancel()
+        reconnectAttempts = 0
         queue.removeAll()
         queueOffset = 0
         connected = true
@@ -458,9 +486,11 @@ extension NetumPrinterService: CBCentralManagerDelegate {
         let id = peripheral.identifier
         Task { @MainActor in
             // Ancienne imprimante après un changement : ne pas casser la nouvelle.
-            guard self.peripheral?.identifier == id else { return }
+            // Pendant une nouvelle tentative, un échec passe par `didFailToConnect` :
+            // une déconnexion reçue alors vient de l'ancienne connexion.
+            guard self.peripheral?.identifier == id, activity != .connecting else { return }
             reset(NSLocalizedString("Aucune NETUM connectée", comment: "NETUM status"))
-            if !userDisconnected { scan(automaticReconnect: true) }
+            if !userDisconnected { autoReconnect() }
         }
     }
 }
@@ -477,9 +507,12 @@ extension NetumPrinterService: CBPeripheralDelegate {
             let usable = services.filter { !generic.contains($0.uuid) }
             let ordered = usable.filter { wanted.contains($0.uuid) } + usable.filter { !wanted.contains($0.uuid) }
             guard !ordered.isEmpty else {
+                central?.cancelPeripheralConnection(peripheral)
+                failPendingJob()
                 reset(NSLocalizedString("Aucun service d’impression trouvé", comment: "NETUM status"), error: true)
                 return
             }
+            servicesPending = ordered.count
             for service in ordered { peripheral.discoverCharacteristics(nil, for: service) }
         }
     }
@@ -502,7 +535,17 @@ extension NetumPrinterService: CBPeripheralDelegate {
                     writeCharacteristic = characteristic
                 }
             }
-            if writeCharacteristic != nil, !connected { ready() }
+            servicesPending -= 1
+            // Prête dès la caractéristique NETUM, sinon une fois tous les
+            // services connus : jamais sur une caractéristique provisoire.
+            let netumFound = writeCharacteristic?.service.map { wanted.contains($0.uuid) } ?? false
+            guard !connected else { return }
+            if netumFound || (servicesPending <= 0 && writeCharacteristic != nil) { ready() }
+            else if servicesPending <= 0 {
+                central?.cancelPeripheralConnection(peripheral)
+                failPendingJob()
+                reset(NSLocalizedString("Aucun service d’impression trouvé", comment: "NETUM status"), error: true)
+            }
         }
     }
 
@@ -524,7 +567,7 @@ extension NetumPrinterService: CBPeripheralDelegate {
                 central?.cancelPeripheralConnection(peripheral)
                 reset(error.localizedDescription, error: true)
                 // `reset` oublie l'appareil : `didDisconnect` sera ignoré.
-                if !userDisconnected { scan(automaticReconnect: true) }
+                if !userDisconnected { autoReconnect() }
                 return
             }
             drain()
