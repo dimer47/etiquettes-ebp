@@ -47,6 +47,7 @@ final class NetumPrinterService: NSObject, ObservableObject {
     private var writeType: CBCharacteristicWriteType = .withoutResponse
     private var packetDelay: TimeInterval = 0
     private var waitingForWrite = false
+    private var writeToken = 0
     private var waitingForDelay = false
     private var watchdogArmed = false
     private var statusReader = NetumStatusReader()
@@ -74,6 +75,7 @@ final class NetumPrinterService: NSObject, ObservableObject {
         guard let central, central.state == .poweredOn else {
             // Au lancement l'état vaut encore `.unknown` : `poweredOn` relancera.
             if central?.state == .unknown { return }
+            failPendingJob()
             setStatus(NSLocalizedString("Activez Bluetooth pour rechercher la NETUM", comment: "NETUM status"), error: true)
             return
         }
@@ -92,6 +94,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
             try? await Task.sleep(for: .seconds(15))
             guard let self, !Task.isCancelled else { return }
             self.stopScan()
+            // Connexion en cours : son propre délai décide.
+            if self.activity == .connecting { return }
             // Un travail en attente ne doit pas partir bien plus tard.
             if !self.connected, self.pendingJob != nil {
                 self.pendingJob = nil
@@ -174,6 +178,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
         }
         let job = { [weak self] in
             guard let self else { return }
+            // Occupé tout de suite : un second appel est refusé avant la Task.
+            self.activity = .checking
             Task { @MainActor in await self.run(bytes, options: options.normalized, onQueued: onQueued) }
         }
         if connected { job() }
@@ -186,8 +192,8 @@ final class NetumPrinterService: NSObject, ObservableObject {
     /// Lit l'état sans imprimer, pour l'écran Imprimante.
     func refreshStatus() {
         guard connected, !isBusy else { return }
+        activity = .checking
         Task { @MainActor in
-            activity = .checking
             let result = await readStatus()
             guard connected else { return }
             activity = .idle
@@ -232,6 +238,7 @@ final class NetumPrinterService: NSObject, ObservableObject {
     }
 
     private func readStatus() async -> NetumStatus? {
+        finishStatus(nil)
         statusReader.reset()
         enqueue(NetumCommand.fullStatusRequest)
         statusToken += 1
@@ -304,6 +311,16 @@ final class NetumPrinterService: NSObject, ObservableObject {
         progress = queuedTotal == 0 ? 1 : 1 - Double(remaining) / Double(queuedTotal)
         if type == .withResponse {
             waitingForWrite = true
+            writeToken += 1
+            let token = writeToken
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(5))
+                // Accusé jamais reçu : fermer le lien plutôt que rester bloqué.
+                guard let self, self.waitingForWrite, self.writeToken == token, let current = self.peripheral else { return }
+                self.central?.cancelPeripheralConnection(current)
+                self.reset(NSLocalizedString("L’imprimante ne répond plus", comment: "NETUM status"), error: true)
+                if !self.userDisconnected { self.scan(automaticReconnect: true) }
+            }
         } else if packetDelay > 0 {
             waitingForDelay = true
             DispatchQueue.main.asyncAfter(deadline: .now() + packetDelay) { [weak self] in
@@ -403,9 +420,9 @@ extension NetumPrinterService: CBCentralManagerDelegate {
                    UserDefaults.standard.string(forKey: Self.savedIDKey) != nil || pendingJob != nil {
                     scan(automaticReconnect: true)
                 }
-            case .unauthorized: reset(NSLocalizedString("Autorisation Bluetooth refusée", comment: "Bluetooth"), error: true)
-            case .poweredOff: reset(NSLocalizedString("Bluetooth désactivé", comment: "Bluetooth"), error: true)
-            default: reset(NSLocalizedString("Bluetooth indisponible", comment: "Bluetooth"), error: true)
+            case .unauthorized: failPendingJob(); reset(NSLocalizedString("Autorisation Bluetooth refusée", comment: "Bluetooth"), error: true)
+            case .poweredOff: failPendingJob(); reset(NSLocalizedString("Bluetooth désactivé", comment: "Bluetooth"), error: true)
+            default: failPendingJob(); reset(NSLocalizedString("Bluetooth indisponible", comment: "Bluetooth"), error: true)
             }
         }
     }
@@ -492,6 +509,7 @@ extension NetumPrinterService: CBPeripheralDelegate {
     nonisolated func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         let bytes = characteristic.value.map { [UInt8]($0) } ?? []
         Task { @MainActor in
+            guard peripheral === self.peripheral else { return }
             guard statusContinuation != nil, let status = statusReader.consume(bytes) else { return }
             finishStatus(status)
         }
@@ -505,6 +523,8 @@ extension NetumPrinterService: CBPeripheralDelegate {
                 // Fermer le lien : `didDisconnect` relancera la reconnexion.
                 central?.cancelPeripheralConnection(peripheral)
                 reset(error.localizedDescription, error: true)
+                // `reset` oublie l'appareil : `didDisconnect` sera ignoré.
+                if !userDisconnected { scan(automaticReconnect: true) }
                 return
             }
             drain()
