@@ -88,8 +88,23 @@ final class PairingTests: XCTestCase {
         XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://localhost:8088")!))
         XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://127.0.0.1:8088")!))
         XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://mac.local:8088")!))
-        XCTAssertFalse(PairingClient.isSecureEndpoint(URL(string: "http://192.168.0.175:8088")!))
+        // Un hôte HTTP public (non local) est toujours refusé, DEBUG ou non.
         XCTAssertFalse(PairingClient.isSecureEndpoint(URL(string: "http://gateway.example.com")!))
+        // En DEBUG, une IP LAN privée est tolérée (test sur appareil réel) ; pas en release.
+        #if DEBUG
+        XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://192.168.0.175:8088")!))
+        #else
+        XCTAssertFalse(PairingClient.isSecureEndpoint(URL(string: "http://192.168.0.175:8088")!))
+        #endif
+    }
+
+    func testPrivateLANAddressDetection() {
+        XCTAssertTrue(PairingClient.isPrivateLANAddress("192.168.0.175"))
+        XCTAssertTrue(PairingClient.isPrivateLANAddress("10.0.0.5"))
+        XCTAssertTrue(PairingClient.isPrivateLANAddress("172.16.3.4"))
+        XCTAssertFalse(PairingClient.isPrivateLANAddress("172.32.0.1"))  // hors 16-31
+        XCTAssertFalse(PairingClient.isPrivateLANAddress("8.8.8.8"))     // public
+        XCTAssertFalse(PairingClient.isPrivateLANAddress("gateway.example.com"))
     }
 
     func testEBPItemRowIDIsStableAndFallsBack() {

@@ -97,14 +97,35 @@ public struct PairingClient: Sendable {
     }
 
     /// Un endpoint est sûr s'il est en HTTPS, ou en HTTP vers un hôte de développement local
-    /// (localhost, 127.0.0.1, ::1, ou un nom en .local) — pratique pour développer sans TLS.
+    /// (localhost, 127.0.0.1, ::1, ou un nom en .local). En build DEBUG, on tolère aussi une
+    /// adresse IP du réseau local privé (LAN), pour tester l'appairage par QR sur un appareil
+    /// réel sans TLS. En production (release), seul HTTPS est accepté hors hôte local.
     static func isSecureEndpoint(_ url: URL) -> Bool {
         switch url.scheme?.lowercased() {
         case "https": return true
         case "http":
             let host = (url.host ?? "").lowercased()
-            return host == "localhost" || host == "127.0.0.1" || host == "::1" || host.hasSuffix(".local")
+            if host == "localhost" || host == "127.0.0.1" || host == "::1" || host.hasSuffix(".local") {
+                return true
+            }
+            #if DEBUG
+            return isPrivateLANAddress(host)
+            #else
+            return false
+            #endif
         default: return false
         }
+    }
+
+    /// Vrai si l'hôte est une adresse IPv4 d'une plage privée (RFC 1918) : 10/8, 172.16/12,
+    /// 192.168/16. Utilisé seulement en DEBUG pour autoriser un test LAN par QR.
+    static func isPrivateLANAddress(_ host: String) -> Bool {
+        let parts = host.split(separator: ".")
+        guard parts.count == 4, let a = Int(parts[0]), let b = Int(parts[1]),
+              parts.allSatisfy({ Int($0) != nil }) else { return false }
+        if a == 10 { return true }
+        if a == 192, b == 168 { return true }
+        if a == 172, (16...31).contains(b) { return true }
+        return false
     }
 }
