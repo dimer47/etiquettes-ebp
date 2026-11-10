@@ -71,4 +71,33 @@ final class PairingTests: XCTestCase {
         catch PairingError.rateLimited {}
         catch { XCTFail("mauvaise erreur : \(error)") }
     }
+
+    func testClaimRejectsInsecureEndpoint() async {
+        // Un endpoint HTTP non-local doit être refusé AVANT tout appel réseau.
+        let stub = PairingStubSession([.init(status: 200, body: Data())])
+        let payload = PairingPayload(endpoint: URL(string: "http://gateway.example.com")!, pairingCode: "ABC")
+        do { _ = try await PairingClient(session: stub).claim(payload); XCTFail("doit lever insecureEndpoint") }
+        catch PairingError.insecureEndpoint {}
+        catch { XCTFail("mauvaise erreur : \(error)") }
+        let count = await stub.requests.count
+        XCTAssertEqual(count, 0)   // aucun appel réseau n'a été fait
+    }
+
+    func testIsSecureEndpoint() {
+        XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "https://gw.example.com")!))
+        XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://localhost:8088")!))
+        XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://127.0.0.1:8088")!))
+        XCTAssertTrue(PairingClient.isSecureEndpoint(URL(string: "http://mac.local:8088")!))
+        XCTAssertFalse(PairingClient.isSecureEndpoint(URL(string: "http://192.168.0.175:8088")!))
+        XCTAssertFalse(PairingClient.isSecureEndpoint(URL(string: "http://gateway.example.com")!))
+    }
+
+    func testEBPItemRowIDIsStableAndFallsBack() {
+        XCTAssertEqual(EBPItem(id: " ART001 ").rowID, "id:ART001")
+        XCTAssertEqual(EBPItem(barCode: "3660619000012").rowID, "bc:3660619000012")
+        // Sans réf ni code-barres : repli déterministe (pas de collision avec un autre contenu).
+        let a = EBPItem(caption: "A").rowID
+        let b = EBPItem(caption: "B").rowID
+        XCTAssertNotEqual(a, b)
+    }
 }

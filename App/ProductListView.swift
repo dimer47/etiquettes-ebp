@@ -85,6 +85,11 @@ final class EBPSearchModel: ObservableObject {
     /// même si EBP ne renvoie pas un `total` exploitable sur de très gros catalogues).
     private var lastPageWasFull = true
     private var searchTask: Task<Void, Never>?
+    /// Incrémenté à chaque rechargement complet. Un `loadMore` d'une génération périmée
+    /// (filtre changé entre-temps) est ignoré, pour ne pas mélanger deux jeux de résultats.
+    private var generation = 0
+    /// Clés de ligne déjà présentes, pour dédoublonner les pages qui se chevauchent.
+    private var seenRowIDs: Set<String> = []
 
     init(config: GatewayConfig) {
         self.config = config
@@ -118,18 +123,24 @@ final class EBPSearchModel: ObservableObject {
     }
 
     private func reload() async {
+        generation &+= 1
+        let gen = generation
         phase = .loading
         offset = 0
         do {
             let page = try await client.items(currentQuery(offset: 0))
-            guard !Task.isCancelled else { return }
-            items = page.items
+            guard !Task.isCancelled, gen == generation else { return }
+            // Dédoublonnage par identité de ligne (pages qui se chevauchent).
+            var seen = Set<String>()
+            let deduped = page.items.filter { seen.insert($0.rowID).inserted }
+            items = deduped
+            seenRowIDs = seen
             total = page.paging?.total ?? 0
             offset = page.items.count
             lastPageWasFull = page.items.count >= pageSize
             phase = .loaded
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, gen == generation else { return }
             phase = .error(Self.message(for: error))
         }
     }
@@ -143,15 +154,21 @@ final class EBPSearchModel: ObservableObject {
 
     private func loadMore() async {
         guard phase == .loaded, canLoadMore else { return }
+        let gen = generation
         phase = .loadingMore
         do {
             let page = try await client.items(currentQuery(offset: offset))
-            items.append(contentsOf: page.items)
+            // Un rechargement complet (filtre changé) a eu lieu entre-temps : page périmée, on ignore.
+            guard gen == generation else { return }
+            // N'ajoute que les lignes pas encore présentes (pages qui se chevauchent).
+            let fresh = page.items.filter { seenRowIDs.insert($0.rowID).inserted }
+            items.append(contentsOf: fresh)
             if let t = page.paging?.total, t > 0 { total = t }
             offset += page.items.count
             lastPageWasFull = page.items.count >= pageSize
             phase = .loaded
         } catch {
+            guard gen == generation else { return }
             phase = .error(Self.message(for: error))
         }
     }
@@ -403,7 +420,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                                        systemImage: "magnifyingglass",
                                        description: Text(NSLocalizedString("Aucun résultat pour cette recherche.", comment: "")))
             }
-            ForEach(model.items, id: \.self) { item in
+            ForEach(model.items, id: \.rowID) { item in
                 Button { select(item) } label: { row(item) }
                     .onAppear { model.loadMoreIfNeeded(current: item) }
             }

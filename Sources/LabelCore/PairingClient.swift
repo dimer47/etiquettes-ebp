@@ -39,6 +39,7 @@ public struct PairingResult: Decodable, Equatable, Sendable {
 
 public enum PairingError: Error, Equatable {
     case invalidQR                 // QR illisible / mauvais format
+    case insecureEndpoint          // endpoint non-HTTPS (code en clair refusé)
     case codeExpired(String)       // 410 : code invalide, expiré ou déjà utilisé
     case rateLimited               // 429 : trop de tentatives
     case badRequest(String)        // 422 : corps invalide
@@ -67,13 +68,20 @@ public struct PairingClient: Sendable {
     }
 
     /// Réclame le jeton à partir du contenu d'un QR.
+    /// Exige HTTPS (le code à usage unique ne doit jamais partir en clair), sauf vers un hôte
+    /// de développement local (localhost / 127.0.0.1 / *.local).
     public func claim(_ payload: PairingPayload) async throws -> PairingResult {
+        guard Self.isSecureEndpoint(payload.endpoint) else { throw PairingError.insecureEndpoint }
+
         let url = payload.endpoint.appendingPathComponent("api/v1/pairing/claim")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["code": payload.pairingCode])
+        guard let body = try? JSONSerialization.data(withJSONObject: ["code": payload.pairingCode]) else {
+            throw PairingError.badRequest("")
+        }
+        request.httpBody = body
 
         let data: Data, response: URLResponse
         do {
@@ -86,5 +94,17 @@ public struct PairingClient: Sendable {
 
         do { return try JSONDecoder().decode(PairingResult.self, from: data) }
         catch { throw PairingError.decoding(error.localizedDescription) }
+    }
+
+    /// Un endpoint est sûr s'il est en HTTPS, ou en HTTP vers un hôte de développement local
+    /// (localhost, 127.0.0.1, ::1, ou un nom en .local) — pratique pour développer sans TLS.
+    static func isSecureEndpoint(_ url: URL) -> Bool {
+        switch url.scheme?.lowercased() {
+        case "https": return true
+        case "http":
+            let host = (url.host ?? "").lowercased()
+            return host == "localhost" || host == "127.0.0.1" || host == "::1" || host.hasSuffix(".local")
+        default: return false
+        }
     }
 }

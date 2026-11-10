@@ -14,6 +14,15 @@ public struct EBPItem: Decodable, Equatable, Hashable {
     public let shelfRef: String?              // "ShelfRef" (rayon)
     public let familyId: String?              // "FamilyId" (famille)
 
+    /// Identité stable d'une ligne de liste : la référence EBP si présente, sinon le code-barres,
+    /// sinon un repli dérivé des champs. Évite les collisions d'`id` dans un ForEach quand des
+    /// articles arrivent avec des champs partiels.
+    public var rowID: String {
+        if let id = id?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty { return "id:" + id }
+        if let bc = barCode?.trimmingCharacters(in: .whitespacesAndNewlines), !bc.isEmpty { return "bc:" + bc }
+        return "h:\(hashValue)"
+    }
+
     enum CodingKeys: String, CodingKey {
         case id = "Id"
         case caption = "Caption"

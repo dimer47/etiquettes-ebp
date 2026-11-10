@@ -10,8 +10,16 @@ public struct MappedProduct: Equatable, Hashable, Identifiable {
     public let priceExclVat: String?
     public let eanWasInvalid: Bool
 
-    /// Identité stable pour la navigation SwiftUI (référence + code-barres).
-    public var id: String { label.productReference + "|" + label.ean }
+    /// Identité stable pour la navigation SwiftUI : référence + code-barres, avec repli sur le
+    /// nom puis le prix, pour qu'un article sans réf ni EAN n'entre pas en collision tout en
+    /// restant déterministe (même article → même id).
+    public var id: String {
+        let ref = label.productReference.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ean = label.ean.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !ref.isEmpty || !ean.isEmpty { return ref + "|" + ean }
+        let name = label.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return "x|" + name + "|" + label.price
+    }
 
     public init(label: ProductLabel, priceExclVat: String?, eanWasInvalid: Bool) {
         self.label = label; self.priceExclVat = priceExclVat; self.eanWasInvalid = eanWasInvalid

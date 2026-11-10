@@ -149,6 +149,7 @@ struct PairingView: View {
         guard let e = error as? PairingError else { return error.localizedDescription }
         switch e {
         case .invalidQR: return NSLocalizedString("QR invalide. Demandez un nouveau QR et réessayez.", comment: "Invalid QR")
+        case .insecureEndpoint: return NSLocalizedString("Connexion non sécurisée refusée. La gateway doit être en HTTPS.", comment: "Insecure endpoint")
         case .codeExpired: return NSLocalizedString("Ce QR n’est plus valide. Demandez-en un nouveau.", comment: "Expired QR")
         case .rateLimited: return NSLocalizedString("Trop de tentatives. Patientez un instant puis réessayez.", comment: "Rate limited")
         case .badRequest(let m): return m.isEmpty ? NSLocalizedString("Requête refusée.", comment: "") : m
