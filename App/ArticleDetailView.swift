@@ -2,17 +2,15 @@ import SwiftUI
 
 /// Fiche d'un article EBP, en deux onglets au niveau de l'article :
 ///  - **Produit** : les infos récupérées (lecture seule), TTC en gros + HT en petit (écran only).
-///  - **Impression** : quantité, format, bouton imprimer.
-struct ArticleDetailView: View {
+///  - **Impression** : l'écran d'impression soigné (carte imprimante, présentation graphique,
+///    aperçu live, quantité, bouton Imprimer) — fourni par `ContentView`, qui possède tout le
+///    moteur d'impression et les feuilles associées.
+struct ArticleDetailView<Impression: View>: View {
     let product: MappedProduct
-    /// Liaisons vers le format courant de l'app (mêmes @AppStorage que l'écran d'impression).
-    @Binding var sizeRaw: String
-    @Binding var arrangementRaw: String
-    /// Appelé sur « Imprimer » : (étiquette, quantité).
-    let onPrint: (ProductLabel, Int) -> Void
+    /// Contenu de l'onglet Impression, construit par l'hôte (ContentView).
+    @ViewBuilder let impression: () -> Impression
 
     @State private var tab = 0
-    @State private var quantity = 1
 
     private var label: ProductLabel { product.label }
 
@@ -25,7 +23,7 @@ struct ArticleDetailView: View {
             .pickerStyle(.segmented)
             .padding()
 
-            if tab == 0 { productTab } else { printTab }
+            if tab == 0 { productTab } else { impression() }
         }
         .navigationTitle(label.name.isEmpty ? NSLocalizedString("Article", comment: "Article") : label.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -78,35 +76,6 @@ struct ArticleDetailView: View {
                     }
                 }
             } label: { Text(NSLocalizedString("Code-barres", comment: "Barcode")) }
-        }
-    }
-
-    // MARK: - Onglet Impression
-
-    private var printTab: some View {
-        Form {
-            Section(NSLocalizedString("Impression", comment: "Printing")) {
-                Stepper(value: $quantity, in: 1...99) {
-                    LabeledContent(NSLocalizedString("Quantité", comment: "Quantity"), value: "\(quantity)")
-                }
-                Picker(NSLocalizedString("Hauteur", comment: "Height"), selection: $sizeRaw) {
-                    ForEach(LabelSize.allCases) { size in Text(size.title).tag(size.rawValue) }
-                }
-                Picker(NSLocalizedString("Disposition", comment: "Arrangement"), selection: $arrangementRaw) {
-                    ForEach(LabelArrangement.allCases) { a in Text(a.title).tag(a.rawValue) }
-                }
-            }
-
-            Section {
-                Button {
-                    onPrint(label, quantity)
-                } label: {
-                    Label(String(format: NSLocalizedString("Imprimer %d étiquette(s)", comment: "Print N labels"), quantity),
-                          systemImage: "printer")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-            }
         }
     }
 }

@@ -94,28 +94,28 @@ final class EBPSearchModel: ObservableObject {
 }
 
 /// Écran RACINE (app appairée) : liste et recherche des articles EBP. Sélectionner un article
-/// pousse sa fiche à onglets Produit / Impression. L'impression remonte via `onPrint`.
-struct ProductListView: View {
+/// pousse sa fiche à onglets Produit / Impression. L'onglet Impression (écran d'impression soigné)
+/// est fourni par l'hôte via `impression` ; `onSelect` prévient l'hôte pour alimenter l'étiquette.
+struct ProductListView<Impression: View>: View {
     let config: GatewayConfig
-    @Binding var sizeRaw: String
-    @Binding var arrangementRaw: String
-    let onPrint: (MappedProduct, Int) -> Void
     let onOpenSettings: () -> Void
     let onOpenHistory: () -> Void
+    let onSelect: (MappedProduct) -> Void
+    @ViewBuilder let impression: (MappedProduct) -> Impression
 
     @StateObject private var model: EBPSearchModel
     @State private var selected: MappedProduct?
 
-    init(config: GatewayConfig, sizeRaw: Binding<String>, arrangementRaw: Binding<String>,
-         onPrint: @escaping (MappedProduct, Int) -> Void,
+    init(config: GatewayConfig,
          onOpenSettings: @escaping () -> Void,
-         onOpenHistory: @escaping () -> Void) {
+         onOpenHistory: @escaping () -> Void,
+         onSelect: @escaping (MappedProduct) -> Void,
+         @ViewBuilder impression: @escaping (MappedProduct) -> Impression) {
         self.config = config
-        _sizeRaw = sizeRaw
-        _arrangementRaw = arrangementRaw
-        self.onPrint = onPrint
         self.onOpenSettings = onOpenSettings
         self.onOpenHistory = onOpenHistory
+        self.onSelect = onSelect
+        self.impression = impression
         _model = StateObject(wrappedValue: EBPSearchModel(config: config))
     }
 
@@ -138,9 +138,7 @@ struct ProductListView: View {
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
             .navigationDestination(item: $selected) { product in
-                ArticleDetailView(product: product, sizeRaw: $sizeRaw, arrangementRaw: $arrangementRaw) { _, quantity in
-                    onPrint(product, quantity)
-                }
+                ArticleDetailView(product: product) { impression(product) }
             }
     }
 
@@ -209,6 +207,8 @@ struct ProductListView: View {
     }
 
     private func select(_ item: EBPItem) {
-        selected = EBPProductMapper.map(item)
+        let product = EBPProductMapper.map(item)
+        onSelect(product)        // alimente l'étiquette courante AVANT de pousser la fiche (aperçu live)
+        selected = product
     }
 }

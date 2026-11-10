@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var showingPresentation = false
     @State private var showingHistory = false
     @State private var message: String?
+    @State private var ebpQuantity = 1
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
     @AppStorage("labelArrangement") private var selectedArrangement = LabelArrangement.current.rawValue
 
@@ -58,11 +59,14 @@ struct ContentView: View {
             Group {
                 if let config = gateway.currentConfig() {
                     ProductListView(config: config,
-                                    sizeRaw: $selectedSize,
-                                    arrangementRaw: $selectedArrangement,
-                                    onPrint: { product, quantity in importAndPrint(product, quantity: quantity) },
                                     onOpenSettings: { showingSettings = true },
-                                    onOpenHistory: { showingHistory = true })
+                                    onOpenHistory: { showingHistory = true },
+                                    onSelect: { product in
+                                        // L'article choisi devient l'étiquette courante → aperçu live.
+                                        label = product.label
+                                        ebpQuantity = 1
+                                    },
+                                    impression: { product in impressionTab(for: product) })
                 } else {
                     ContentUnavailableView(NSLocalizedString("Gateway non configurée", comment: "Gateway not configured"),
                                            systemImage: "gearshape",
@@ -93,15 +97,148 @@ struct ContentView: View {
         }
     }
 
-    /// Alimente l'étiquette courante avec l'article EBP choisi, puis imprime la quantité demandée.
-    private func importAndPrint(_ product: MappedProduct, quantity: Int) {
-        label = product.label
-        guard printerReady else {
-            message = NSLocalizedString("Connectez une imprimante avant d’imprimer.", comment: "No printer")
-            showingPrinters = true
-            return
+    /// Onglet « Impression » de la fiche article : l'écran d'impression soigné d'origine
+    /// (carte imprimante, présentation graphique, aperçu live), + une carte quantité, + le
+    /// bouton Imprimer en direct. Piloté par `label` (l'article sélectionné) → aperçu live.
+    private func impressionTab(for product: MappedProduct) -> some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                printerCard
+                presentationCard
+                previewCard(for: product.label)
+                quantityCard
+                Button { printCurrentLabel(copies: ebpQuantity) } label: {
+                    Label(isPrinting
+                          ? NSLocalizedString("Impression…", comment: "Printing progress")
+                          : String(format: NSLocalizedString("Imprimer %d étiquette(s)", comment: "Print N labels"), ebpQuantity),
+                          systemImage: "printer.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled((try? LabelRenderer.render(product.label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) == nil || isPrinting || !printerReady)
+            }
+            .onAppear { label = product.label }   // garantit que l'impression utilise cet article
+            .padding()
         }
-        printCurrentLabel(copies: quantity)
+        .background(Color(.systemGroupedBackground))
+    }
+
+    /// Carte imprimante (modèle, statut, batterie, bouton Connecter/Changer). Ouvre la modale imprimante.
+    private var printerCard: some View {
+        HStack {
+            if isNetum {
+                Image(systemName: "printer.fill")
+                    .font(.title3).foregroundStyle(netum.connected ? .green : .secondary)
+                VStack(alignment: .leading) {
+                    Text(netum.connected ? (netum.connectedName ?? "NETUM") : NSLocalizedString("NETUM NT-H861", comment: "NETUM card title")).font(.headline)
+                    Text(netum.status).font(.subheadline)
+                        .foregroundStyle(netum.statusIsError ? .red : .primary)
+                    Text(setup.netum.paper.title + " · " + setup.netum.cut.title)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if netum.isBusy { ProgressView(value: netum.progress).frame(width: 44) }
+                Button(netum.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
+            } else if isBrother {
+                Image(systemName: "printer.fill")
+                    .font(.title3).foregroundStyle(printerReady ? .green : .secondary)
+                VStack(alignment: .leading) {
+                    Text(String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)).font(.headline)
+                    Text(brother.target?.displayName ?? NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status"))
+                        .font(.subheadline)
+                    if brother.target != nil || brother.status != NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status") {
+                        Text(brother.status).font(.caption)
+                            .foregroundStyle(brother.statusIsError ? .red : .secondary)
+                    }
+                }
+                Spacer()
+                if brother.activity == .printing {
+                    Button("Annuler", role: .destructive) { brother.cancelPrint() }
+                } else if brother.isBusy { ProgressView() }
+                Button(brother.target == nil ? NSLocalizedString("Connecter", comment: "Connect printer") : NSLocalizedString("Changer", comment: "Change printer")) { openPrinters() }
+            } else {
+                Image(systemName: "printer.fill")
+                    .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
+                VStack(alignment: .leading) {
+                    Text(printer.connected ? printer.displayName : NSLocalizedString("Imprimante", comment: "Printer card title")).font(.headline)
+                    Text(printer.status).font(.subheadline)
+                    if printer.connected {
+                        Label(printer.batteryPercent.map { String(format: NSLocalizedString("Batterie %d %%", comment: "Printer battery"), $0) } ?? NSLocalizedString("Batterie en cours de lecture", comment: "Printer battery"),
+                              systemImage: printer.batteryPercent == nil ? "battery.0percent" : "battery.100percent")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
+            }
+        }
+        .padding(16)
+        .modifier(PrintCardStyle())
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture { openPrinters() }
+        .accessibilityAction(named: Text("Réglages de l’imprimante")) { openPrinters() }
+    }
+
+    /// Carte « Présentation de l'étiquette » : ouvre le sélecteur de format graphique à miniatures.
+    private var presentationCard: some View {
+        Button {
+            showingPresentation = true
+            thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
+                                   arrangement: labelArrangement, width: layoutWidth, reset: true)
+        } label: {
+            HStack {
+                Image(systemName: "square.grid.2x2.fill")
+                    .font(.title3).foregroundStyle(.primary)
+                VStack(alignment: .leading) {
+                    Text("Présentation de l’étiquette").font(.headline)
+                    Text("\(labelArrangement.title) · \(labelSize.title) (\(printedSizeText))")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .modifier(PrintCardStyle())
+        }
+        .buttonStyle(ResponsiveCardStyle())
+    }
+
+    /// Aperçu live de l'étiquette (le bitmap réel qui sera imprimé), rendu depuis l'étiquette donnée.
+    private func previewCard(for previewLabel: ProductLabel) -> some View {
+        let preview = (try? LabelRenderer.render(previewLabel, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth))
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
+            if let preview, let image = LabelRenderer.preview(preview) {
+                Image(uiImage: image).interpolation(.high).resizable()
+                    .aspectRatio(CGFloat(preview.width) / CGFloat(preview.height), contentMode: .fit)
+                    .background(.white)
+                    .overlay(Rectangle().stroke(Color(.separator), lineWidth: 1))
+                    .accessibilityLabel("Aperçu de l’étiquette à imprimer")
+            } else {
+                Text(NSLocalizedString("Aperçu indisponible pour cet article.", comment: "No preview"))
+                    .frame(maxWidth: .infinity, minHeight: 170)
+            }
+        }
+        .padding(16)
+        .modifier(PrintCardStyle())
+    }
+
+    /// Petite carte quantité (−/+), juste au-dessus du bouton Imprimer.
+    private var quantityCard: some View {
+        HStack {
+            Image(systemName: "number.square.fill").font(.title3).foregroundStyle(.primary)
+            Text(NSLocalizedString("Quantité", comment: "Quantity")).font(.headline)
+            Spacer()
+            Stepper(value: $ebpQuantity, in: 1...99) {
+                Text("\(ebpQuantity)").font(.headline).monospacedDigit()
+            }
+            .labelsHidden()
+            .fixedSize()
+        }
+        .padding(16)
+        .modifier(PrintCardStyle())
     }
 
     /// Imprime la quantité demandée selon la marque : Netum et Brother en natif (copies),
