@@ -60,8 +60,9 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let config = gateway.currentConfig() {
+                if let config = gateway.activeConfig() {
                     ProductListView(config: config,
+                                    session: gateway.makeSession(),
                                     onOpenSettings: { showingSettings = true },
                                     onOpenHistory: { showingHistory = true },
                                     onSelect: { product in

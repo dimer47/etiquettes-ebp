@@ -76,6 +76,22 @@ struct PairingView: View {
                         .font(.caption).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.top, 2)
+
+                    Divider().padding(.vertical, 4)
+
+                    Button {
+                        errorMessage = nil
+                        settings.startDemo()   // bascule sur la liste avec des données factices (hors ligne)
+                    } label: {
+                        Label(NSLocalizedString("Découvrir en démonstration", comment: "Try demo"),
+                              systemImage: "play.circle")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .disabled(claiming)
+
+                    Text(NSLocalizedString("Données fictives, sans connexion ni compte. Pour découvrir l’application.", comment: "Demo hint"))
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)

@@ -15,18 +15,28 @@ final class GatewaySettings: ObservableObject {
     /// Date d'appairage réussi (whoami OK). Nil tant que l'app n'est pas appairée.
     @Published private(set) var pairedSince: Date?
 
+    /// Mode démonstration : données factices servies hors ligne (revue App Store, captures,
+    /// démo commerciale). Aucune donnée client, aucun serveur requis.
+    @Published private(set) var isDemo: Bool
+
     private let defaults: UserDefaults
 
     private enum Key {
         static let baseURL = "gateway.baseURL"
         static let pairedSince = "gateway.pairedSince"
+        static let demo = "gateway.demoMode"
     }
+
+    /// Config utilisée en mode démo (l'URL n'est jamais réellement appelée : la session démo
+    /// répond hors ligne, mais `GatewayConfig` exige une URL/token valides).
+    static let demoConfig = GatewayConfig(baseURL: URL(string: "https://demo.local")!, token: "demo")
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.baseURLString = defaults.string(forKey: Key.baseURL) ?? ""
         let paired = defaults.object(forKey: Key.pairedSince) as? Date
         self.pairedSince = paired
+        self.isDemo = defaults.bool(forKey: Key.demo)
         var tokenPresent = KeychainToken.get() != nil
         #if DEBUG
         // Pratique de dev : jeton de test injectable via UserDefaults sans clavier ni Keychain.
@@ -37,13 +47,32 @@ final class GatewaySettings: ObservableObject {
         self.hasToken = tokenPresent
     }
 
-    /// L'app est-elle appairée : config valide (URL + jeton) ET date d'appairage enregistrée.
+    /// L'app est-elle utilisable : appairée (URL + jeton + date) OU en mode démo.
     var isPaired: Bool {
-        currentConfig() != nil && pairedSince != nil
+        isDemo || (currentConfig() != nil && pairedSince != nil)
+    }
+
+    /// Config active (démo ou réelle), ou nil si rien n'est configuré.
+    func activeConfig() -> GatewayConfig? {
+        isDemo ? Self.demoConfig : currentConfig()
+    }
+
+    /// Session HTTP à utiliser : stub hors ligne en démo, sinon la vraie session réseau.
+    func makeSession() -> HTTPSession {
+        isDemo ? DemoHTTPSession() : URLSession.shared
+    }
+
+    /// Active le mode démonstration (données factices, hors ligne).
+    func startDemo() {
+        isDemo = true
+        defaults.set(true, forKey: Key.demo)
+        markPaired()
     }
 
     /// Applique un appairage réussi (résultat du claim QR) : stocke l'URL, le jeton et la date.
+    /// Désactive le mode démo le cas échéant (on passe à une vraie gateway).
     func applyPairing(endpoint: String, token: String) {
+        if isDemo { isDemo = false; defaults.set(false, forKey: Key.demo) }
         baseURLString = endpoint
         setToken(token)
         markPaired()
@@ -55,16 +84,18 @@ final class GatewaySettings: ObservableObject {
         defaults.set(date, forKey: Key.pairedSince)
     }
 
-    /// Dissocie la gateway : efface jeton, URL et date d'appairage.
+    /// Dissocie la gateway (ou quitte la démo) : efface jeton, URL, date d'appairage et mode démo.
     func unpair() {
         KeychainToken.delete()
         baseURLString = ""
         defaults.removeObject(forKey: Key.pairedSince)
+        defaults.set(false, forKey: Key.demo)
         #if DEBUG
         defaults.removeObject(forKey: "gateway.debugToken")
         #endif
         pairedSince = nil
         hasToken = false
+        isDemo = false
     }
 
     /// Enregistre le jeton au trousseau et met à jour l'indicateur.

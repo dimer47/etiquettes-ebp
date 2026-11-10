@@ -104,9 +104,9 @@ final class EBPSearchModel: ObservableObject {
     /// Clés de ligne déjà présentes, pour dédoublonner les pages qui se chevauchent.
     private var seenRowIDs: Set<String> = []
 
-    init(config: GatewayConfig) {
+    init(config: GatewayConfig, session: HTTPSession = URLSession.shared) {
         self.config = config
-        self.client = GatewayClient(config: config)
+        self.client = GatewayClient(config: config, session: session)
     }
 
     /// Reste-t-il des articles à charger ? On continue tant que la dernière page était pleine
@@ -240,6 +240,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     @State private var filtersSignatureAtOpen = ""
 
     init(config: GatewayConfig,
+         session: HTTPSession = URLSession.shared,
          onOpenSettings: @escaping () -> Void,
          onOpenHistory: @escaping () -> Void,
          onSelect: @escaping (MappedProduct) -> Void,
@@ -251,7 +252,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
         self.onSelect = onSelect
         self.impression = impression
         self.sheets = sheets
-        _model = StateObject(wrappedValue: EBPSearchModel(config: config))
+        _model = StateObject(wrappedValue: EBPSearchModel(config: config, session: session))
     }
 
     var body: some View {

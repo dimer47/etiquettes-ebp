@@ -55,11 +55,12 @@ enum GatewayTestState: Equatable {
 enum GatewayConnectionTester {
     @MainActor
     static func test(settings: GatewaySettings, update: @escaping (GatewayTestState) -> Void) {
-        guard let config = settings.currentConfig() else { update(.invalidConfig); return }
+        guard let config = settings.activeConfig() else { update(.invalidConfig); return }
+        let session = settings.makeSession()
         update(.running)
         Task { @MainActor in
             do {
-                let who = try await GatewayClient(config: config).whoami()
+                let who = try await GatewayClient(config: config, session: session).whoami()
                 update(.ok(app: who.app, account: who.account, folder: who.folder?.label))
             } catch {
                 update(.failed(EBPSearchModel.message(for: error)))
