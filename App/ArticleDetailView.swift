@@ -17,15 +17,19 @@ struct ArticleDetailView<Impression: View, Sheets: View>: View {
     private var label: ProductLabel { product.label }
 
     var body: some View {
-        VStack(spacing: 0) {
+        Group {
+            if tab == 0 { productTab } else { impression() }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            // Sélecteur d'onglet épinglé en haut, hors du Form : laisse le Form (onglet Produit)
+            // gérer sa propre hauteur de scroll, sans étirement de sa première section.
             Picker("", selection: $tab) {
                 Text(NSLocalizedString("Produit", comment: "Product tab")).tag(0)
                 Text(NSLocalizedString("Impression", comment: "Printing tab")).tag(1)
             }
             .pickerStyle(.segmented)
             .padding()
-
-            if tab == 0 { productTab } else { impression() }
+            .background(.bar)
         }
         .navigationTitle(label.name.isEmpty ? NSLocalizedString("Article", comment: "Article") : label.name)
         .navigationBarTitleDisplayMode(.inline)
