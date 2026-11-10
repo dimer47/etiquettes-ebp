@@ -96,12 +96,13 @@ final class EBPSearchModel: ObservableObject {
 /// Écran RACINE (app appairée) : liste et recherche des articles EBP. Sélectionner un article
 /// pousse sa fiche à onglets Produit / Impression. L'onglet Impression (écran d'impression soigné)
 /// est fourni par l'hôte via `impression` ; `onSelect` prévient l'hôte pour alimenter l'étiquette.
-struct ProductListView<Impression: View>: View {
+struct ProductListView<Impression: View, Sheets: View>: View {
     let config: GatewayConfig
     let onOpenSettings: () -> Void
     let onOpenHistory: () -> Void
     let onSelect: (MappedProduct) -> Void
     @ViewBuilder let impression: (MappedProduct) -> Impression
+    @ViewBuilder let sheets: () -> Sheets
 
     @StateObject private var model: EBPSearchModel
     @State private var selected: MappedProduct?
@@ -110,12 +111,14 @@ struct ProductListView<Impression: View>: View {
          onOpenSettings: @escaping () -> Void,
          onOpenHistory: @escaping () -> Void,
          onSelect: @escaping (MappedProduct) -> Void,
-         @ViewBuilder impression: @escaping (MappedProduct) -> Impression) {
+         @ViewBuilder impression: @escaping (MappedProduct) -> Impression,
+         @ViewBuilder sheets: @escaping () -> Sheets) {
         self.config = config
         self.onOpenSettings = onOpenSettings
         self.onOpenHistory = onOpenHistory
         self.onSelect = onSelect
         self.impression = impression
+        self.sheets = sheets
         _model = StateObject(wrappedValue: EBPSearchModel(config: config))
     }
 
@@ -138,7 +141,7 @@ struct ProductListView<Impression: View>: View {
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
             .navigationDestination(item: $selected) { product in
-                ArticleDetailView(product: product) { impression(product) }
+                ArticleDetailView(product: product, impression: { impression(product) }, sheets: sheets)
             }
     }
 

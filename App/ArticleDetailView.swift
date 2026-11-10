@@ -5,10 +5,12 @@ import SwiftUI
 ///  - **Impression** : l'écran d'impression soigné (carte imprimante, présentation graphique,
 ///    aperçu live, quantité, bouton Imprimer) — fourni par `ContentView`, qui possède tout le
 ///    moteur d'impression et les feuilles associées.
-struct ArticleDetailView<Impression: View>: View {
+struct ArticleDetailView<Impression: View, Sheets: View>: View {
     let product: MappedProduct
     /// Contenu de l'onglet Impression, construit par l'hôte (ContentView).
     @ViewBuilder let impression: () -> Impression
+    /// Modales de l'onglet (imprimante, présentation) attachées sur la vue présentée.
+    @ViewBuilder let sheets: () -> Sheets
 
     @State private var tab = 0
 
@@ -27,6 +29,7 @@ struct ArticleDetailView<Impression: View>: View {
         }
         .navigationTitle(label.name.isEmpty ? NSLocalizedString("Article", comment: "Article") : label.name)
         .navigationBarTitleDisplayMode(.inline)
+        .background(sheets())   // porte les .sheet de l'onglet Impression (présentées depuis cette vue)
     }
 
     // MARK: - Onglet Produit (lecture seule)

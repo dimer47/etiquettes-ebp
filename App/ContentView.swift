@@ -66,16 +66,19 @@ struct ContentView: View {
                                         label = product.label
                                         ebpQuantity = 1
                                     },
-                                    impression: { product in impressionTab(for: product) })
+                                    impression: { product in impressionTab(for: product) },
+                                    sheets: {
+                                        Color.clear
+                                            .sheet(isPresented: $showingPrinters) { printerSheet }
+                                            .sheet(isPresented: $showingPresentation) { presentationSheet }
+                                    })
                 } else {
                     ContentUnavailableView(NSLocalizedString("Gateway non configurée", comment: "Gateway not configured"),
                                            systemImage: "gearshape",
                                            description: Text(NSLocalizedString("Appairez la gateway pour charger les articles.", comment: "")))
                 }
             }
-            .sheet(isPresented: $showingPrinters) { printerSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
-            .sheet(isPresented: $showingPresentation) { presentationSheet }
             .sheet(isPresented: $showingHistory) { historySheet }
             .alert(NSLocalizedString("Impression", comment: "Print alert"), isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("OK") { message = nil }
@@ -231,11 +234,21 @@ struct ContentView: View {
             Image(systemName: "number.square.fill").font(.title3).foregroundStyle(.primary)
             Text(NSLocalizedString("Quantité", comment: "Quantity")).font(.headline)
             Spacer()
-            Stepper(value: $ebpQuantity, in: 1...99) {
-                Text("\(ebpQuantity)").font(.headline).monospacedDigit()
+            // Boutons −/+ avec la valeur AU MILIEU (un Stepper système ne l'affiche pas entre les deux).
+            HStack(spacing: 0) {
+                Button { if ebpQuantity > 1 { ebpQuantity -= 1 } } label: {
+                    Image(systemName: "minus").frame(width: 44, height: 34).contentShape(Rectangle())
+                }
+                .disabled(ebpQuantity <= 1)
+                Text("\(ebpQuantity)")
+                    .font(.headline.monospacedDigit())
+                    .frame(minWidth: 40)
+                Button { if ebpQuantity < 99 { ebpQuantity += 1 } } label: {
+                    Image(systemName: "plus").frame(width: 44, height: 34).contentShape(Rectangle())
+                }
+                .disabled(ebpQuantity >= 99)
             }
-            .labelsHidden()
-            .fixedSize()
+            .buttonStyle(.bordered)
         }
         .padding(16)
         .modifier(PrintCardStyle())
