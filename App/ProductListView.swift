@@ -6,15 +6,83 @@ import SwiftUI
 final class EBPSearchModel: ObservableObject {
     enum Phase: Equatable { case idle, loading, loaded, loadingMore, error(String) }
 
+    /// Critères de tri proposés à l'utilisateur.
+    enum SortField: String, CaseIterable, Identifiable {
+        case reference, caption, price
+        var id: String { rawValue }
+        /// Champ EBP correspondant (OrderByValue).
+        var ebpField: String {
+            switch self {
+            case .reference: return "Id"
+            case .caption: return "Caption"
+            case .price: return "SalePriceVatIncluded"
+            }
+        }
+        var title: String {
+            switch self {
+            case .reference: return NSLocalizedString("Référence", comment: "Sort by reference")
+            case .caption: return NSLocalizedString("Libellé", comment: "Sort by caption")
+            case .price: return NSLocalizedString("Prix", comment: "Sort by price")
+            }
+        }
+    }
+
     @Published var query = ""
+    @Published var familyFilter = ""        // id de famille (ex. FAR00004), vide = toutes
+    @Published var subFamilyFilter = ""     // id de sous-famille, vide = toutes
+    @Published var priceMinText = ""        // prix TTC min (texte, vide = aucun)
+    @Published var priceMaxText = ""        // prix TTC max
+    @Published var onlyActive = false       // n'afficher que les articles actifs
+    @Published var onlyInStock = false      // n'afficher que les articles en stock
+    @Published var sortField: SortField = .reference
+    @Published var sortDescending = false
     @Published private(set) var items: [EBPItem] = []
     @Published private(set) var phase: Phase = .idle
+
+    /// Un filtre (hors recherche texte et tri) est-il actif ?
+    var hasActiveFilters: Bool {
+        !familyFilter.trimmingCharacters(in: .whitespaces).isEmpty
+            || !subFamilyFilter.trimmingCharacters(in: .whitespaces).isEmpty
+            || !priceMinText.trimmingCharacters(in: .whitespaces).isEmpty
+            || !priceMaxText.trimmingCharacters(in: .whitespaces).isEmpty
+            || onlyActive || onlyInStock
+    }
+
+    func clearFilters() {
+        familyFilter = ""; subFamilyFilter = ""; priceMinText = ""; priceMaxText = ""
+        onlyActive = false; onlyInStock = false
+        sortField = .reference; sortDescending = false
+        reloadNow()
+    }
+
+    private func currentQuery(offset: Int) -> ItemsQuery {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let family = familyFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+        let subFamily = subFamilyFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ItemsQuery(offset: offset, limit: pageSize,
+                          orderBy: sortField.ebpField, orderDescending: sortDescending,
+                          search: term.isEmpty ? nil : term,
+                          familyId: family.isEmpty ? nil : family,
+                          subFamilyId: subFamily.isEmpty ? nil : subFamily,
+                          priceMin: Self.decimal(priceMinText),
+                          priceMax: Self.decimal(priceMaxText),
+                          activeOnly: onlyActive, inStockOnly: onlyInStock)
+    }
+
+    private static func decimal(_ text: String) -> Decimal? {
+        let normalized = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        guard !normalized.isEmpty else { return nil }
+        return Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX"))
+    }
 
     private let config: GatewayConfig
     private let client: GatewayClient
     private let pageSize = 50
     private var offset = 0
     private var total = 0
+    /// La dernière page reçue était-elle pleine ? (critère fiable de « il reste des pages »,
+    /// même si EBP ne renvoie pas un `total` exploitable sur de très gros catalogues).
+    private var lastPageWasFull = true
     private var searchTask: Task<Void, Never>?
 
     init(config: GatewayConfig) {
@@ -22,31 +90,42 @@ final class EBPSearchModel: ObservableObject {
         self.client = GatewayClient(config: config)
     }
 
-    /// Reste-t-il des articles à charger ?
-    private var canLoadMore: Bool { items.count < total }
+    /// Reste-t-il des articles à charger ? On continue tant que la dernière page était pleine
+    /// (pagination « au fur et à mesure »). Si `total` est connu et fiable, on respecte aussi sa borne.
+    private var canLoadMore: Bool {
+        guard lastPageWasFull else { return false }
+        if total > 0 { return items.count < total }
+        return true   // total inconnu/0 : on se fie au remplissage de page
+    }
 
-    /// Recharge depuis le début pour la recherche courante (avec anti-rebond).
+    /// Recharge depuis le début pour la recherche/filtres courants (avec anti-rebond).
     func search(debounced: Bool = true) {
         searchTask?.cancel()
-        let term = query
         searchTask = Task { [weak self] in
             if debounced { try? await Task.sleep(nanoseconds: 350_000_000) }
             guard !Task.isCancelled else { return }
-            await self?.reload(term: term)
+            await self?.reload()
         }
     }
 
     func reloadNow() { search(debounced: false) }
 
-    private func reload(term: String) async {
+    /// Rechargement attendu (pour `.refreshable` : pull-to-refresh).
+    func refresh() async {
+        searchTask?.cancel()
+        await reload()
+    }
+
+    private func reload() async {
         phase = .loading
         offset = 0
         do {
-            let page = try await client.items(ItemsQuery(offset: 0, limit: pageSize, search: term.isEmpty ? nil : term))
+            let page = try await client.items(currentQuery(offset: 0))
             guard !Task.isCancelled else { return }
             items = page.items
-            total = page.paging?.total ?? page.items.count
+            total = page.paging?.total ?? 0
             offset = page.items.count
+            lastPageWasFull = page.items.count >= pageSize
             phase = .loaded
         } catch {
             guard !Task.isCancelled else { return }
@@ -64,16 +143,23 @@ final class EBPSearchModel: ObservableObject {
     private func loadMore() async {
         guard phase == .loaded, canLoadMore else { return }
         phase = .loadingMore
-        let term = query
         do {
-            let page = try await client.items(ItemsQuery(offset: offset, limit: pageSize, search: term.isEmpty ? nil : term))
+            let page = try await client.items(currentQuery(offset: offset))
             items.append(contentsOf: page.items)
-            total = page.paging?.total ?? total
+            if let t = page.paging?.total, t > 0 { total = t }
             offset += page.items.count
+            lastPageWasFull = page.items.count >= pageSize
             phase = .loaded
         } catch {
             phase = .error(Self.message(for: error))
         }
+    }
+
+    /// Recherche un article par code-barres scanné (interroge EBP, même hors liste chargée).
+    /// Renvoie le produit mappé, ou nil si aucun article ne porte ce code.
+    func lookupBarcode(_ code: String) async throws -> MappedProduct? {
+        guard let item = try await client.itemByBarcode(code) else { return nil }
+        return EBPProductMapper.map(item)
     }
 
     static func message(for error: Error) -> String {
@@ -106,6 +192,10 @@ struct ProductListView<Impression: View, Sheets: View>: View {
 
     @StateObject private var model: EBPSearchModel
     @State private var selected: MappedProduct?
+    @State private var showingFilters = false
+    @State private var showingScanner = false
+    @State private var scanLookupInProgress = false
+    @State private var scanMessage: String?
 
     init(config: GatewayConfig,
          onOpenSettings: @escaping () -> Void,
@@ -132,6 +222,19 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                         .accessibilityLabel(NSLocalizedString("Historique", comment: "History"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
+                    Button { scanMessage = nil; showingScanner = true } label: {
+                        Image(systemName: "barcode.viewfinder")
+                    }
+                    .accessibilityLabel(NSLocalizedString("Scanner un code-barres", comment: "Scan barcode"))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showingFilters = true } label: {
+                        Image(systemName: model.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill"
+                                                                  : "line.3.horizontal.decrease.circle")
+                    }
+                    .accessibilityLabel(NSLocalizedString("Filtres", comment: "Filters"))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
                     Button { onOpenSettings() } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel(NSLocalizedString("Réglages", comment: "Settings"))
                 }
@@ -140,9 +243,125 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                         prompt: NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"))
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
+            .sheet(isPresented: $showingFilters) { filtersSheet }
+            .sheet(isPresented: $showingScanner) { scannerSheet }
+            .overlay { if scanLookupInProgress { scanLookupOverlay } }
+            .alert(NSLocalizedString("Article introuvable", comment: "Not found"),
+                   isPresented: Binding(get: { scanMessage != nil }, set: { if !$0 { scanMessage = nil } })) {
+                Button("OK") { scanMessage = nil }
+            } message: { Text(scanMessage ?? "") }
             .navigationDestination(item: $selected) { product in
                 ArticleDetailView(product: product, impression: { impression(product) }, sheets: sheets)
             }
+    }
+
+    /// Scanner de code-barres / QR : au scan, on interroge EBP par code-barres.
+    private var scannerSheet: some View {
+        NavigationStack {
+            ZStack {
+                QRScannerView(
+                    onFound: { code in handleScannedCode(code) },
+                    onError: { message in showingScanner = false; scanMessage = message },
+                    types: QRScannerView.productCodeTypes
+                )
+                .ignoresSafeArea(edges: .bottom)
+
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(.white.opacity(0.9), lineWidth: 3)
+                    .frame(width: 260, height: 180)
+                    .allowsHitTesting(false)
+            }
+            .navigationTitle(NSLocalizedString("Scanner un article", comment: "Scan article"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(NSLocalizedString("Annuler", comment: "Cancel")) { showingScanner = false }
+                }
+            }
+        }
+    }
+
+    private var scanLookupOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.25).ignoresSafeArea()
+            ProgressView(NSLocalizedString("Recherche de l’article…", comment: "Looking up"))
+                .padding(20)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }
+    }
+
+    /// Code scanné → recherche EBP par code-barres → ouvre la fiche, ou signale l'absence.
+    private func handleScannedCode(_ code: String) {
+        showingScanner = false
+        scanLookupInProgress = true
+        Task { @MainActor in
+            do {
+                if let product = try await model.lookupBarcode(code) {
+                    onSelect(product)
+                    selected = product
+                } else {
+                    scanMessage = String(format: NSLocalizedString("Aucun article avec le code-barres %@.", comment: "No item for barcode"), code)
+                }
+            } catch {
+                scanMessage = EBPSearchModel.message(for: error)
+            }
+            scanLookupInProgress = false
+        }
+    }
+
+    /// Feuille de filtrage et de tri de la liste.
+    private var filtersSheet: some View {
+        NavigationStack {
+            Form {
+                Section(NSLocalizedString("Disponibilité", comment: "Availability")) {
+                    Toggle(NSLocalizedString("En stock uniquement", comment: "In stock only"), isOn: $model.onlyInStock)
+                    Toggle(NSLocalizedString("Articles actifs uniquement", comment: "Active only"), isOn: $model.onlyActive)
+                }
+                Section(NSLocalizedString("Famille", comment: "Family")) {
+                    TextField(NSLocalizedString("Code famille (ex. FAR00004)", comment: "Family code"),
+                              text: $model.familyFilter)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                    TextField(NSLocalizedString("Code sous-famille (optionnel)", comment: "Sub-family code"),
+                              text: $model.subFamilyFilter)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                }
+                Section(NSLocalizedString("Prix de vente TTC", comment: "Price filter")) {
+                    HStack {
+                        Text(NSLocalizedString("Min", comment: "Min"))
+                        TextField("0", text: $model.priceMinText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        Text("€").foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text(NSLocalizedString("Max", comment: "Max"))
+                        TextField("—", text: $model.priceMaxText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                        Text("€").foregroundStyle(.secondary)
+                    }
+                }
+                Section(NSLocalizedString("Tri", comment: "Sort")) {
+                    Picker(NSLocalizedString("Trier par", comment: "Sort by"), selection: $model.sortField) {
+                        ForEach(EBPSearchModel.SortField.allCases) { field in
+                            Text(field.title).tag(field)
+                        }
+                    }
+                    Toggle(NSLocalizedString("Ordre décroissant", comment: "Descending"), isOn: $model.sortDescending)
+                }
+                Section {
+                    Button(NSLocalizedString("Appliquer", comment: "Apply")) {
+                        model.reloadNow(); showingFilters = false
+                    }
+                    if model.hasActiveFilters {
+                        Button(NSLocalizedString("Réinitialiser les filtres", comment: "Reset filters"), role: .destructive) {
+                            model.clearFilters(); showingFilters = false
+                        }
+                    }
+                }
+            }
+            .navigationTitle(NSLocalizedString("Filtres et tri", comment: "Filters and sort"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button(NSLocalizedString("Fermer", comment: "Close")) { showingFilters = false } }
+        }
     }
 
     @ViewBuilder
@@ -178,6 +397,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
             }
         }
         .listStyle(.plain)
+        .refreshable { await model.refresh() }
     }
 
     private func row(_ item: EBPItem) -> some View {

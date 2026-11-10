@@ -42,6 +42,13 @@ final class GatewaySettings: ObservableObject {
         currentConfig() != nil && pairedSince != nil
     }
 
+    /// Applique un appairage réussi (résultat du claim QR) : stocke l'URL, le jeton et la date.
+    func applyPairing(endpoint: String, token: String) {
+        baseURLString = endpoint
+        setToken(token)
+        markPaired()
+    }
+
     /// Marque l'appairage réussi (après un whoami OK).
     func markPaired(date: Date = Date()) {
         pairedSince = date

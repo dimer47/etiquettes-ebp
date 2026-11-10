@@ -155,6 +155,40 @@ final class GatewayTests: XCTestCase {
         XCTAssertEqual(GatewayWhereCondition.and(["A", "B"]), "(A) and (B)")
     }
 
+    func testWhereConditionFamilyAndPrice() {
+        XCTAssertEqual(GatewayWhereCondition.family("FAR00004"), "FamilyId eq 'FAR00004'")
+        XCTAssertEqual(GatewayWhereCondition.priceAtLeast(Decimal(string: "10.5")!), "SalePriceVatIncluded ge 10.5")
+        XCTAssertEqual(GatewayWhereCondition.priceAtMost(Decimal(100)), "SalePriceVatIncluded le 100")
+        // Composition famille + fourchette de prix.
+        let combined = GatewayWhereCondition.and([
+            GatewayWhereCondition.family("FAR00004"),
+            GatewayWhereCondition.priceAtLeast(Decimal(10)),
+            GatewayWhereCondition.priceAtMost(Decimal(50)),
+        ])
+        XCTAssertEqual(combined, "(FamilyId eq 'FAR00004') and (SalePriceVatIncluded ge 10) and (SalePriceVatIncluded le 50)")
+    }
+
+    func testWhereConditionSubFamilyStockActive() {
+        XCTAssertEqual(GatewayWhereCondition.subFamily("SF001"), "SubFamilyId eq 'SF001'")
+        XCTAssertNil(GatewayWhereCondition.subFamily("   "))
+        XCTAssertEqual(GatewayWhereCondition.activeOnly(), "ActiveState eq 0")
+        XCTAssertEqual(GatewayWhereCondition.inStock(), "RealStock gt 0")
+        // Composition complète : famille + sous-famille + actif + stock.
+        let combined = GatewayWhereCondition.and([
+            GatewayWhereCondition.family("FAR00001"),
+            GatewayWhereCondition.subFamily("SF001"),
+            GatewayWhereCondition.activeOnly(),
+            GatewayWhereCondition.inStock(),
+        ])
+        XCTAssertEqual(combined, "(FamilyId eq 'FAR00001') and (SubFamilyId eq 'SF001') and (ActiveState eq 0) and (RealStock gt 0)")
+    }
+
+    func testWhereConditionBarcode() {
+        XCTAssertNil(GatewayWhereCondition.barcode("  "))
+        XCTAssertEqual(GatewayWhereCondition.barcode("3660619000012"), "BarCode eq '3660619000012'")
+        XCTAssertEqual(GatewayWhereCondition.barcode("l'o"), "BarCode eq 'l''o'")
+    }
+
     // MARK: - Jobs (202)
 
     func testJobAcceptedDecoding() throws {

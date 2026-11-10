@@ -22,17 +22,31 @@ public struct ItemsQuery: Equatable, Sendable {
     public var offset: Int
     public var limit: Int          // ≤ 100
     public var orderBy: String     // requis pour la pagination
+    public var orderDescending: Bool  // sens du tri
     public var search: String?     // texte libre → WhereCondition (Caption/Id)
     public var familyId: String?
+    public var subFamilyId: String?
+    public var priceMin: Decimal?  // filtre prix TTC ≥
+    public var priceMax: Decimal?  // filtre prix TTC ≤
+    public var activeOnly: Bool    // n'inclure que les articles actifs
+    public var inStockOnly: Bool   // n'inclure que les articles en stock
     public var noCache: Bool
 
-    public init(offset: Int = 0, limit: Int = 50, orderBy: String = "Id",
-                search: String? = nil, familyId: String? = nil, noCache: Bool = false) {
+    public init(offset: Int = 0, limit: Int = 50, orderBy: String = "Id", orderDescending: Bool = false,
+                search: String? = nil, familyId: String? = nil, subFamilyId: String? = nil,
+                priceMin: Decimal? = nil, priceMax: Decimal? = nil,
+                activeOnly: Bool = false, inStockOnly: Bool = false, noCache: Bool = false) {
         self.offset = offset
         self.limit = min(max(limit, 1), 100)
         self.orderBy = orderBy
+        self.orderDescending = orderDescending
         self.search = search
         self.familyId = familyId
+        self.subFamilyId = subFamilyId
+        self.priceMin = priceMin
+        self.priceMax = priceMax
+        self.activeOnly = activeOnly
+        self.inStockOnly = inStockOnly
         self.noCache = noCache
     }
 }
@@ -90,9 +104,17 @@ public actor GatewayClient {
             URLQueryItem(name: "Limit", value: String(query.limit)),
             URLQueryItem(name: "OrderByValue", value: query.orderBy),
         ]
+        if query.orderDescending {
+            q.append(URLQueryItem(name: "OrderByDirection", value: "Descending"))
+        }
         if let whereCondition = GatewayWhereCondition.and([
             query.search.flatMap(GatewayWhereCondition.search),
             query.familyId.flatMap(GatewayWhereCondition.family),
+            query.subFamilyId.flatMap(GatewayWhereCondition.subFamily),
+            query.priceMin.map(GatewayWhereCondition.priceAtLeast),
+            query.priceMax.map(GatewayWhereCondition.priceAtMost),
+            query.activeOnly ? GatewayWhereCondition.activeOnly() : nil,
+            query.inStockOnly ? GatewayWhereCondition.inStock() : nil,
         ]) {
             q.append(URLQueryItem(name: "WhereCondition", value: whereCondition))
         }
@@ -100,6 +122,21 @@ public actor GatewayClient {
 
         let env: GatewayEnvelope<[EBPItem]> = try await getEnvelope("gescom/api/v1/Items/ItemsExtendedQuery", query: q)
         return ItemsPage(items: env.data, paging: env.paging)
+    }
+
+    /// Recherche un article par code-barres exact (scan). Renvoie le premier correspondant,
+    /// ou nil si aucun article ne porte ce code. Interroge EBP directement : l'article n'a pas
+    /// besoin d'être déjà chargé dans la liste.
+    public func itemByBarcode(_ code: String) async throws -> EBPItem? {
+        guard let condition = GatewayWhereCondition.barcode(code) else { return nil }
+        let q: [URLQueryItem] = [
+            URLQueryItem(name: "Offset", value: "0"),
+            URLQueryItem(name: "Limit", value: "1"),
+            URLQueryItem(name: "OrderByValue", value: "Id"),
+            URLQueryItem(name: "WhereCondition", value: condition),
+        ]
+        let env: GatewayEnvelope<[EBPItem]> = try await getEnvelope("gescom/api/v1/Items/ItemsExtendedQuery", query: q)
+        return env.data.first
     }
 
     // MARK: - Transport

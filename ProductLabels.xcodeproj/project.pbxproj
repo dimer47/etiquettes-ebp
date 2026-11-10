@@ -16,6 +16,10 @@
 		423998305BE6E6DB90D59684 /* PocketPrinter5890Kit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */; };
 		5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */ = {isa = PBXBuildFile; productRef = 8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */; };
 		623DC584C67D81177CE2957F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
+		EB0000000000000000000041 /* ViewedProductStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000042 /* ViewedProductStore.swift */; };
+		EB0000000000000000000043 /* ViewedProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000044 /* ViewedProduct.swift */; };
+		EB0000000000000000000021 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000022 /* QRScannerView.swift */; };
+		EB0000000000000000000023 /* PairingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000024 /* PairingClient.swift */; };
 		EB0000000000000000000001 /* KeychainToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000002 /* KeychainToken.swift */; };
 		EB0000000000000000000003 /* GatewaySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000004 /* GatewaySettings.swift */; };
 		EB0000000000000000000005 /* GatewaySettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000006 /* GatewaySettingsSection.swift */; };
@@ -71,6 +75,10 @@
 		2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "MonochromeBitmap+Rotation.swift"; sourceTree = "<group>"; };
 		3685E330EC5277A9DD5661C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EB0000000000000000000042 /* ViewedProductStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProductStore.swift; sourceTree = "<group>"; };
+		EB0000000000000000000044 /* ViewedProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProduct.swift; sourceTree = "<group>"; };
+		EB0000000000000000000022 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		EB0000000000000000000024 /* PairingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingClient.swift; sourceTree = "<group>"; };
 		EB0000000000000000000002 /* KeychainToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainToken.swift; sourceTree = "<group>"; };
 		EB0000000000000000000004 /* GatewaySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewaySettings.swift; sourceTree = "<group>"; };
 		EB0000000000000000000006 /* GatewaySettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewaySettingsSection.swift; sourceTree = "<group>"; };
@@ -141,6 +149,8 @@
 			isa = PBXGroup;
 			children = (
 				4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */,
+				EB0000000000000000000042 /* ViewedProductStore.swift */,
+				EB0000000000000000000022 /* QRScannerView.swift */,
 				EB0000000000000000000002 /* KeychainToken.swift */,
 				EB0000000000000000000004 /* GatewaySettings.swift */,
 				EB0000000000000000000006 /* GatewaySettingsSection.swift */,
@@ -179,6 +189,8 @@
 				CC0000000000000000000002 /* BrotherCatalog.swift */,
 				CC0000000000000000000016 /* NetumPrinter.swift */,
 				CC0000000000000000000018 /* WideLabelLayout.swift */,
+				EB0000000000000000000044 /* ViewedProduct.swift */,
+				EB0000000000000000000024 /* PairingClient.swift */,
 				EB0000000000000000000010 /* GatewayEnvelope.swift */,
 				EB0000000000000000000012 /* EBPItem.swift */,
 				EB0000000000000000000014 /* EBPProductMapper.swift */,
@@ -316,6 +328,10 @@
 			files = (
 				24098E837ACC9BB9BFAADC28 /* ProductLabelApp.swift in Sources */,
 				623DC584C67D81177CE2957F /* ContentView.swift in Sources */,
+				EB0000000000000000000041 /* ViewedProductStore.swift in Sources */,
+				EB0000000000000000000043 /* ViewedProduct.swift in Sources */,
+				EB0000000000000000000021 /* QRScannerView.swift in Sources */,
+				EB0000000000000000000023 /* PairingClient.swift in Sources */,
 				EB0000000000000000000001 /* KeychainToken.swift in Sources */,
 				EB0000000000000000000003 /* GatewaySettings.swift in Sources */,
 				EB0000000000000000000005 /* GatewaySettingsSection.swift in Sources */,

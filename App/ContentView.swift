@@ -9,12 +9,15 @@ struct ContentView: View {
     @StateObject private var netum = NetumPrinterService()
     @StateObject private var thumbnailStore = LabelThumbnailStore()
     @StateObject private var history = LabelHistoryStore()
+    @StateObject private var viewed = ViewedProductStore()
     /// Étiquette courante : alimentée par l'article EBP sélectionné (plus de saisie manuelle).
     @State private var label = ProductLabel()
     @State private var showingPrinters = false
     @State private var showingSettings = false
     @State private var showingPresentation = false
     @State private var showingHistory = false
+    /// Onglet de l'historique : 0 = consultés, 1 = imprimés.
+    @State private var historyTab = 0
     @State private var message: String?
     @State private var ebpQuantity = 1
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
@@ -65,6 +68,7 @@ struct ContentView: View {
                                         // L'article choisi devient l'étiquette courante → aperçu live.
                                         label = product.label
                                         ebpQuantity = 1
+                                        viewed.record(product.label)   // historique de consultation
                                     },
                                     impression: { product in impressionTab(for: product) },
                                     sheets: {
@@ -363,31 +367,84 @@ struct ContentView: View {
 
     private var historySheet: some View {
         NavigationStack {
-            List {
-                if history.entries.isEmpty {
-                    ContentUnavailableView("Aucune impression enregistrée", systemImage: "clock.arrow.circlepath",
-                                           description: Text("Les étiquettes imprimées apparaîtront ici."))
+            VStack(spacing: 0) {
+                Picker("", selection: $historyTab) {
+                    Text(NSLocalizedString("Consultés", comment: "Viewed")).tag(0)
+                    Text(NSLocalizedString("Imprimés", comment: "Printed")).tag(1)
                 }
-                ForEach(history.entries) { entry in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(entry.label.name).font(.headline)
-                        Text("\(entry.printedAt.formatted(date: .abbreviated, time: .shortened)) · \(entry.arrangement.title) · \(entry.size.title)")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                        HStack {
-                            Button("Restaurer") { restore(entry) }
-                                .buttonStyle(.bordered)
-                            Button("Réimprimer") { reprint(entry) }
-                                .buttonStyle(.borderedProminent)
-                                .disabled(!printerReady || isPrinting)
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
+                if historyTab == 0 { viewedList } else { printedList }
+            }
+            .navigationTitle(NSLocalizedString("Historique", comment: "History"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button(NSLocalizedString("Fermer", comment: "Close")) { showingHistory = false } }
+        }
+    }
+
+    /// Historique des articles consultés (fiche ouverte).
+    private var viewedList: some View {
+        List {
+            if viewed.entries.isEmpty {
+                ContentUnavailableView(NSLocalizedString("Aucun article consulté", comment: "No viewed product"),
+                                       systemImage: "eye",
+                                       description: Text(NSLocalizedString("Les articles que vous ouvrez apparaîtront ici.", comment: "")))
+            }
+            ForEach(viewed.entries) { entry in
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(entry.label.name).font(.headline)
+                    HStack(spacing: 10) {
+                        let ref = entry.label.productReference.trimmingCharacters(in: .whitespaces)
+                        if !ref.isEmpty { Text(ref).font(.caption).foregroundStyle(.secondary) }
+                        Spacer()
+                        if !entry.label.price.isEmpty {
+                            Text(entry.label.price + " " + entry.label.currency.symbol)
+                                .font(.subheadline.weight(.semibold))
                         }
                     }
-                    .padding(.vertical, 4)
+                    Text(entry.viewedAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button(NSLocalizedString("Reprendre", comment: "Reuse viewed product")) {
+                        label = entry.label; ebpQuantity = 1; showingHistory = false
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.top, 2)
                 }
-                .onDelete(perform: history.delete)
+                .padding(.vertical, 4)
             }
-            .navigationTitle("Historique")
-            .toolbar { Button("Fermer") { showingHistory = false } }
+            .onDelete(perform: viewed.delete)
         }
+        .listStyle(.plain)
+    }
+
+    /// Historique des étiquettes imprimées.
+    private var printedList: some View {
+        List {
+            if history.entries.isEmpty {
+                ContentUnavailableView(NSLocalizedString("Aucune impression enregistrée", comment: "No print"),
+                                       systemImage: "printer",
+                                       description: Text(NSLocalizedString("Les étiquettes imprimées apparaîtront ici.", comment: "")))
+            }
+            ForEach(history.entries) { entry in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(entry.label.name).font(.headline)
+                    Text("\(entry.printedAt.formatted(date: .abbreviated, time: .shortened)) · \(entry.arrangement.title) · \(entry.size.title)")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    HStack {
+                        Button(NSLocalizedString("Restaurer", comment: "Restore")) { restore(entry) }
+                            .buttonStyle(.bordered)
+                        Button(NSLocalizedString("Réimprimer", comment: "Reprint")) { reprint(entry) }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(!printerReady || isPrinting)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .onDelete(perform: history.delete)
+        }
+        .listStyle(.plain)
     }
 
     private var presentationSheet: some View {
