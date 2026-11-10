@@ -219,6 +219,9 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     private enum PendingReload { case apply, reset }
     @State private var scanLookupInProgress = false
     @State private var scanMessage: String?
+    /// Focus des champs de la feuille filtres : on le coupe avant d'appliquer pour forcer les
+    /// TextField (clavier décimal, sans touche Entrée) à committer leur valeur au binding.
+    @FocusState private var filterFieldFocused: Bool
 
     init(config: GatewayConfig,
          onOpenSettings: @escaping () -> Void,
@@ -266,12 +269,18 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                         prompt: NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"))
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
-            .onChange(of: showingFilters) { _, isShown in
-                // Une fois la feuille refermée, applique le rechargement demandé.
-                guard !isShown, let action = pendingReload else { return }
+            .onChange(of: showingFilters) { wasShown, isShown in
+                // Feuille refermée. On recharge si elle avait été ouverte (Appliquer, Fermer ou
+                // swipe) : les critères vivent dans le modèle, on applique toujours l'état courant.
+                guard !isShown, wasShown else { return }
+                let reset = (pendingReload == .reset)
                 pendingReload = nil
-                if action == .reset { model.clearFilters() }
-                model.reloadNow()
+                // Décalé d'un cycle : laisse les TextField (clavier décimal) committer leur
+                // valeur au binding avant que la requête ne la lise.
+                Task { @MainActor in
+                    if reset { model.clearFilters() }
+                    model.reloadNow()
+                }
             }
             .sheet(isPresented: $showingFilters) { filtersSheet }
             .sheet(isPresented: $showingScanner) { scannerSheet }
@@ -352,20 +361,24 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                               text: $model.familyFilter)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
+                        .focused($filterFieldFocused)
                     TextField(NSLocalizedString("Code sous-famille (optionnel)", comment: "Sub-family code"),
                               text: $model.subFamilyFilter)
                         .textInputAutocapitalization(.characters)
                         .autocorrectionDisabled()
+                        .focused($filterFieldFocused)
                 }
                 Section(NSLocalizedString("Prix de vente TTC", comment: "Price filter")) {
                     HStack {
                         Text(NSLocalizedString("Min", comment: "Min"))
                         TextField("0", text: $model.priceMinText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                            .focused($filterFieldFocused)
                         Text("€").foregroundStyle(.secondary)
                     }
                     HStack {
                         Text(NSLocalizedString("Max", comment: "Max"))
                         TextField("—", text: $model.priceMaxText).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                            .focused($filterFieldFocused)
                         Text("€").foregroundStyle(.secondary)
                     }
                 }
@@ -379,11 +392,13 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                 }
                 Section {
                     Button(NSLocalizedString("Appliquer", comment: "Apply")) {
+                        filterFieldFocused = false   // force le commit des champs (clavier décimal)
                         showingFilters = false
                         pendingReload = .apply
                     }
                     if model.hasActiveFilters {
                         Button(NSLocalizedString("Réinitialiser les filtres", comment: "Reset filters"), role: .destructive) {
+                            filterFieldFocused = false
                             showingFilters = false
                             pendingReload = .reset
                         }
