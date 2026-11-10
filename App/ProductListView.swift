@@ -48,11 +48,12 @@ final class EBPSearchModel: ObservableObject {
             || onlyActive || onlyInStock
     }
 
+    /// Remet les filtres à zéro. Ne recharge pas : l'appelant déclenche le rechargement
+    /// (après fermeture de la feuille) via `reloadNow()`.
     func clearFilters() {
         familyFilter = ""; subFamilyFilter = ""; priceMinText = ""; priceMaxText = ""
         onlyActive = false; onlyInStock = false
         sortField = .reference; sortDescending = false
-        reloadNow()
     }
 
     private func currentQuery(offset: Int) -> ItemsQuery {
@@ -193,7 +194,12 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     @StateObject private var model: EBPSearchModel
     @State private var selected: MappedProduct?
     @State private var showingFilters = false
+    /// Action de rechargement à exécuter une fois la feuille de filtres refermée
+    /// (recharger ne marche pas de façon fiable depuis la feuille qui se démonte).
+    @State private var pendingReload: PendingReload?
     @State private var showingScanner = false
+
+    private enum PendingReload { case apply, reset }
     @State private var scanLookupInProgress = false
     @State private var scanMessage: String?
 
@@ -243,6 +249,13 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                         prompt: NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"))
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
+            .onChange(of: showingFilters) { _, isShown in
+                // Une fois la feuille refermée, applique le rechargement demandé.
+                guard !isShown, let action = pendingReload else { return }
+                pendingReload = nil
+                if action == .reset { model.clearFilters() }
+                model.reloadNow()
+            }
             .sheet(isPresented: $showingFilters) { filtersSheet }
             .sheet(isPresented: $showingScanner) { scannerSheet }
             .overlay { if scanLookupInProgress { scanLookupOverlay } }
@@ -349,11 +362,13 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                 }
                 Section {
                     Button(NSLocalizedString("Appliquer", comment: "Apply")) {
-                        model.reloadNow(); showingFilters = false
+                        showingFilters = false
+                        pendingReload = .apply
                     }
                     if model.hasActiveFilters {
                         Button(NSLocalizedString("Réinitialiser les filtres", comment: "Reset filters"), role: .destructive) {
-                            model.clearFilters(); showingFilters = false
+                            showingFilters = false
+                            pendingReload = .reset
                         }
                     }
                 }
