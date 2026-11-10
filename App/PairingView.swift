@@ -85,14 +85,15 @@ struct PairingView: View {
         .sheet(isPresented: $showingManual) { manualSheet }
     }
 
-    /// Logo de l'application (placeholder stylisé en attendant le logo dédié de la charte).
-    /// Auréole + pastille ; icône orientée « étiquette produit ».
+    /// Logo de l'application (le même asset que l'icône d'app, « base article »),
+    /// posé sur une pastille bleue aux couleurs de la gateway.
     private var logo: some View {
         ZStack {
             Circle().fill(Color.accentColor.gradient).frame(width: 110, height: 110)
-            Image(systemName: "barcode.viewfinder")
-                .font(.system(size: 48, weight: .semibold))
-                .foregroundStyle(.white)
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 66, height: 66)
         }
         .shadow(color: .accentColor.opacity(0.3), radius: 16, y: 8)
     }
