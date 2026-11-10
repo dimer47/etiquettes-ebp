@@ -54,22 +54,24 @@ struct ArticleDetailView<Impression: View, Sheets: View>: View {
             Section(NSLocalizedString("Prix", comment: "Price")) {
                 LabeledContent {
                     Text(label.price.isEmpty ? "—" : "\(label.price) \(label.currency.symbol)")
-                        .font(.title3.weight(.semibold))
-                } label: { Text("TTC") }
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                } label: { Text("TTC").font(.body) }
                 if let ht = product.priceExclVat {
                     LabeledContent {
-                        Text("\(ht) \(label.currency.symbol)").foregroundStyle(.secondary)
-                    } label: { Text("HT") }
-                    .font(.footnote)
+                        Text("\(ht) \(label.currency.symbol)")
+                            .font(.body.weight(.medium)).foregroundStyle(.primary)
+                    } label: { Text("HT").font(.body) }
                 }
                 if let vat = product.details.vatAmount {
                     LabeledContent {
-                        Text("\(vat) \(label.currency.symbol)").foregroundStyle(.secondary)
-                    } label: { Text(vatLabel) }
-                    .font(.footnote)
+                        Text("\(vat) \(label.currency.symbol)")
+                            .font(.body.weight(.medium)).foregroundStyle(.primary)
+                    } label: { Text(vatLabel).font(.body) }
                 } else if let rate = product.details.vatRatePercent {
-                    LabeledContent(NSLocalizedString("TVA", comment: "VAT"), value: "\(rate) %")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    LabeledContent {
+                        Text("\(rate) %").font(.body.weight(.medium)).foregroundStyle(.primary)
+                    } label: { Text(NSLocalizedString("TVA", comment: "VAT")).font(.body) }
                 }
             }
 
