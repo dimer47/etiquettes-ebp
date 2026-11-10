@@ -1,0 +1,193 @@
+import XCTest
+@testable import LabelCore
+
+final class GatewayTests: XCTestCase {
+
+    // MARK: - Mapper
+
+    private func makeItem(_ json: String) throws -> EBPItem {
+        try JSONDecoder().decode(EBPItem.self, from: Data(json.utf8))
+    }
+
+    func testMapperHappyPath() throws {
+        let json = #"""
+        {
+            "Id": " 1 619 P04 220 ",
+            "Caption": "CHARBONS BOSCH 1 619 P04 220",
+            "DesComClear": "CHARBONS BOSCH 1 619 P04 220",
+            "SalePriceVatIncluded": 4.75200000,
+            "SalePriceVatExcluded": 3.96000000,
+            "BarCode": "0000000550598",
+            "ShelfRef": 1,
+            "FamilyId": "FAR00004"
+        }
+        """#
+        let mapped = EBPProductMapper.map(try makeItem(json), locale: Locale(identifier: "fr_FR"))
+        XCTAssertEqual(mapped.label.name, "CHARBONS BOSCH 1 619 P04 220")
+        XCTAssertEqual(mapped.label.price, "4,75")          // TTC arrondi 2 déc.
+        XCTAssertEqual(mapped.priceExclVat, "3,96")         // HT, écran only
+        XCTAssertEqual(mapped.label.productReference, "1 619 P04 220") // trim
+        XCTAssertEqual(mapped.label.shelfReference, "1")
+        XCTAssertEqual(mapped.label.category, "FAR00004")
+        XCTAssertEqual(mapped.label.currency, .eur)
+        XCTAssertEqual(mapped.label.priceCaption, "Prix de vente TTC")
+        XCTAssertFalse(mapped.eanWasInvalid)
+        XCTAssertEqual(mapped.label.ean, "0000000550598")   // zéros en tête préservés
+    }
+
+    func testMapperBadChecksumKeepsRawBarcode() throws {
+        // Code 13 chiffres avec clé de contrôle fausse → conservé brut, article non rejeté.
+        let json = #"{ "Caption": "Produit X", "BarCode": "0000000550599", "SalePriceVatIncluded": 1.0 }"#
+        let mapped = EBPProductMapper.map(try makeItem(json))
+        XCTAssertTrue(mapped.eanWasInvalid)
+        XCTAssertEqual(mapped.label.ean, "0000000550599")   // brut, non modifié
+        XCTAssertEqual(mapped.label.name, "Produit X")      // l'article reste mappé
+    }
+
+    func testMapperCompletesTwelveDigitBarcode() throws {
+        // 12 chiffres → la clé est calculée et ajoutée.
+        let json = #"{ "Caption": "P", "BarCode": "400638133393" }"#
+        let mapped = EBPProductMapper.map(try makeItem(json))
+        XCTAssertFalse(mapped.eanWasInvalid)
+        XCTAssertEqual(mapped.label.ean, "4006381333931")
+    }
+
+    func testMapperRounding() throws {
+        let up = #"{ "Caption": "P", "SalePriceVatIncluded": 5.95500000 }"#
+        XCTAssertEqual(EBPProductMapper.map(try makeItem(up)).label.price, "5,96")
+        let down = #"{ "Caption": "P", "SalePriceVatIncluded": 5.94499999 }"#
+        XCTAssertEqual(EBPProductMapper.map(try makeItem(down)).label.price, "5,94")
+    }
+
+    func testMapperMissingFieldsAreSafe() throws {
+        let json = #"{ "Caption": "Juste un libellé", "Id": "REF1" }"#
+        let mapped = EBPProductMapper.map(try makeItem(json))
+        XCTAssertEqual(mapped.label.name, "Juste un libellé")
+        XCTAssertEqual(mapped.label.productReference, "REF1")
+        XCTAssertEqual(mapped.label.price, "")
+        XCTAssertNil(mapped.priceExclVat)
+        XCTAssertEqual(mapped.label.ean, "")
+        XCTAssertFalse(mapped.eanWasInvalid)
+    }
+
+    func testMapperPrefersDesComClearOverCaption() throws {
+        let json = #"{ "Caption": "RTF brut", "DesComClear": "Texte propre" }"#
+        XCTAssertEqual(EBPProductMapper.map(try makeItem(json)).label.name, "Texte propre")
+    }
+
+    func testMapperAcceptsStringAmounts() throws {
+        // EBP (et le faux serveur) peuvent renvoyer les montants en chaîne.
+        let json = #"{ "Caption": "P", "SalePriceVatIncluded": "504.00000000", "SalePriceVatExcluded": "420.00000000" }"#
+        let mapped = EBPProductMapper.map(try makeItem(json))
+        XCTAssertEqual(mapped.label.price, "504,00")
+        XCTAssertEqual(mapped.priceExclVat, "420,00")
+    }
+
+    // MARK: - Enveloppe
+
+    func testEnvelopeListDecoding() throws {
+        let json = #"""
+        {
+            "data": [ { "Id": "A", "Caption": "Article A" }, { "Id": "B", "Caption": "Article B" } ],
+            "paging": { "offset": 0, "limit": 100, "total": 2, "returned": 2 },
+            "folder": { "id": "1001", "label": "Société Démo" }
+        }
+        """#
+        let env = try JSONDecoder().decode(GatewayEnvelope<[EBPItem]>.self, from: Data(json.utf8))
+        XCTAssertEqual(env.data.count, 2)
+        XCTAssertEqual(env.paging, GatewayPaging(offset: 0, limit: 100, total: 2, returned: 2))
+        XCTAssertEqual(env.folderId, "1001")   // objet {id,label} → id
+        XCTAssertNil(env.cached)
+    }
+
+    func testEnvelopeCachedFlag() throws {
+        let json = #"{ "data": [], "paging": null, "folder": null, "cached": true }"#
+        let env = try JSONDecoder().decode(GatewayEnvelope<[EBPItem]>.self, from: Data(json.utf8))
+        XCTAssertEqual(env.cached, true)
+        XCTAssertTrue(env.data.isEmpty)
+    }
+
+    func testEnvelopeSingleObject() throws {
+        let json = #"{ "data": { "Id": "A", "Caption": "Seul" } }"#
+        let env = try JSONDecoder().decode(GatewayEnvelope<EBPItem>.self, from: Data(json.utf8))
+        XCTAssertEqual(env.data.caption, "Seul")
+    }
+
+    func testWhoAmIDecoding() throws {
+        let json = #"{ "app": "Logiciel tickets", "account": "Atelier Démo", "folder": { "id": "1001", "label": "Société Démo" } }"#
+        let who = try JSONDecoder().decode(WhoAmI.self, from: Data(json.utf8))
+        XCTAssertEqual(who.app, "Logiciel tickets")
+        XCTAssertEqual(who.account, "Atelier Démo")
+        XCTAssertEqual(who.folder?.id, "1001")
+    }
+
+    // MARK: - Erreurs
+
+    func testErrorDecodingFolderRequired() {
+        let body = Data(#"{ "error": "folder_required", "message": "Aucun dossier ciblé" }"#.utf8)
+        XCTAssertEqual(GatewayError.decode(status: 400, body: body), .folderRequired("Aucun dossier ciblé"))
+    }
+
+    func testErrorDecodingUnauthorized() {
+        let body = Data(#"{ "message": "Jeton d'application invalide ou révoqué." }"#.utf8)
+        XCTAssertEqual(GatewayError.decode(status: 401, body: body), .unauthorized("Jeton d'application invalide ou révoqué."))
+    }
+
+    func testErrorDecodingForbidden() {
+        let body = Data(#"{ "message": "Compte EBP indisponible pour ce jeton." }"#.utf8)
+        XCTAssertEqual(GatewayError.decode(status: 403, body: body), .forbidden("Compte EBP indisponible pour ce jeton."))
+    }
+
+    // MARK: - WhereCondition
+
+    func testWhereConditionSearch() {
+        XCTAssertNil(GatewayWhereCondition.search("   "))
+        XCTAssertEqual(GatewayWhereCondition.search("bosch"),
+                       "contains(Caption,'bosch') or contains(Id,'bosch')")
+        // Échappement des apostrophes.
+        XCTAssertEqual(GatewayWhereCondition.search("l'outil"),
+                       "contains(Caption,'l''outil') or contains(Id,'l''outil')")
+    }
+
+    func testWhereConditionAnd() {
+        XCTAssertNil(GatewayWhereCondition.and([nil, nil]))
+        XCTAssertEqual(GatewayWhereCondition.and(["A", nil]), "A")
+        XCTAssertEqual(GatewayWhereCondition.and(["A", "B"]), "(A) and (B)")
+    }
+
+    // MARK: - Jobs (202)
+
+    func testJobAcceptedDecoding() throws {
+        let json = #"{ "jobId": "abc-123", "status": "pending", "pollIntervalHint": 3 }"#
+        let accepted = try JSONDecoder().decode(GatewayJobAccepted.self, from: Data(json.utf8))
+        XCTAssertEqual(accepted.jobId, "abc-123")
+        XCTAssertEqual(accepted.status, .pending)
+        XCTAssertEqual(accepted.pollIntervalHint, 3)
+    }
+
+    func testJobStateTerminal() {
+        XCTAssertFalse(JobState.pending.isTerminal)
+        XCTAssertFalse(JobState.running.isTerminal)
+        XCTAssertTrue(JobState.done.isTerminal)
+        XCTAssertTrue(JobState.partial.isTerminal)
+        XCTAssertTrue(JobState.failed.isTerminal)
+    }
+
+    func testJobResultDoneDecoding() throws {
+        let json = #"""
+        { "jobId": "j1", "status": "done", "result": [ { "Id": "A", "Caption": "Article A" } ], "errors": null }
+        """#
+        let res = try JSONDecoder().decode(GatewayJobResult<[EBPItem]>.self, from: Data(json.utf8))
+        XCTAssertEqual(res.status, .done)
+        XCTAssertEqual(res.result?.count, 1)
+        XCTAssertNil(res.errors)
+    }
+
+    func testJobResultFailedDecoding() throws {
+        let json = #"{ "jobId": "j2", "status": "failed", "result": null, "errors": ["Quota EBP atteint"] }"#
+        let res = try JSONDecoder().decode(GatewayJobResult<[EBPItem]>.self, from: Data(json.utf8))
+        XCTAssertEqual(res.status, .failed)
+        XCTAssertNil(res.result)
+        XCTAssertEqual(res.errors, ["Quota EBP atteint"])
+    }
+}

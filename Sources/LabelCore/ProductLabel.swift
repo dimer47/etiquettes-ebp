@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ProductLabel: Codable, Equatable {
+public struct ProductLabel: Codable, Equatable, Hashable {
     public var name: String
     public var category: String
     public var shelfReference: String
@@ -33,7 +33,7 @@ public struct ProductLabel: Codable, Equatable {
     }
 }
 
-public enum LabelCurrency: String, CaseIterable, Codable, Identifiable {
+public enum LabelCurrency: String, CaseIterable, Codable, Identifiable, Hashable {
     case eur = "EUR", usd = "USD", gbp = "GBP", chf = "CHF"
     public var id: String { rawValue }
     public var symbol: String {

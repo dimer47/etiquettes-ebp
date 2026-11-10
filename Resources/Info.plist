@@ -12,6 +12,9 @@
     <string>_ipp._tcp</string>
 </array>
 <key>NSCameraUsageDescription</key><string>Scanner le code-barres EAN-13 d’un produit pour remplir son étiquette.</string>
+<!-- DEV UNIQUEMENT : autorise le HTTP en clair vers la gateway EBP locale (IP LAN du Mac).
+     À retirer / remplacer par du HTTPS avant toute gateway non-locale ou de production. -->
+<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key>
 <array>

@@ -2,22 +2,20 @@ import SwiftUI
 import PocketPrinter5890Kit
 
 struct ContentView: View {
+    @ObservedObject var gateway: GatewaySettings
     @StateObject private var printer = PrinterManager()
     @StateObject private var setup = PrinterSetup()
     @StateObject private var brother = BrotherPrinterService()
     @StateObject private var netum = NetumPrinterService()
     @StateObject private var thumbnailStore = LabelThumbnailStore()
     @StateObject private var history = LabelHistoryStore()
-    @State private var label = (UserDefaults.standard.data(forKey: "lastLabel").flatMap { try? JSONDecoder().decode(ProductLabel.self, from: $0) }) ?? ProductLabel()
+    /// Étiquette courante : alimentée par l'article EBP sélectionné (plus de saisie manuelle).
+    @State private var label = ProductLabel()
     @State private var showingPrinters = false
     @State private var showingSettings = false
     @State private var showingPresentation = false
-    @State private var showingScanner = false
     @State private var showingHistory = false
     @State private var message: String?
-    @State private var selectedPage = 0
-    @State private var categories = (UserDefaults.standard.array(forKey: "savedCategories") as? [String]) ?? [NSLocalizedString("Peinture / Aérosols", comment: "Sample category")]
-    @State private var newCategory = ""
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
     @AppStorage("labelArrangement") private var selectedArrangement = LabelArrangement.current.rawValue
 
@@ -55,242 +53,35 @@ struct ContentView: View {
         ((try? EAN13.completed(label.ean)) != nil &&
          PriceFormatter.formatted(label.price, currency: label.currency) != nil) ? label : ProductLabel()
     }
-    private var eanMessage: String? {
-        do {
-            let completed = try EAN13.completed(label.ean)
-            return completed == label.ean ? nil : String(format: NSLocalizedString("Chiffre de contrôle calculé : %@", comment: "EAN validation"), completed)
-        } catch EAN13Error.invalidChecksum { return NSLocalizedString("Chiffre de contrôle EAN incorrect", comment: "EAN validation") }
-        catch { return NSLocalizedString("Saisir 12 ou 13 chiffres EAN", comment: "EAN validation") }
-    }
-
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 18) {
-                    Picker("Écran", selection: $selectedPage) {
-                        Label("Produit", systemImage: "square.and.pencil").tag(0)
-                        Label("Impression", systemImage: "printer").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .controlSize(.large)
-                    .frame(minHeight: 56)
-                    .accessibilityLabel("Produit ou impression")
-                    if selectedPage == 0 {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Informations produit").font(.title3.bold())
-                        VStack(alignment: .leading, spacing: 14) {
-                            field("Nom du produit", text: $label.name)
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("Catégorie").font(.subheadline.bold())
-                                TextField("Catégorie", text: $label.category)
-                                    .modifier(ProductInputStyle())
-                                HStack {
-                                    Menu {
-                                        if categories.isEmpty { Text("Aucune catégorie enregistrée") }
-                                        ForEach(categories, id: \.self) { category in
-                                            Button(category) { label.category = category }
-                                        }
-                                    } label: {
-                                        Label("Choisir", systemImage: "list.bullet")
-                                    }
-                                    .accessibilityLabel("Choisir une catégorie")
-                                    .buttonStyle(.bordered)
-                                    Button {
-                                        categories = CategoryLibrary.adding(label.category, to: categories)
-                                    } label: {
-                                        Label("Enregistrer", systemImage: "plus")
-                                    }
-                                    .accessibilityLabel("Enregistrer cette catégorie")
-                                    .buttonStyle(.bordered)
-                                    .disabled(CategoryLibrary.adding(label.category, to: categories) == categories)
-                                }
-                            }
-                            field("Référence rayon", text: $label.shelfReference)
-                            field("Référence produit", text: $label.productReference)
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("Code-barres EAN-13").font(.subheadline.bold())
-                                TextField("13 chiffres", text: $label.ean)
-                                    .keyboardType(.numberPad)
-                                    .modifier(ProductInputStyle())
-                                Button { showingScanner = true } label: {
-                                    Label("Scanner un code", systemImage: "barcode.viewfinder")
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                            if let eanMessage { Text(eanMessage).font(.caption).foregroundStyle(.orange) }
-                            field("Libellé du prix", text: $label.priceCaption)
-                            HStack(alignment: .bottom) {
-                                field("Prix de vente TTC", text: $label.price, keyboard: .decimalPad)
-                                Picker("Devise", selection: $label.currency) {
-                                    ForEach(LabelCurrency.allCases) { currency in
-                                        Text("\(currency.symbol) \(currency.rawValue)").tag(currency)
-                                    }
-                                }
-                                .labelsHidden()
-                                .accessibilityLabel("Devise")
-                                .frame(width: 110)
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .modifier(ProductPanelStyle())
-                    Button { selectedPage = 1 } label: {
-                        Label("Voir l’aperçu", systemImage: "eye")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 4)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    } else {
-                    HStack {
-                        if isNetum {
-                            Image(systemName: "printer.fill")
-                                .font(.title3).foregroundStyle(netum.connected ? .green : .secondary)
-                            VStack(alignment: .leading) {
-                                Text(netum.connected ? (netum.connectedName ?? "NETUM") : NSLocalizedString("NETUM NT-H861", comment: "NETUM card title")).font(.headline)
-                                Text(netum.status).font(.subheadline)
-                                    .foregroundStyle(netum.statusIsError ? .red : .primary)
-                                Text(setup.netum.paper.title + " · " + setup.netum.cut.title)
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            if netum.isBusy { ProgressView(value: netum.progress).frame(width: 44) }
-                            Button(netum.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
-                        } else if isBrother {
-                            Image(systemName: "printer.fill")
-                                .font(.title3).foregroundStyle(printerReady ? .green : .secondary)
-                            VStack(alignment: .leading) {
-                                Text(String(format: NSLocalizedString("Brother %@", comment: "Brother printer card title"), setup.brotherModel.title)).font(.headline)
-                                Text(brother.target?.displayName ?? NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status"))
-                                    .font(.subheadline)
-                                if brother.target != nil || brother.status != NSLocalizedString("Aucune imprimante Brother choisie", comment: "Brother status") {
-                                    Text(brother.status).font(.caption)
-                                        .foregroundStyle(brother.statusIsError ? .red : .secondary)
-                                }
-                            }
-                            Spacer()
-                            if brother.activity == .printing {
-                                Button("Annuler", role: .destructive) { brother.cancelPrint() }
-                            } else if brother.isBusy { ProgressView() }
-                            Button(brother.target == nil ? NSLocalizedString("Connecter", comment: "Connect printer") : NSLocalizedString("Changer", comment: "Change printer")) { openPrinters() }
-                        } else {
-                        Image(systemName: "printer.fill")
-                            .font(.title3).foregroundStyle(printer.connected ? .green : .secondary)
-                        VStack(alignment: .leading) {
-                            Text(printer.connected ? printer.displayName : NSLocalizedString("Imprimante", comment: "Printer card title")).font(.headline)
-                            Text(printer.status).font(.subheadline)
-                            if printer.connected {
-                                Label(printer.batteryPercent.map { String(format: NSLocalizedString("Batterie %d %%", comment: "Printer battery"), $0) } ?? NSLocalizedString("Batterie en cours de lecture", comment: "Printer battery"),
-                                      systemImage: printer.batteryPercent == nil ? "battery.0percent" : "battery.100percent")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        Button(printer.connected ? NSLocalizedString("Changer", comment: "Change printer") : NSLocalizedString("Connecter", comment: "Connect printer")) { openPrinters() }
-                        }
-                    }
-                    .padding(16)
-                    .modifier(PrintCardStyle())
-                    // Toute la carte ouvre l'écran Imprimante, où tout se règle.
-                    .contentShape(RoundedRectangle(cornerRadius: 14))
-                    .onTapGesture { openPrinters() }
-                    .accessibilityAction(named: Text("Réglages de l’imprimante")) { openPrinters() }
-                    Button {
-                        showingPresentation = true
-                        thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
-                                               arrangement: labelArrangement, width: layoutWidth, reset: true)
-                    } label: {
-                        HStack {
-                            Image(systemName: "square.grid.2x2.fill")
-                                .font(.title3).foregroundStyle(.primary)
-                            VStack(alignment: .leading) {
-                                Text("Présentation de l’étiquette").font(.headline)
-                                Text("\(labelArrangement.title) · \(labelSize.title) (\(printedSizeText))")
-                                    .font(.subheadline).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.secondary)
-                        }
-                        .padding(16)
-                        .modifier(PrintCardStyle())
-                    }
-                    .buttonStyle(ResponsiveCardStyle())
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
-                        if let bitmap, let image = LabelRenderer.preview(bitmap) {
-                            Image(uiImage: image).interpolation(.high).resizable()
-                                .aspectRatio(CGFloat(bitmap.width) / CGFloat(bitmap.height), contentMode: .fit)
-                                .background(.white)
-                                .overlay(Rectangle().stroke(Color(.separator), lineWidth: 1))
-                                .accessibilityLabel("Aperçu de l’étiquette à imprimer")
-                        } else {
-                            Text("Saisissez un EAN et un prix valides pour voir l’aperçu.")
-                                .frame(maxWidth: .infinity, minHeight: 170)
-                        }
-                    }
-                    .padding(16)
-                    .modifier(PrintCardStyle())
-                    Button { printCurrentLabel() } label: {
-                        Label(isPrinting ? NSLocalizedString("Impression…", comment: "Printing progress") : NSLocalizedString("Imprimer", comment: "Print button"), systemImage: "printer.fill")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(bitmap == nil || isPrinting || !printerReady)
-                    }
-                }
-                .padding()
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Étiquettes Produit")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Historique", systemImage: "clock.arrow.circlepath") { showingHistory = true }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Réglages", systemImage: "gearshape") { showingSettings = true }
+            Group {
+                if let config = gateway.currentConfig() {
+                    ProductListView(config: config,
+                                    sizeRaw: $selectedSize,
+                                    arrangementRaw: $selectedArrangement,
+                                    onPrint: { product, quantity in importAndPrint(product, quantity: quantity) },
+                                    onOpenSettings: { showingSettings = true },
+                                    onOpenHistory: { showingHistory = true })
+                } else {
+                    ContentUnavailableView(NSLocalizedString("Gateway non configurée", comment: "Gateway not configured"),
+                                           systemImage: "gearshape",
+                                           description: Text(NSLocalizedString("Appairez la gateway pour charger les articles.", comment: "")))
                 }
             }
             .sheet(isPresented: $showingPrinters) { printerSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
             .sheet(isPresented: $showingPresentation) { presentationSheet }
             .sheet(isPresented: $showingHistory) { historySheet }
-            .sheet(isPresented: $showingScanner) {
-                BarcodeScannerView { code in
-                    label.ean = code
-                    showingScanner = false
-                }
-            }
-            .alert("Impression", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
+            .alert(NSLocalizedString("Impression", comment: "Print alert"), isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("OK") { message = nil }
             } message: { Text(message ?? "") }
-            .onChange(of: label) { _, newValue in
-                if let data = try? JSONEncoder().encode(newValue) { UserDefaults.standard.set(data, forKey: "lastLabel") }
-            }
-            .onChange(of: categories) { _, newValue in
-                UserDefaults.standard.set(newValue, forKey: "savedCategories")
-            }
-            .onChange(of: selectedSize) { _, _ in
-                if showingPresentation {
-                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement, width: layoutWidth)
-                }
-            }
-            .onChange(of: selectedArrangement) { _, _ in
-                if showingPresentation {
-                    thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize, arrangement: labelArrangement, width: layoutWidth)
-                }
-            }
             .onChange(of: netum.jobError) { _, error in
-                // Impression refusée (capot, papier, massicot) ou connexion perdue.
                 guard let error else { return }
                 message = error
                 netum.jobError = nil
             }
             .onChange(of: brother.activity) { old, new in
-                // Erreur d'impression Brother : la montrer comme celles de la 5890.
                 if old == .printing, new == .idle, brother.statusIsError { message = brother.status }
             }
             .onAppear {
@@ -302,16 +93,68 @@ struct ContentView: View {
         }
     }
 
-    private func printCurrentLabel() {
-        guard printerReady, bitmap != nil else { return }
+    /// Alimente l'étiquette courante avec l'article EBP choisi, puis imprime la quantité demandée.
+    private func importAndPrint(_ product: MappedProduct, quantity: Int) {
+        label = product.label
+        guard printerReady else {
+            message = NSLocalizedString("Connectez une imprimante avant d’imprimer.", comment: "No printer")
+            showingPrinters = true
+            return
+        }
+        printCurrentLabel(copies: quantity)
+    }
+
+    /// Imprime la quantité demandée selon la marque : Netum et Brother en natif (copies),
+    /// 5890 en séquence (une étiquette par appel, pilotée par la fin de l'impression).
+    private func printCurrentLabel(copies: Int = 1) {
+        guard printerReady else { return }
+        guard (try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) != nil else {
+            message = NSLocalizedString("Article invalide (EAN ou prix).", comment: "Invalid label")
+            return
+        }
+        let count = max(1, copies)
         let entry = PrintedLabel(label: label, size: labelSize, arrangement: labelArrangement,
                                  densityValue: printer.density.rawValue,
                                  leadingFeedDots: printer.leadingFeedDots,
                                  trailingFeedDots: printer.trailingFeedDots,
                                  rotateContent180: printer.rotateContent180,
                                  netum: isNetum ? setup.netum : nil)
-        do { try submit(label, size: labelSize, arrangement: labelArrangement) { history.record(entry) } }
-        catch { message = error.localizedDescription }
+        if isNetum {
+            let previous = setup.netum.copies
+            setup.netum.copies = count
+            do { try submit(label, size: labelSize, arrangement: labelArrangement) {
+                history.record(entry); setup.netum.copies = previous
+            } }
+            catch { setup.netum.copies = previous; message = error.localizedDescription }
+        } else if isBrother {
+            let previous = setup.copies
+            setup.copies = count
+            do { try submit(label, size: labelSize, arrangement: labelArrangement) {
+                history.record(entry); setup.copies = previous
+            } }
+            catch { setup.copies = previous; message = error.localizedDescription }
+        } else {
+            // 5890 : une étiquette par appel, en séquence.
+            do {
+                let bitmap = try LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement)
+                printCopiesSequentially(bitmap, remaining: count, onFinished: { history.record(entry) })
+            } catch { message = error.localizedDescription }
+        }
+    }
+
+    /// Imprime `remaining` copies du même bitmap sur la 5890, l'une après l'autre.
+    /// `PrinterManager.print` s'auto-verrouille (`guard !printing`) : on enchaîne la copie
+    /// suivante quand `printer.printing` repasse à false.
+    private func printCopiesSequentially(_ bitmap: MonochromeBitmap, remaining: Int, onFinished: @escaping () -> Void) {
+        guard remaining > 0 else { onFinished(); return }
+        printer.print(bitmap)
+        Task { @MainActor in
+            let deadline = Date().addingTimeInterval(15)
+            while printer.printing && Date() < deadline {
+                try? await Task.sleep(nanoseconds: 150_000_000)
+            }
+            printCopiesSequentially(bitmap, remaining: remaining - 1, onFinished: onFinished)
+        }
     }
 
     /// Envoie l'étiquette à l'imprimante choisie. La 5890 reçoit le bitmap
@@ -351,7 +194,6 @@ struct ContentView: View {
             printer.trailingFeedDots = entry.trailingFeedDots
             printer.rotateContent180 = entry.rotateContent180
         }
-        selectedPage = 1
         showingHistory = false
     }
 
@@ -473,15 +315,6 @@ struct ContentView: View {
         .accessibilityLabel("\(title)\(detail.isEmpty ? "" : ", \(detail)")\(selected ? NSLocalizedString(", sélectionné", comment: "Selected tile accessibility suffix") : "")")
     }
 
-    private func field(_ title: LocalizedStringKey, text: Binding<String>, keyboard: UIKeyboardType = .default) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title).font(.subheadline.bold())
-            TextField(title, text: text).keyboardType(keyboard)
-                .textInputAutocapitalization(keyboard == .default ? .sentences : .never)
-                .modifier(ProductInputStyle())
-        }
-    }
-
     private var printerSheet: some View {
         PrinterSelectionView(printer: printer, setup: setup, brother: brother, netum: netum,
                              canTestPrint: printerReady && !isPrinting,
@@ -524,21 +357,7 @@ struct ContentView: View {
                     Text("Le français et l’anglais sont disponibles. iOS applique le choix à toute l’application.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
-                Section("Catégories enregistrées") {
-                    HStack {
-                        TextField("Nouvelle catégorie", text: $newCategory)
-                        Button("Ajouter", systemImage: "plus") {
-                            categories = CategoryLibrary.adding(newCategory, to: categories)
-                            newCategory = ""
-                        }
-                        .disabled(CategoryLibrary.adding(newCategory, to: categories) == categories)
-                    }
-                    if categories.isEmpty { Text("Aucune catégorie enregistrée").foregroundStyle(.secondary) }
-                    ForEach(categories, id: \.self) { category in
-                        Text(category)
-                    }
-                    .onDelete { offsets in categories.remove(atOffsets: offsets) }
-                }
+                GatewaySettingsSection(settings: gateway)
             }
             .navigationTitle("Réglages")
             .toolbar { Button("Fermer") { showingSettings = false } }
@@ -552,25 +371,6 @@ private struct ResponsiveCardStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.7 : 1)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
-private struct ProductInputStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(.horizontal, 16)
-            .frame(minHeight: 56)
-            .background(Color(.tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
-    }
-}
-
-private struct ProductPanelStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
-        } else {
-            content.background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
-        }
     }
 }
 
