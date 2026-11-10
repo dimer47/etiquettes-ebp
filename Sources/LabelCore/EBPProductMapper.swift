@@ -106,8 +106,9 @@ public enum EBPProductMapper {
     /// Construit les infos additionnelles (écran only) à partir de l'article EBP.
     private static func mapDetails(_ item: EBPItem, ttcValue: Decimal?, htValue: Decimal?,
                                    locale: Locale) -> ProductDetails {
-        // TVA : montant fourni par EBP ; taux déduit du HT (ou de TTC−HT) quand c'est possible.
-        let vatAmount = item.vatAmount.flatMap { $0 == 0 ? nil : formatted($0, locale: locale) }
+        // TVA : montant fourni par EBP. Un montant explicite (même 0, article exonéré) est
+        // affiché ; seul un champ absent (nil) masque la ligne.
+        let vatAmount = item.vatAmount.map { formatted($0, locale: locale) }
         let vatRate = vatRatePercent(vatAmount: item.vatAmount, ht: htValue, ttc: ttcValue)
 
         let isActive = item.activeState.map { $0 == 0 }
@@ -131,7 +132,7 @@ public enum EBPProductMapper {
     private static func vatRatePercent(vatAmount: Decimal?, ht: Decimal?, ttc: Decimal?) -> String? {
         guard let ht, ht > 0 else { return nil }
         let amount: Decimal?
-        if let vatAmount, vatAmount > 0 { amount = vatAmount }
+        if let vatAmount { amount = vatAmount }   // montant explicite (y compris 0 → taux 0 %)
         else if let ttc, ttc > ht { amount = ttc - ht }
         else { amount = nil }
         guard let amount else { return nil }

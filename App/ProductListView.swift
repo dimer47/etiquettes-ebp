@@ -50,10 +50,23 @@ final class EBPSearchModel: ObservableObject {
 
     /// Remet les filtres à zéro. Ne recharge pas : l'appelant déclenche le rechargement
     /// (après fermeture de la feuille) via `reloadNow()`.
+    /// Remet les filtres à zéro. Ne recharge pas : l'appelant déclenche le rechargement
+    /// (après fermeture de la feuille) via `reloadNow()`.
     func clearFilters() {
         familyFilter = ""; subFamilyFilter = ""; priceMinText = ""; priceMaxText = ""
         onlyActive = false; onlyInStock = false
         sortField = .reference; sortDescending = false
+    }
+
+    /// Empreinte des filtres et du tri courants : permet de ne recharger que s'ils ont
+    /// réellement changé après la fermeture de la feuille.
+    var filtersSignature: String {
+        [familyFilter.trimmingCharacters(in: .whitespaces),
+         subFamilyFilter.trimmingCharacters(in: .whitespaces),
+         priceMinText.trimmingCharacters(in: .whitespaces),
+         priceMaxText.trimmingCharacters(in: .whitespaces),
+         onlyActive ? "1" : "0", onlyInStock ? "1" : "0",
+         sortField.rawValue, sortDescending ? "d" : "a"].joined(separator: "|")
     }
 
     private func currentQuery(offset: Int) -> ItemsQuery {
@@ -222,6 +235,9 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     /// Focus des champs de la feuille filtres : on le coupe avant d'appliquer pour forcer les
     /// TextField (clavier décimal, sans touche Entrée) à committer leur valeur au binding.
     @FocusState private var filterFieldFocused: Bool
+    /// Empreinte des filtres à l'ouverture de la feuille : on ne recharge à la fermeture que
+    /// si elle a changé (évite une requête inutile quand on ferme sans rien modifier).
+    @State private var filtersSignatureAtOpen = ""
 
     init(config: GatewayConfig,
          onOpenSettings: @escaping () -> Void,
@@ -270,16 +286,22 @@ struct ProductListView<Impression: View, Sheets: View>: View {
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
             .onChange(of: showingFilters) { wasShown, isShown in
-                // Feuille refermée. On recharge si elle avait été ouverte (Appliquer, Fermer ou
-                // swipe) : les critères vivent dans le modèle, on applique toujours l'état courant.
-                guard !isShown, wasShown else { return }
+                if isShown {
+                    // À l'ouverture : mémorise l'état des filtres pour le comparer à la fermeture.
+                    filtersSignatureAtOpen = model.filtersSignature
+                    return
+                }
+                guard wasShown else { return }
                 let reset = (pendingReload == .reset)
                 pendingReload = nil
                 // Décalé d'un cycle : laisse les TextField (clavier décimal) committer leur
-                // valeur au binding avant que la requête ne la lise.
+                // valeur au binding avant de lire l'empreinte et la requête.
                 Task { @MainActor in
                     if reset { model.clearFilters() }
-                    model.reloadNow()
+                    // Ne recharge que si les filtres ont réellement changé (ou après un reset).
+                    if reset || model.filtersSignature != filtersSignatureAtOpen {
+                        model.reloadNow()
+                    }
                 }
             }
             .sheet(isPresented: $showingFilters) { filtersSheet }

@@ -113,11 +113,13 @@ final class GatewayTests: XCTestCase {
         XCTAssertEqual(EBPProductMapper.map(try makeItem(json)).details.isActive, false)
     }
 
-    func testMapperZeroVatAndVolumeAreHidden() throws {
-        // Montants nuls (0) → masqués (nil), pas affichés comme "0".
-        let json = #"{ "Caption": "P", "VatAmount": 0.0, "Volume": 0.0, "Weight": 0.0 }"#
+    func testMapperZeroWeightVolumeHiddenButZeroVatShown() throws {
+        // Poids/volume nuls → masqués (0 = non renseigné en logistique).
+        // TVA : un montant explicite, même 0 (article exonéré), reste affiché.
+        let json = #"{ "Caption": "P", "SalePriceVatExcluded": 100.0, "SalePriceVatIncluded": 100.0, "VatAmount": 0.0, "Volume": 0.0, "Weight": 0.0 }"#
         let d = EBPProductMapper.map(try makeItem(json)).details
-        XCTAssertNil(d.vatAmount)
+        XCTAssertEqual(d.vatAmount, "0,00")
+        XCTAssertEqual(d.vatRatePercent, "0")   // taux 0 % explicite
         XCTAssertNil(d.volume)
         XCTAssertNil(d.weight)
     }
