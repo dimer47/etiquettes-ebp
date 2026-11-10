@@ -70,6 +70,58 @@ final class GatewayTests: XCTestCase {
         XCTAssertFalse(mapped.eanWasInvalid)
     }
 
+    func testMapperDetailsVatStockLogistics() throws {
+        let json = #"""
+        {
+            "Caption": "Motoréducteur", "SalePriceVatExcluded": 420.0, "SalePriceVatIncluded": 504.0,
+            "VatAmount": 84.0, "RealStock": 5.0, "VirtualStock": 8.0,
+            "SupplierId": "FR01066", "UnitId": "UNIT", "Weight": 12.5, "Volume": 0.035,
+            "SubFamilyId": "SF001", "ActiveState": 0
+        }
+        """#
+        let d = EBPProductMapper.map(try makeItem(json)).details
+        XCTAssertEqual(d.vatAmount, "84,00")
+        XCTAssertEqual(d.vatRatePercent, "20")        // 84 / 420 = 20 %
+        XCTAssertEqual(d.realStock, "5")
+        XCTAssertEqual(d.virtualStock, "8")
+        XCTAssertEqual(d.supplierId, "FR01066")
+        XCTAssertEqual(d.unitId, "UNIT")
+        XCTAssertEqual(d.weight, "12,5")
+        XCTAssertEqual(d.volume, "0,035")
+        XCTAssertEqual(d.subFamilyId, "SF001")
+        XCTAssertEqual(d.isActive, true)
+    }
+
+    func testMapperVatRateFallsBackToTtcMinusHt() throws {
+        // Pas de VatAmount : le taux se déduit de (TTC − HT) / HT.
+        let json = #"{ "Caption": "P", "SalePriceVatExcluded": 100.0, "SalePriceVatIncluded": 120.0 }"#
+        let d = EBPProductMapper.map(try makeItem(json)).details
+        XCTAssertNil(d.vatAmount)
+        XCTAssertEqual(d.vatRatePercent, "20")
+    }
+
+    func testMapperDetailsAbsentAreNil() throws {
+        let json = #"{ "Caption": "P" }"#
+        let d = EBPProductMapper.map(try makeItem(json)).details
+        XCTAssertFalse(d.hasAny)
+        XCTAssertNil(d.vatRatePercent)
+        XCTAssertNil(d.isActive)
+    }
+
+    func testMapperInactiveState() throws {
+        let json = #"{ "Caption": "P", "ActiveState": 1 }"#
+        XCTAssertEqual(EBPProductMapper.map(try makeItem(json)).details.isActive, false)
+    }
+
+    func testMapperZeroVatAndVolumeAreHidden() throws {
+        // Montants nuls (0) → masqués (nil), pas affichés comme "0".
+        let json = #"{ "Caption": "P", "VatAmount": 0.0, "Volume": 0.0, "Weight": 0.0 }"#
+        let d = EBPProductMapper.map(try makeItem(json)).details
+        XCTAssertNil(d.vatAmount)
+        XCTAssertNil(d.volume)
+        XCTAssertNil(d.weight)
+    }
+
     func testMapperPrefersDesComClearOverCaption() throws {
         let json = #"{ "Caption": "RTF brut", "DesComClear": "Texte propre" }"#
         XCTAssertEqual(EBPProductMapper.map(try makeItem(json)).label.name, "Texte propre")

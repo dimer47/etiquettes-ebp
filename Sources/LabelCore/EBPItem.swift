@@ -13,6 +13,15 @@ public struct EBPItem: Decodable, Equatable, Hashable {
     public let barCode: String?               // "BarCode" (EAN)
     public let shelfRef: String?              // "ShelfRef" (rayon)
     public let familyId: String?              // "FamilyId" (famille)
+    public let subFamilyId: String?           // "SubFamilyId" (sous-famille)
+    public let vatAmount: Decimal?            // "VatAmount" (montant de TVA sur le prix de vente)
+    public let realStock: Decimal?            // "RealStock" (stock réel)
+    public let virtualStock: Decimal?         // "VirtualStock" (stock disponible/projeté)
+    public let supplierId: String?            // "SupplierId" (fournisseur principal)
+    public let unitId: String?                // "UnitId" (unité de vente)
+    public let weight: Decimal?               // "Weight" (poids)
+    public let volume: Decimal?               // "Volume" (volume)
+    public let activeState: Int?              // "ActiveState" (0 = actif chez EBP)
 
     /// Identité stable d'une ligne de liste : la référence EBP si présente, sinon le code-barres,
     /// sinon un repli dérivé des champs. Évite les collisions d'`id` dans un ForEach quand des
@@ -32,6 +41,15 @@ public struct EBPItem: Decodable, Equatable, Hashable {
         case barCode = "BarCode"
         case shelfRef = "ShelfRef"
         case familyId = "FamilyId"
+        case subFamilyId = "SubFamilyId"
+        case vatAmount = "VatAmount"
+        case realStock = "RealStock"
+        case virtualStock = "VirtualStock"
+        case supplierId = "SupplierId"
+        case unitId = "UnitId"
+        case weight = "Weight"
+        case volume = "Volume"
+        case activeState = "ActiveState"
     }
 
     public init(from decoder: Decoder) throws {
@@ -46,14 +64,31 @@ public struct EBPItem: Decodable, Equatable, Hashable {
         shelfRef = try c.decodeStringOrNumber(forKey: .shelfRef)
         barCode = try c.decodeIfPresent(String.self, forKey: .barCode)
         familyId = try c.decodeIfPresent(String.self, forKey: .familyId)
+        subFamilyId = try c.decodeIfPresent(String.self, forKey: .subFamilyId)
+        vatAmount = c.decodeDecimalOrString(forKey: .vatAmount)
+        realStock = c.decodeDecimalOrString(forKey: .realStock)
+        virtualStock = c.decodeDecimalOrString(forKey: .virtualStock)
+        supplierId = try c.decodeIfPresent(String.self, forKey: .supplierId)
+        unitId = try c.decodeIfPresent(String.self, forKey: .unitId)
+        weight = c.decodeDecimalOrString(forKey: .weight)
+        volume = c.decodeDecimalOrString(forKey: .volume)
+        activeState = try? c.decodeIfPresent(Int.self, forKey: .activeState)
     }
 
     public init(id: String? = nil, caption: String? = nil, desComClear: String? = nil,
                 salePriceVatIncluded: Decimal? = nil, salePriceVatExcluded: Decimal? = nil,
-                barCode: String? = nil, shelfRef: String? = nil, familyId: String? = nil) {
+                barCode: String? = nil, shelfRef: String? = nil, familyId: String? = nil,
+                subFamilyId: String? = nil, vatAmount: Decimal? = nil,
+                realStock: Decimal? = nil, virtualStock: Decimal? = nil,
+                supplierId: String? = nil, unitId: String? = nil,
+                weight: Decimal? = nil, volume: Decimal? = nil, activeState: Int? = nil) {
         self.id = id; self.caption = caption; self.desComClear = desComClear
         self.salePriceVatIncluded = salePriceVatIncluded; self.salePriceVatExcluded = salePriceVatExcluded
         self.barCode = barCode; self.shelfRef = shelfRef; self.familyId = familyId
+        self.subFamilyId = subFamilyId; self.vatAmount = vatAmount
+        self.realStock = realStock; self.virtualStock = virtualStock
+        self.supplierId = supplierId; self.unitId = unitId
+        self.weight = weight; self.volume = volume; self.activeState = activeState
     }
 }
 

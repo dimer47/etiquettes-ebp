@@ -62,6 +62,85 @@ struct ArticleDetailView<Impression: View, Sheets: View>: View {
                     } label: { Text("HT") }
                     .font(.footnote)
                 }
+                if let vat = product.details.vatAmount {
+                    LabeledContent {
+                        Text("\(vat) \(label.currency.symbol)").foregroundStyle(.secondary)
+                    } label: { Text(vatLabel) }
+                    .font(.footnote)
+                } else if let rate = product.details.vatRatePercent {
+                    LabeledContent(NSLocalizedString("TVA", comment: "VAT"), value: "\(rate) %")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+
+            stockSection
+            logisticsSection
+            managementSection
+        }
+    }
+
+    /// Libellé « TVA » avec le taux entre parenthèses quand il est connu (ex. « TVA (20 %) »).
+    private var vatLabel: String {
+        if let rate = product.details.vatRatePercent {
+            return String(format: NSLocalizedString("TVA (%@ %%)", comment: "VAT with rate"), rate)
+        }
+        return NSLocalizedString("TVA", comment: "VAT")
+    }
+
+    @ViewBuilder
+    private var stockSection: some View {
+        let d = product.details
+        if d.realStock != nil || d.virtualStock != nil {
+            Section(NSLocalizedString("Stock", comment: "Stock")) {
+                if let real = d.realStock {
+                    LabeledContent(NSLocalizedString("Stock réel", comment: "Real stock"), value: real)
+                }
+                if let virtual = d.virtualStock {
+                    LabeledContent(NSLocalizedString("Stock disponible", comment: "Available stock"), value: virtual)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var logisticsSection: some View {
+        let d = product.details
+        if d.unitId != nil || d.weight != nil || d.volume != nil {
+            Section(NSLocalizedString("Logistique", comment: "Logistics")) {
+                if let unit = d.unitId {
+                    LabeledContent(NSLocalizedString("Unité de vente", comment: "Sale unit"), value: unit)
+                }
+                if let weight = d.weight {
+                    LabeledContent(NSLocalizedString("Poids", comment: "Weight"), value: weight)
+                }
+                if let volume = d.volume {
+                    LabeledContent(NSLocalizedString("Volume", comment: "Volume"), value: volume)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var managementSection: some View {
+        let d = product.details
+        if d.supplierId != nil || d.subFamilyId != nil || d.isActive != nil {
+            Section(NSLocalizedString("Gestion", comment: "Management")) {
+                if let supplier = d.supplierId {
+                    LabeledContent(NSLocalizedString("Fournisseur", comment: "Supplier"), value: supplier)
+                }
+                if let subFamily = d.subFamilyId {
+                    LabeledContent(NSLocalizedString("Sous-famille", comment: "Sub-family"), value: subFamily)
+                }
+                if let active = d.isActive {
+                    LabeledContent(NSLocalizedString("État", comment: "State")) {
+                        Label(active ? NSLocalizedString("Actif", comment: "Active")
+                                     : NSLocalizedString("Inactif", comment: "Inactive"),
+                              systemImage: active ? "checkmark.circle.fill" : "pause.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(active ? .green : .secondary)
+                            .labelStyle(.titleAndIcon)
+                    }
+                }
             }
         }
     }
