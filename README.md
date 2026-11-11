@@ -1,81 +1,59 @@
-# ProductLabels
+# Étiquettes EBP
 
 *[Version française](README_FR.md)*
 
-**Product Labels** (French: **Étiquettes Produit**) is a native iPhone app for creating product price labels and printing them directly over Bluetooth Low Energy to a Pocket Printer 5890 or a Brother label printer. No AirPrint, image export, account, or internet connection is needed after installation.
+**Étiquettes EBP** is a native iPhone app that connects to an **EBP** gateway to browse your product catalog and print price labels in store, over Bluetooth. It is paired to the gateway with a QR code; no account setup is needed on the device.
 
-| TRONIC | SILVERCREST |
-|---|---|
-| <img src="docs/images/tronic-1.jpg" alt="TRONIC pocket printer" width="380"> | <img src="docs/images/silvercrest-1.jpg" alt="SILVERCREST pocket printer" width="380"> |
-
-| Product editor | Label preview and print |
-|---|---|
-| <img src="docs/images/app-editor-en.png" alt="Product Labels product editor" width="300"> | <img src="docs/images/app-print-fr.png" alt="Product Labels print preview, shown in French" width="300"> |
+| Welcome | Catalog | Product sheet | Print preview | Settings |
+|---|---|---|---|---|
+| <img src="docs/images/app-accueil.png" alt="Welcome screen" width="180"> | <img src="docs/images/app-liste.png" alt="EBP articles list" width="180"> | <img src="docs/images/app-fiche.png" alt="Product sheet with price, VAT and stock" width="180"> | <img src="docs/images/app-impression.png" alt="Label preview before printing" width="180"> | <img src="docs/images/app-reglages.png" alt="Settings with EBP gateway status" width="180"> |
 
 ## What the app does
 
-Enter a product name, category, shelf reference, product reference, EAN‑13 barcode and price. The print screen shows the label using the same 1-bit bitmap sent to the printer. Connect to the 5890, then tap **Print**. The print button remains disabled when no printer is connected.
+- **EBP catalog, live.** Browse every article from your EBP software: search by name or reference, filter by family, sub-family, price, availability and active state, and sort by reference, name or price. The list loads page by page for very large catalogs.
+- **Rich product sheet.** Price incl. and excl. tax, VAT (amount and rate), real and available stock, shelf, family, supplier, logistics and EAN‑13 barcode.
+- **Barcode scan.** Scan a barcode to find the matching article instantly, even if it is not in the loaded list yet.
+- **Bluetooth printing.** Preview the label, choose the format and quantity, then print on a supported Bluetooth printer.
+- **History.** Recently viewed articles and printed labels.
+- **Demo mode.** Discover the app with fictitious data, with no account and no connection — useful for a demo or to try the app without a gateway.
 
-The app offers four label heights (about 26, 30, 39 and 52 mm) and six layouts. Settings include print density, paper feed before and after the label, and an optional 180° rotation of printed content. The preview remains upright when rotation is enabled. A calibration label helps check the actual paper output. The current product and print settings are restored on reopening; a local history stores the last 100 submitted print jobs with their layouts and settings for restoration or reprinting. The interface is available in English and French. Product names and saved category text stay as entered.
+The interface is available in English and French.
 
-An EAN‑13 can be typed or scanned with the iPhone camera. Twelve digits get a calculated check digit; thirteen digits are validated. Categories can be entered freely or saved for later selection. Prices accept a comma or decimal point, with EUR, USD, GBP and CHF available.
+## Pairing with the EBP gateway
 
-## Printer and print format
+The app talks to an EBP gateway (a Laravel intermediation service, open source: [**gateway-for-ebp**](https://github.com/dimer47/gateway-for-ebp)). The administrator deploys the gateway, then generates a one-time pairing QR code from its back office; the app scans it, claims an application token (stored in the Keychain) and connects. The token is never embedded in the QR code. A manual connection (URL + token) is available as a fallback. For production, pairing requires HTTPS.
 
-The [PocketPrinter5890 project](https://github.com/dimer47/PocketPrinter5890) documents a physically tested 5890 with BLE model `A2Y` and firmware `V1.06LY`: **384 printable dots**, **48 bytes per row**, and a documented **203 dpi** resolution on approximately 56/58 mm continuous paper. The printable width is about 48 mm. These observations apply to the tested unit; other firmware may differ. The app always generates a 384-dot-wide bitmap for this printer. An 80 mm printer would require a separate hardware profile.
+## Printing
 
-The four image heights are 208, 240, 312 and 416 dots. EAN‑13's 95 modules are drawn directly at three whole printer dots per module, with at least ten white modules of quiet zone on each side. There is no resize after rasterization. Text is composed at native resolution and thresholded to pure black or white at a fixed value of 160. No photo dithering is applied. The resulting monochrome bitmap goes straight to the 5890 protocol and BLE transport.
+Labels print over Bluetooth Low Energy on the supported thermal printers (Pocket 5890, Brother, NETUM NT-H861). The app renders the label itself as a 1‑bit bitmap — EAN‑13 barcode, price, reference — and sends it to the printer; no AirPrint, no image export, and no network connection is needed to print. Printer-specific notes are in [docs/NETUM_FR.md](docs/NETUM_FR.md) and [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).
 
 ## Build and use
 
-Use Xcode with an iOS SDK, an iPhone running iOS 17 or newer, and an Apple signing team for installation. Open `ProductLabels.xcodeproj`, select the `ProductLabels` scheme and your iPhone, set the signing team if needed, then run. Xcode resolves the Swift package dependency on the first build. The core tests run with `swift test`. A device build without signing can be checked with:
+Use Xcode with an iOS SDK, an iPhone running iOS 17 or newer, and an Apple signing team for installation. Open `ProductLabels.xcodeproj`, select the `ProductLabels` scheme and your iPhone, set the signing team if needed, then run. Xcode resolves the Swift package dependency on the first build. The core tests run with `swift test`. A simulator build without signing can be checked with:
 
 ```sh
-xcodebuild -project ProductLabels.xcodeproj -scheme ProductLabels -configuration Debug -sdk iphoneos CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project ProductLabels.xcodeproj -scheme ProductLabels -configuration Debug -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO build
 ```
 
-1. Turn on the 5890 and iPhone Bluetooth.
-2. Tap **Connect** and select the compatible printer, usually `Mini Pocket Printer_BLE`. The app looks for the last printer again on a later launch.
-3. Fill in the **Product** form. Use **Scan a barcode** if you prefer the camera.
-4. Open **Print**, choose a label presentation, inspect the preview, then tap **Print**.
-5. In **Settings**, adjust density and paper feed or print the calibration label when needed.
-
-The printer panel shows a battery percentage when the device reports one. A custom printer name is associated with that printer's Bluetooth identifier on this iPhone. No network connection is used to print.
+The app identifier is `com.idsynergy.ebp-tickets-prix` and the display name is **Étiquettes EBP**.
 
 ## Code layout
 
 | Path | Responsibility |
 |---|---|
-| `Sources/LabelCore` | Product data, presentation selection, EAN‑13 checks and patterns, price formatting, exact 1-bit rotation |
-| `App/LabelRenderer.swift` | Native-resolution label layout and monochrome rasterization |
-| `App/PrinterManager.swift` | Discovery, selection, reconnection, density and direct printing |
-| `App/LabelHistoryStore.swift` | Local print history and restoration of print parameters |
-| `App/ContentView.swift` | Editor, bitmap-based preview, printer status and settings |
-| `Sources/LabelCore/BrotherCatalog.swift`, `LabelRasterGeometry.swift` | Brother model catalog (series, connections, paper, cutter) and scaled raster geometry, no SDK dependency |
-| `App/BrotherPrinterService.swift` | The only file that uses the Brother Print SDK: search, status, validation and printing off the main thread |
-| `App/PrinterSetup.swift`, `App/PrinterSelectionView.swift` | Printer → paper → cutting choice, saved in `UserDefaults` |
-| `PocketPrinter5890Kit` and `PocketPrinter5890BLE` | Swift package with 5890 commands, 24-row raster bands, flow control and CoreBluetooth transport |
-
-See [label sizes](docs/FORMATS_PROPOSES.md) and [layout variants](docs/DISPOSITIONS_PROPOSEES.md) for the proposed presentations. The app uses its own native renderer; the Python mockups in those documents were used for visual exploration only.
-
-The Xcode project is `ProductLabels` and the app identifier is `dimer47.productlabels`. A copy installed under the previous identifier (`dimer47.productlabel5890`) stays separate, with its own data; delete it from the iPhone after the first install.
-
-## NETUM NT-H861
-
-The app also prints on the NETUM NT-H861 80 mm receipt printer over Bluetooth LE, with auto cutter, optional beep and status check. See [docs/NETUM_FR.md](docs/NETUM_FR.md) (French).
-
-## Brother printers
-
-The app can also print on Brother printers, first of all the TD-4550DNWB over Bluetooth LE, through the official Brother Print SDK. Brother Print SDK 4.13.2 ships in `Vendor/` with Brother's license and redistribution notice. The Brother side mirrors [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio), tested on a TD-4550DNWB. Paper, cutter and quality options, printer info, system report and the hardware checklist are in [docs/BROTHER_FR.md](docs/BROTHER_FR.md) (French).
-
-## Known limits
-
-The paper is continuous. Feed before printing defaults to 0 mm; feed after printing defaults to 104 dots, approximately 13 mm at the documented resolution. Paper visible above a cut label appears to come from the physical distance between the print head and tear edge; its exact size has not been measured. Check the total cut label height against a shelf label holder.
-
-Print history records jobs submitted to the BLE transport, not a physical paper completion acknowledgement: the protocol does not provide one. Barcode scanning and switching among multiple rear camera lenses depend on the iPhone model and lighting. The available protocol documentation does not establish a tested immediate power-off command, so the app has no power-off button. Physical contrast, barcode readability, centering and cut position should be verified on each printer.
+| `Sources/LabelCore/GatewayClient.swift` | EBP gateway client: auth, whoami, articles query, 200/202 job polling |
+| `Sources/LabelCore/EBPItem.swift`, `EBPProductMapper.swift` | EBP article decoding and mapping to a printable label + screen details |
+| `Sources/LabelCore/GatewayWhereCondition.swift` | Search/filter condition builder (OData-like) |
+| `Sources/LabelCore/PairingClient.swift` | QR pairing: claim a token from a one-time code |
+| `Sources/LabelCore/DemoHTTPSession.swift` | Offline demo data source (no network) for review, screenshots and demos |
+| `App/ProductListView.swift` | Root list: search, filters, sort, pagination, barcode scan |
+| `App/ArticleDetailView.swift` | Product sheet (read-only) and print tab |
+| `App/GatewaySettings.swift`, `KeychainToken.swift` | Gateway config, demo mode, token in the Keychain |
+| `App/PairingView.swift`, `QRScannerView.swift` | Welcome/pairing screen and camera scanner |
+| `Sources/LabelCore/LabelRenderer` + `App/PrinterManager.swift` | Native label rasterization and Bluetooth printing |
 
 ## License and attribution
 
-ProductLabels is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository. The TRONIC and SILVERCREST photos above are reused from that repository with attribution under its MIT license. The project derives its Xcode setup and choice of BLE package from [PocketPrinter5890App](https://github.com/dimer47/PocketPrinter5890App), whose README also states MIT; that repository is unchanged.
+Étiquettes EBP is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository.
 
-The Brother Print SDK in `Vendor/` belongs to Brother Industries and is under its own license ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)); [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) allows redistribution of the files in the SDK `libs` folder. Brother and the model names are trademarks of Brother Industries; this project is neither affiliated with nor endorsed by Brother.
+The Brother Print SDK in `Vendor/` belongs to Brother Industries and is under its own license ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)); [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) allows redistribution of the files in the SDK `libs` folder. Brother and the model names are trademarks of Brother Industries; this project is neither affiliated with nor endorsed by Brother. EBP is a trademark of its owner; this project works with the EBP API but is not published or endorsed by EBP.
