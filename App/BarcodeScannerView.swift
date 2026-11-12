@@ -73,11 +73,15 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "ProductLabels.camera")
     private let previewLayer = AVCaptureVideoPreviewLayer()
+    private let metadataOutput = AVCaptureMetadataOutput()
     private let onScan: (String) -> Void
     private let onError: (String) -> Void
     private var didScan = false
     private var cameraDevice: AVCaptureDevice?
     private var focusGeneration = 0
+    // Même gabarit que le cadre blanc dessiné en SwiftUI (RoundedRectangle
+    // 290x140 centré). La zone réellement scannée doit coller à ce repère.
+    private static let scanFrameSize = CGSize(width: 290, height: 140)
 
     init(onScan: @escaping (String) -> Void, onError: @escaping (String) -> Void) {
         self.onScan = onScan
@@ -99,6 +103,26 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer.frame = view.bounds
+        updateRectOfInterest()
+    }
+
+    // Limite la détection au cadre affiché au lieu de toute l'image : le
+    // détecteur ne traite plus que ~15 % de la surface, ce qui accélère
+    // nettement l'accrochage du code-barres. metadataOutput.rectOfInterest
+    // est en coordonnées normalisées orientées capteur ; on le dérive du
+    // rectangle du cadre via le previewLayer, qui doit déjà avoir sa taille
+    // finale (d'où l'appel depuis viewDidLayoutSubviews).
+    private func updateRectOfInterest() {
+        let size = Self.scanFrameSize
+        let frameRect = CGRect(
+            x: view.bounds.midX - size.width / 2,
+            y: view.bounds.midY - size.height / 2,
+            width: size.width, height: size.height
+        )
+        guard frameRect.width > 0, frameRect.height > 0,
+              previewLayer.bounds.width > 0, previewLayer.bounds.height > 0 else { return }
+        let rect = previewLayer.metadataOutputRectConverted(fromLayerRect: frameRect)
+        sessionQueue.async { [metadataOutput] in metadataOutput.rectOfInterest = rect }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -119,26 +143,42 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
             DispatchQueue.main.async { [onError] in onError(NSLocalizedString("Caméra indisponible sur cet appareil.", comment: "Scanner error")) }
             return
         }
-        let output = AVCaptureMetadataOutput()
+        let output = metadataOutput
         cameraDevice = device
         do {
             try device.lockForConfiguration()
             if device.deviceType == .builtInTripleCamera || device.deviceType == .builtInDualWideCamera,
                let wideZoom = device.virtualDeviceSwitchOverVideoZoomFactors.first?.doubleValue {
-                // Start with the wide-angle field of view used by the old
-                // scanner. At this threshold the ultrawide is also eligible
-                // when its shorter focus distance helps with a close code.
-                device.videoZoomFactor = min(max(CGFloat(wideZoom), device.minAvailableVideoZoomFactor),
+                // On se cale juste AU-DESSUS du seuil de bascule ultrawide
+                // (x1.05) au lieu de pile dessus : iOS reste verrouillé sur le
+                // grand-angle pour un code proche, sans hésiter entre deux
+                // objectifs — l'hésitation faisait partie de la lenteur
+                // ressentie. Le champ reste quasi identique à l'ancien.
+                let stableZoom = CGFloat(wideZoom) * 1.05
+                device.videoZoomFactor = min(max(stableZoom, device.minAvailableVideoZoomFactor),
                                              device.maxAvailableVideoZoomFactor)
             }
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
+            }
+            // Un code-barres est toujours lu de près : restreindre la plage
+            // d'autofocus au proche fait converger la mise au point beaucoup
+            // plus vite (l'objectif n'explore plus toute la course jusqu'à
+            // l'infini).
+            if device.isAutoFocusRangeRestrictionSupported {
+                device.autoFocusRangeRestriction = .near
             }
             device.unlockForConfiguration()
         } catch {
             // The scanner can still run with the camera's current focus mode.
         }
         session.beginConfiguration()
+        // 720p suffit largement pour un EAN-13 et allège fortement le travail
+        // du détecteur par rapport au .high par défaut (souvent 1080p/4K) :
+        // moins de pixels à analyser par image → détection plus réactive.
+        if session.canSetSessionPreset(.hd1280x720) {
+            session.sessionPreset = .hd1280x720
+        }
         session.addInput(input)
         guard session.canAddOutput(output) else {
             session.commitConfiguration()
@@ -150,6 +190,9 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
         output.metadataObjectTypes = [.ean13]
         session.commitConfiguration()
         session.startRunning()
+        // Le cadre a déjà pu être mis en page avant la fin de cette config
+        // asynchrone : on (re)pose la zone d'intérêt une fois la session prête.
+        DispatchQueue.main.async { [weak self] in self?.updateRectOfInterest() }
     }
 
     @objc private func focusAtTap(_ recognizer: UITapGestureRecognizer) {
@@ -171,6 +214,11 @@ private final class BarcodeCameraController: UIViewController, AVCaptureMetadata
             do {
                 try device.lockForConfiguration()
                 if device.isFocusPointOfInterestSupported { device.focusPointOfInterest = point }
+                // On conserve la restriction au proche posée à la config : le
+                // tap ne doit pas relancer un balayage de focus jusqu'à l'infini.
+                if device.isAutoFocusRangeRestrictionSupported {
+                    device.autoFocusRangeRestriction = .near
+                }
                 if device.isFocusModeSupported(.autoFocus) {
                     device.focusMode = .autoFocus
                 } else if device.isFocusModeSupported(.continuousAutoFocus) {
