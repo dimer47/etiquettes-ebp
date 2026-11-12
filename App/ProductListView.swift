@@ -290,7 +290,22 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                     .accessibilityLabel(NSLocalizedString("Sélectionner plusieurs articles", comment: "Select multiple"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { scanMessage = nil; scanFeedback = nil; showingScanner = true } label: {
+                    // Deux entrées de scan explicites : un scan simple (ouvre la fiche) et un
+                    // scan multiple (ajoute au lot). Le mode est fixé par l'entrée choisie.
+                    Menu {
+                        Button {
+                            openScanner(multiple: false)
+                        } label: {
+                            Label(NSLocalizedString("Scanner un article", comment: "Scan one article"),
+                                  systemImage: "barcode.viewfinder")
+                        }
+                        Button {
+                            openScanner(multiple: true)
+                        } label: {
+                            Label(NSLocalizedString("Scan multiple (lot)", comment: "Multi scan into batch"),
+                                  systemImage: "square.stack.3d.up")
+                        }
+                    } label: {
                         Image(systemName: "barcode.viewfinder")
                     }
                     .accessibilityLabel(NSLocalizedString("Scanner un code-barres", comment: "Scan barcode"))
@@ -408,6 +423,16 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                 .padding(20)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         }
+    }
+
+    /// Ouvre le scanner dans le mode voulu (simple → ouvre la fiche ; multiple → ajoute au lot).
+    /// L'état initial `multiScan` est fixé par l'entrée choisie dans la liste ; le toggle interne
+    /// au scanner reste disponible pour basculer en cours de route.
+    private func openScanner(multiple: Bool) {
+        scanMessage = nil
+        scanFeedback = nil
+        multiScan = multiple
+        showingScanner = true
     }
 
     /// Code scanné → recherche EBP par code-barres. En mode simple : ouvre la fiche. En mode
