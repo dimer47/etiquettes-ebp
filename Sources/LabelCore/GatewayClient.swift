@@ -17,7 +17,7 @@ public struct GatewayConfig: Equatable, Sendable {
     }
 }
 
-/// Paramètres de requête des articles (`Items/ItemsExtendedQuery`).
+/// Paramètres de requête des articles (`Items/ItemsExtentedQuery`).
 public struct ItemsQuery: Equatable, Sendable {
     public var offset: Int
     public var limit: Int          // ≤ 100
@@ -120,7 +120,7 @@ public actor GatewayClient {
         }
         if query.noCache { q.append(URLQueryItem(name: "noCache", value: "1")) }
 
-        let env: GatewayEnvelope<[EBPItem]> = try await getEnvelope("gescom/api/v1/Items/ItemsExtendedQuery", query: q)
+        let env: GatewayEnvelope<[EBPItem]> = try await getEnvelope("gescom/api/v1/Items/ItemsExtentedQuery", query: q)
         return ItemsPage(items: env.data, paging: env.paging)
     }
 
@@ -135,7 +135,7 @@ public actor GatewayClient {
             URLQueryItem(name: "OrderByValue", value: "Id"),
             URLQueryItem(name: "WhereCondition", value: condition),
         ]
-        let env: GatewayEnvelope<[EBPItem]> = try await getEnvelope("gescom/api/v1/Items/ItemsExtendedQuery", query: q)
+        let env: GatewayEnvelope<[EBPItem]> = try await getEnvelope("gescom/api/v1/Items/ItemsExtentedQuery", query: q)
         return env.data.first
     }
 

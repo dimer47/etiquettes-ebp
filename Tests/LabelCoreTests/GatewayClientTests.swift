@@ -46,7 +46,7 @@ final class GatewayClientTests: XCTestCase {
         let req = await stub.recordedRequests().first!
         XCTAssertEqual(req.value(forHTTPHeaderField: "Authorization"), "Bearer gw_test")
         let url = req.url!.absoluteString
-        XCTAssertTrue(url.contains("/gescom/api/v1/Items/ItemsExtendedQuery"))
+        XCTAssertTrue(url.contains("/gescom/api/v1/Items/ItemsExtentedQuery"))
         XCTAssertTrue(url.contains("OrderByValue=Id"))
         XCTAssertTrue(url.contains("WhereCondition="))
         XCTAssertFalse(url.contains("FolderId"))   // jamais envoyé
