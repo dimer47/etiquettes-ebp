@@ -16,6 +16,9 @@
 		423998305BE6E6DB90D59684 /* PocketPrinter5890Kit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */; };
 		5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */ = {isa = PBXBuildFile; productRef = 8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */; };
 		623DC584C67D81177CE2957F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
+		EB0000000000000000000071 /* BatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000070 /* BatchStore.swift */; };
+		EB0000000000000000000073 /* BatchDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000072 /* BatchDetailView.swift */; };
+		EB0000000000000000000075 /* PrintQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000074 /* PrintQueue.swift */; };
 		EB0000000000000000000061 /* DemoHTTPSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000062 /* DemoHTTPSession.swift */; };
 		EB0000000000000000000041 /* ViewedProductStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000042 /* ViewedProductStore.swift */; };
 		EB0000000000000000000043 /* ViewedProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000044 /* ViewedProduct.swift */; };
@@ -78,6 +81,9 @@
 		4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		EB0000000000000000000062 /* DemoHTTPSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoHTTPSession.swift; sourceTree = "<group>"; };
 		EB0000000000000000000042 /* ViewedProductStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProductStore.swift; sourceTree = "<group>"; };
+		EB0000000000000000000070 /* BatchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchStore.swift; sourceTree = "<group>"; };
+		EB0000000000000000000072 /* BatchDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchDetailView.swift; sourceTree = "<group>"; };
+		EB0000000000000000000074 /* PrintQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintQueue.swift; sourceTree = "<group>"; };
 		EB0000000000000000000044 /* ViewedProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProduct.swift; sourceTree = "<group>"; };
 		EB0000000000000000000022 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		EB0000000000000000000024 /* PairingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingClient.swift; sourceTree = "<group>"; };
@@ -151,6 +157,8 @@
 			isa = PBXGroup;
 			children = (
 				4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */,
+				EB0000000000000000000070 /* BatchStore.swift */,
+				EB0000000000000000000072 /* BatchDetailView.swift */,
 				EB0000000000000000000042 /* ViewedProductStore.swift */,
 				EB0000000000000000000022 /* QRScannerView.swift */,
 				EB0000000000000000000002 /* KeychainToken.swift */,
@@ -181,6 +189,7 @@
 			isa = PBXGroup;
 			children = (
 				FE99AF2776C04A5A8568E934 /* ProductLabel.swift */,
+				EB0000000000000000000074 /* PrintQueue.swift */,
 				516D0672BE4E8CAD47F01920 /* EAN13.swift */,
 				BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */,
 				A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */,
@@ -331,6 +340,9 @@
 			files = (
 				24098E837ACC9BB9BFAADC28 /* ProductLabelApp.swift in Sources */,
 				623DC584C67D81177CE2957F /* ContentView.swift in Sources */,
+				EB0000000000000000000071 /* BatchStore.swift in Sources */,
+				EB0000000000000000000073 /* BatchDetailView.swift in Sources */,
+				EB0000000000000000000075 /* PrintQueue.swift in Sources */,
 				EB0000000000000000000061 /* DemoHTTPSession.swift in Sources */,
 				EB0000000000000000000041 /* ViewedProductStore.swift in Sources */,
 				EB0000000000000000000043 /* ViewedProduct.swift in Sources */,
