@@ -26,3 +26,4 @@ __pycache__/
 # Xcode index data accidentally placed beside project
 *.xcodeproj/-Xcc/
 
+.build-number

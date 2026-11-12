@@ -311,20 +311,19 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                     .accessibilityLabel(NSLocalizedString("Scanner un code-barres", comment: "Scan barcode"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingFilters = true } label: {
-                        Image(systemName: model.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill"
-                                                                  : "line.3.horizontal.decrease.circle")
-                    }
-                    .accessibilityLabel(NSLocalizedString("Filtres", comment: "Filters"))
-                }
-                ToolbarItem(placement: .topBarTrailing) {
                     Button { onOpenSettings() } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel(NSLocalizedString("Réglages", comment: "Settings"))
                 }
             }
-            .safeAreaInset(edge: .bottom) { batchBar }
-            .searchable(text: $model.query,
-                        prompt: NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"))
+            .safeAreaInset(edge: .bottom) {
+                // Barre basse : recherche + bouton filtre côte à côte, puis récap du lot.
+                // Dans un safeAreaInset(.bottom), SwiftUI remonte le bloc au-dessus du clavier :
+                // le champ et le bouton filtre restent visibles pendant la saisie.
+                VStack(spacing: 0) {
+                    batchBar
+                    searchBar
+                }
+            }
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
             .onChange(of: showingFilters) { wasShown, isShown in
@@ -644,6 +643,44 @@ struct ProductListView<Impression: View, Sheets: View>: View {
             onSelect(product)    // alimente l'étiquette courante AVANT de pousser la fiche (aperçu live)
             selected = product
         }
+    }
+
+    /// Barre de recherche basse : champ de recherche + bouton filtre à droite, côte à côte.
+    /// Remplace le `.searchable` natif (qui ne laisse pas poser de bouton à côté du champ) et
+    /// désencombre la zone haut-droite. Le bouton filtre ouvre la même feuille de filtres ;
+    /// il porte le même indicateur « filtre actif » (icône pleine) que l'ancien bouton de toolbar.
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+                TextField(NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"),
+                          text: $model.query)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                if !model.query.isEmpty {
+                    Button { model.query = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel(NSLocalizedString("Effacer la recherche", comment: "Clear search"))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 10))
+
+            Button { showingFilters = true } label: {
+                Image(systemName: model.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill"
+                                                          : "line.3.horizontal.decrease.circle")
+                    .font(.title2)
+            }
+            .accessibilityLabel(NSLocalizedString("Filtres", comment: "Filters"))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(Divider(), alignment: .top)
     }
 
     /// Barre basse : accès au récap du lot (dès qu'il contient un produit). En mode sélection,
