@@ -622,26 +622,38 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     }
 
     /// Barre basse : accès au récap du lot (dès qu'il contient un produit). En mode sélection,
-    /// rappelle le nombre sélectionné et mène directement à « Imprimer la sélection ».
+    /// rappelle le nombre sélectionné et mène directement à « Imprimer la sélection ». Un bouton
+    /// « Annuler la sélection » vide le lot et sort du mode sélection.
     @ViewBuilder
     private var batchBar: some View {
         if !batch.isEmpty {
-            HStack(spacing: 12) {
-                Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(String(format: NSLocalizedString("Lot : %d produit(s)", comment: "Batch count"), batch.count))
-                        .font(.subheadline.weight(.semibold))
-                    Text(String(format: NSLocalizedString("%d étiquette(s)", comment: "Label count"), batch.totalLabels))
-                        .font(.caption).foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+                HStack(spacing: 12) {
+                    Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(String(format: NSLocalizedString("Lot : %d produit(s)", comment: "Batch count"), batch.count))
+                            .font(.subheadline.weight(.semibold))
+                        Text(String(format: NSLocalizedString("%d étiquette(s)", comment: "Label count"), batch.totalLabels))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button { selectionMode = false; onOpenBatch() } label: {
+                        Text(selectionMode
+                             ? String(format: NSLocalizedString("Imprimer la sélection (%d)", comment: "Print selection"), batch.count)
+                             : NSLocalizedString("Voir le lot", comment: "Open batch"))
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                Spacer()
-                Button { selectionMode = false; onOpenBatch() } label: {
-                    Text(selectionMode
-                         ? String(format: NSLocalizedString("Imprimer la sélection (%d)", comment: "Print selection"), batch.count)
-                         : NSLocalizedString("Voir le lot", comment: "Open batch"))
-                        .font(.subheadline.weight(.semibold))
+                Button(role: .destructive) {
+                    batch.clear()
+                    selectionMode = false
+                } label: {
+                    Text(NSLocalizedString("Annuler la sélection", comment: "Clear selection"))
+                        .font(.subheadline)
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)

@@ -226,8 +226,17 @@ struct ContentView: View {
                 queueState = machine.state
             }
         }
-        // Enregistre les produits imprimés dans l'historique quand la file se termine proprement.
         queueState = machine.state
+        // Impression du lot entièrement réussie (toutes les étiquettes sorties) : on vide le lot.
+        // Une annulation ou une étiquette ignorée laisse `printedCount < total` → le lot est
+        // conservé pour permettre de réessayer.
+        if case .done = machine.state, machine.printedCount == machine.total, machine.total > 0 {
+            // Laisse l'utilisateur voir « X étiquette(s) imprimée(s) » un court instant, puis
+            // vide le lot et revient à la liste (écran récap sinon vide).
+            try? await Task.sleep(for: .seconds(1.2))
+            batch.clear()
+            showingBatch = false
+        }
     }
 
     /// Réveille la boucle après un choix utilisateur en pause.
