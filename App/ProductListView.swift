@@ -468,6 +468,23 @@ struct ProductListView<Impression: View, Sheets: View>: View {
         }
         .listStyle(.plain)
         .refreshable { await model.refresh() }
+        // Rechargement (changement de filtres/tri, reset…) avec une liste déjà affichée :
+        // voile de chargement par-dessus la liste précédente, qui reste visible dessous.
+        .overlay { if model.phase == .loading { reloadOverlay } }
+        .animation(.easeInOut(duration: 0.2), value: model.phase)
+    }
+
+    /// Voile semi-transparent + indicateur affiché pendant un rechargement, tant que la liste
+    /// courante reste visible dessous (on ne vide pas la liste pendant le chargement).
+    private var reloadOverlay: some View {
+        ZStack {
+            Color(.systemBackground).opacity(0.45).ignoresSafeArea()
+            ProgressView(NSLocalizedString("Mise à jour…", comment: "Reloading list"))
+                .padding(18)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }
+        .transition(.opacity)
+        .allowsHitTesting(true)   // bloque les taps sur la liste pendant le rechargement
     }
 
     private func row(_ item: EBPItem) -> some View {
