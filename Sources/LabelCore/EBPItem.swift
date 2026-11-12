@@ -1,7 +1,7 @@
 import Foundation
 
 /// Un article EBP tel que renvoyé dans `data` par la gateway
-/// (`/gescom/api/v1/Items/ItemsExtendedQuery`). On ne décode que le sous-ensemble
+/// (`/gescom/api/v1/Items/ItemsExtentedQuery`). On ne décode que le sous-ensemble
 /// de champs utiles à l'étiquette ; tout est optionnel car EBP omet les nuls de façon
 /// irrégulière. Les montants arrivent en nombres à 8 décimales → `Decimal`.
 public struct EBPItem: Decodable, Equatable, Hashable {
