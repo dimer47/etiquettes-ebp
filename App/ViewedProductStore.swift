@@ -6,7 +6,7 @@ import Foundation
 final class ViewedProductStore: ObservableObject {
     @Published private(set) var entries: [ViewedProduct]
     private let defaults: UserDefaults
-    private static let storageKey = "viewedProductHistory"
+    static let storageKey = "viewedProductHistory"
     private static let maximumEntries = 100
 
     init(defaults: UserDefaults = .standard) {

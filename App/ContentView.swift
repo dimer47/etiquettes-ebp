@@ -72,17 +72,18 @@ struct ContentView: View {
                                         viewed.record(product.label)   // historique de consultation
                                     },
                                     impression: { product in impressionTab(for: product) },
-                                    sheets: {
-                                        Color.clear
-                                            .sheet(isPresented: $showingPrinters) { printerSheet }
-                                            .sheet(isPresented: $showingPresentation) { presentationSheet }
-                                    })
+                                    sheets: { Color.clear })
                 } else {
                     ContentUnavailableView(NSLocalizedString("Gateway non configurée", comment: "Gateway not configured"),
                                            systemImage: "gearshape",
                                            description: Text(NSLocalizedString("Appairez la gateway pour charger les articles.", comment: "")))
                 }
             }
+            // Modales portées par la racine (toujours montée) : l'imprimante et la présentation
+            // s'ouvrent aussi bien depuis la fiche article que depuis le bouton des Réglages,
+            // alors que la fiche n'est pas forcément à l'écran.
+            .sheet(isPresented: $showingPrinters) { printerSheet }
+            .sheet(isPresented: $showingPresentation) { presentationSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
             .sheet(isPresented: $showingHistory) { historySheet }
             .alert(NSLocalizedString("Impression", comment: "Print alert"), isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {

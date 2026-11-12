@@ -4,7 +4,7 @@ import Foundation
 final class LabelHistoryStore: ObservableObject {
     @Published private(set) var entries: [PrintedLabel]
     private let defaults: UserDefaults
-    private static let storageKey = "printedLabelHistory"
+    static let storageKey = "printedLabelHistory"
     private static let maximumEntries = 100
 
     init(defaults: UserDefaults = .standard) {
@@ -23,6 +23,12 @@ final class LabelHistoryStore: ObservableObject {
 
     func delete(at offsets: IndexSet) {
         for index in offsets.sorted(by: >) { entries.remove(at: index) }
+        save()
+    }
+
+    /// Vide tout l'historique d'impressions (mémoire + persistance).
+    func clear() {
+        entries.removeAll()
         save()
     }
 

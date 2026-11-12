@@ -85,11 +85,16 @@ final class GatewaySettings: ObservableObject {
     }
 
     /// Dissocie la gateway (ou quitte la démo) : efface jeton, URL, date d'appairage et mode démo.
+    /// Purge aussi les historiques locaux (articles consultés + impressions) pour qu'aucune
+    /// donnée ne fuite d'une session ou d'un compte à l'autre. Les stores étant recréés depuis
+    /// `UserDefaults` au prochain appairage, on vide ici la persistance, pas seulement la mémoire.
     func unpair() {
         KeychainToken.delete()
         baseURLString = ""
         defaults.removeObject(forKey: Key.pairedSince)
         defaults.set(false, forKey: Key.demo)
+        defaults.removeObject(forKey: ViewedProductStore.storageKey)
+        defaults.removeObject(forKey: LabelHistoryStore.storageKey)
         #if DEBUG
         defaults.removeObject(forKey: "gateway.debugToken")
         #endif
