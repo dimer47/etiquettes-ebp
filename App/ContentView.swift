@@ -10,6 +10,17 @@ struct ContentView: View {
     @StateObject private var thumbnailStore = LabelThumbnailStore()
     @StateObject private var history = LabelHistoryStore()
     @StateObject private var viewed = ViewedProductStore()
+    /// Lot de produits pour la multi-impression (sélection liste + scan multiple).
+    @StateObject private var batch = BatchStore()
+    /// État courant de la file multi-impression, nil hors impression. Piloté par `runBatchQueue`.
+    @State private var queueState: PrintQueueMachine.State?
+    /// Demande d'ouverture du récap multi-produits (navigation depuis liste/scan).
+    @State private var showingBatch = false
+    /// Hook de debug : force l'échec de la k-ième unité (1-based) de la prochaine file, pour
+    /// reproduire la pause/reprise en démo (aucun effet si nil ou k hors borne).
+    @State private var debugFailUnit: Int?
+    /// Continuation réveillée par la reprise utilisateur (relancer / ignorer / annuler).
+    @State private var resumeContinuation: CheckedContinuation<QueueResume, Never>?
     /// Étiquette courante : alimentée par l'article EBP sélectionné (plus de saisie manuelle).
     @State private var label = ProductLabel()
     @State private var showingPrinters = false
@@ -63,6 +74,7 @@ struct ContentView: View {
                 if let config = gateway.activeConfig() {
                     ProductListView(config: config,
                                     session: gateway.makeSession(),
+                                    batch: batch,
                                     onOpenSettings: { showingSettings = true },
                                     onOpenHistory: { showingHistory = true },
                                     onSelect: { product in
@@ -71,6 +83,7 @@ struct ContentView: View {
                                         ebpQuantity = 1
                                         viewed.record(product.label)   // historique de consultation
                                     },
+                                    onOpenBatch: { showingBatch = true },
                                     impression: { product in impressionTab(for: product) },
                                     sheets: { Color.clear })
                 } else {
@@ -82,6 +95,7 @@ struct ContentView: View {
             // Modales portées par la racine (toujours montée) : l'imprimante et la présentation
             // s'ouvrent aussi bien depuis la fiche article que depuis le bouton des Réglages,
             // alors que la fiche n'est pas forcément à l'écran.
+            .navigationDestination(isPresented: $showingBatch) { batchDetail }
             .sheet(isPresented: $showingPrinters) { printerSheet }
             .sheet(isPresented: $showingPresentation) { presentationSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
@@ -132,6 +146,173 @@ struct ContentView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+    }
+
+    // MARK: - Multi-impression (récap du lot)
+
+    /// Choix de reprise après une pause (erreur en cours de file).
+    private enum QueueResume { case retry, skip, cancel }
+
+    /// Écran récap du lot : réutilise les cartes imprimante/présentation de l'onglet mono-produit
+    /// (modèle d'impression choisi une fois pour tout le lot) et affiche la progression / pause.
+    private var batchDetail: some View {
+        BatchDetailView(
+            batch: batch,
+            queueState: queueState,
+            printerCard: { printerCard },
+            presentationCard: { presentationCard },
+            preview: { product in
+                (try? LabelRenderer.render(product.label, size: labelSize,
+                                           arrangement: labelArrangement, layoutWidth: layoutWidth))
+                    .flatMap(LabelRenderer.preview)
+            },
+            canPrint: canPrintBatch && !isPrinting,
+            onPrintAll: { startBatchQueue() },
+            onRetry: { resume(.retry) },
+            onSkip: { resume(.skip) },
+            onCancel: { resume(.cancel) },
+            onToggleDebugFail: { debugFailUnit = (debugFailUnit == nil) ? 1 : nil },
+            debugFailArmed: debugFailUnit != nil
+        )
+    }
+
+    /// Impression simulée (aucune imprimante réelle, p. ex. dans le simulateur) : permet
+    /// d'exercer la file multi-impression de bout en bout en démo. Chaque unité « sort » après
+    /// une courte latence. Ne s'active que sans imprimante prête et en simulateur.
+    private var demoPrinting: Bool {
+        #if targetEnvironment(simulator)
+        return !printerReady
+        #else
+        return false
+        #endif
+    }
+
+    /// Prêt à lancer le lot : imprimante réelle prête, ou impression simulée (simulateur).
+    private var canPrintBatch: Bool { printerReady || demoPrinting }
+
+    /// Lance l'impression séquentielle de tout le lot (produits × quantités), pilotée par la
+    /// machine à états `PrintQueueMachine` (idle → printing i/N → paused(k) → done).
+    private func startBatchQueue() {
+        guard canPrintBatch, !batch.isEmpty else { return }
+        var machine = PrintQueueMachine(jobs: batch.makeJobs())
+        machine.start()
+        queueState = machine.state
+        Task { await runBatchQueue(machine) }
+    }
+
+    /// Boucle d'orchestration : imprime l'unité visée, attend le résultat, et transmet
+    /// succès/échec à la machine. Sur échec, la file passe en pause et attend le choix
+    /// utilisateur (relancer / ignorer / annuler) via une continuation.
+    @MainActor
+    private func runBatchQueue(_ initial: PrintQueueMachine) async {
+        var machine = initial
+        var unitCounter = 0   // rang absolu de l'unité tentée (pour le hook de debug)
+
+        while case .printing(let unit, _) = machine.state {
+            guard let current = machine.currentUnit,
+                  let product = batch.product(id: current.jobID) else { break }
+            unitCounter = unit + 1
+
+            let result = await printOneUnit(product.label, unitNumber: unitCounter)
+            switch result {
+            case .success:
+                machine.markPrinted()
+                queueState = machine.state
+            case .failure(let message):
+                machine.markFailed(message: message)
+                queueState = machine.state
+                // Attend le choix de l'utilisateur (la vue affiche Relancer / Ignorer / Annuler).
+                let choice = await withCheckedContinuation { (c: CheckedContinuation<QueueResume, Never>) in
+                    resumeContinuation = c
+                }
+                switch choice {
+                case .retry: machine.retry()
+                case .skip: machine.skipFailed()
+                case .cancel: machine.cancel()
+                }
+                queueState = machine.state
+            }
+        }
+        // Enregistre les produits imprimés dans l'historique quand la file se termine proprement.
+        queueState = machine.state
+    }
+
+    /// Réveille la boucle après un choix utilisateur en pause.
+    private func resume(_ choice: QueueResume) {
+        resumeContinuation?.resume(returning: choice)
+        resumeContinuation = nil
+    }
+
+    /// Résultat d'une impression unitaire.
+    private enum UnitOutcome { case success, failure(String) }
+
+    /// Imprime UNE étiquette et attend sa fin, en réutilisant `submit()` (même moteur que le
+    /// mono-produit). Détermine le résultat en observant l'état du service après soumission.
+    /// Le hook de debug `debugFailUnit` force un échec sans toucher l'imprimante.
+    @MainActor
+    private func printOneUnit(_ label: ProductLabel, unitNumber: Int) async -> UnitOutcome {
+        // Hook de debug : échec forcé de la k-ième unité, UNE fois (désarmé aussitôt), pour
+        // reproduire la pause puis vérifier qu'un « Relancer » repart et réussit.
+        if let k = debugFailUnit, k == unitNumber {
+            debugFailUnit = nil
+            try? await Task.sleep(for: .milliseconds(300))
+            return .failure(NSLocalizedString("Échec simulé (debug) pour tester la reprise.", comment: "Debug forced failure"))
+        }
+        guard (try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) != nil else {
+            return .failure(NSLocalizedString("Article invalide (EAN ou prix).", comment: "Invalid label"))
+        }
+        // Impression simulée : sortie « à vide » après une courte latence (démo / simulateur).
+        if demoPrinting {
+            try? await Task.sleep(for: .milliseconds(450))
+            return .success
+        }
+        let entry = PrintedLabel(label: label, size: labelSize, arrangement: labelArrangement,
+                                 densityValue: printer.density.rawValue,
+                                 leadingFeedDots: printer.leadingFeedDots,
+                                 trailingFeedDots: printer.trailingFeedDots,
+                                 rotateContent180: printer.rotateContent180,
+                                 netum: isNetum ? setup.netum : nil)
+        if isNetum {
+            netum.jobError = nil
+            var queued = false
+            do { try submit(label, size: labelSize, arrangement: labelArrangement) { queued = true } }
+            catch { return .failure(error.localizedDescription) }
+            // Attend la fin du travail (ou une erreur de mise en file).
+            await waitWhile { netum.isBusy }
+            if let error = netum.jobError { netum.jobError = nil; return .failure(error) }
+            if !queued && netum.statusIsError { return .failure(netum.status) }
+            history.record(entry)
+            return .success
+        } else if isBrother {
+            var success = false
+            do { try submit(label, size: labelSize, arrangement: labelArrangement) { success = true } }
+            catch { return .failure(error.localizedDescription) }
+            await waitWhile { brother.isBusy }
+            if brother.statusIsError && !success { return .failure(brother.status) }
+            history.record(entry)
+            return .success
+        } else {
+            // 5890 : feu-et-oublie, pas de signal d'erreur dur. On envoie et on attend la fin.
+            do {
+                let bitmap = try LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement)
+                printer.print(bitmap)
+            } catch { return .failure(error.localizedDescription) }
+            await waitWhile { printer.printing }
+            history.record(entry)
+            return .success
+        }
+    }
+
+    /// Attend tant que `condition` est vraie, avec une borne de sécurité (20 s) pour ne jamais
+    /// bloquer la file si un service ne repasse pas au repos.
+    @MainActor
+    private func waitWhile(_ condition: @escaping () -> Bool) async {
+        // Laisse le service passer à l'état « occupé » avant de surveiller son retour au repos.
+        try? await Task.sleep(for: .milliseconds(120))
+        let deadline = Date().addingTimeInterval(20)
+        while condition() && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 150_000_000)
+        }
     }
 
     /// Carte imprimante (modèle, statut, batterie, bouton Connecter/Changer). Ouvre la modale imprimante.

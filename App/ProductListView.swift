@@ -215,9 +215,12 @@ final class EBPSearchModel: ObservableObject {
 /// est fourni par l'hôte via `impression` ; `onSelect` prévient l'hôte pour alimenter l'étiquette.
 struct ProductListView<Impression: View, Sheets: View>: View {
     let config: GatewayConfig
+    @ObservedObject var batch: BatchStore
     let onOpenSettings: () -> Void
     let onOpenHistory: () -> Void
     let onSelect: (MappedProduct) -> Void
+    /// Ouvre le récap du lot (multi-impression).
+    let onOpenBatch: () -> Void
     @ViewBuilder let impression: (MappedProduct) -> Impression
     @ViewBuilder let sheets: () -> Sheets
 
@@ -228,6 +231,14 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     /// (recharger ne marche pas de façon fiable depuis la feuille qui se démonte).
     @State private var pendingReload: PendingReload?
     @State private var showingScanner = false
+    /// Mode sélection multiple : la liste affiche des cases à cocher et une barre d'action.
+    @State private var selectionMode = false
+    /// Mode scan multiple : chaque scan ajoute au lot (dédoublonnage → +1), sans quitter le scanner.
+    @State private var multiScan = false
+    /// Message éphémère de confirmation de scan multiple (« Ajouté », « +1 »…).
+    @State private var scanFeedback: String?
+    /// Réarme le scanner après chaque lecture en mode multiple (recrée la vue → `handled` = false).
+    @State private var scanGeneration = 0
 
     private enum PendingReload { case apply, reset }
     @State private var scanLookupInProgress = false
@@ -241,15 +252,19 @@ struct ProductListView<Impression: View, Sheets: View>: View {
 
     init(config: GatewayConfig,
          session: HTTPSession = URLSession.shared,
+         batch: BatchStore,
          onOpenSettings: @escaping () -> Void,
          onOpenHistory: @escaping () -> Void,
          onSelect: @escaping (MappedProduct) -> Void,
+         onOpenBatch: @escaping () -> Void,
          @ViewBuilder impression: @escaping (MappedProduct) -> Impression,
          @ViewBuilder sheets: @escaping () -> Sheets) {
         self.config = config
+        self.batch = batch
         self.onOpenSettings = onOpenSettings
         self.onOpenHistory = onOpenHistory
         self.onSelect = onSelect
+        self.onOpenBatch = onOpenBatch
         self.impression = impression
         self.sheets = sheets
         _model = StateObject(wrappedValue: EBPSearchModel(config: config, session: session))
@@ -261,11 +276,21 @@ struct ProductListView<Impression: View, Sheets: View>: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { onOpenHistory() } label: { Image(systemName: "clock.arrow.circlepath") }
-                        .accessibilityLabel(NSLocalizedString("Historique", comment: "History"))
+                    if selectionMode {
+                        Button(NSLocalizedString("Terminer", comment: "Done selecting")) { selectionMode = false }
+                    } else {
+                        Button { onOpenHistory() } label: { Image(systemName: "clock.arrow.circlepath") }
+                            .accessibilityLabel(NSLocalizedString("Historique", comment: "History"))
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { scanMessage = nil; showingScanner = true } label: {
+                    Button { selectionMode.toggle() } label: {
+                        Image(systemName: selectionMode ? "checklist.checked" : "checklist")
+                    }
+                    .accessibilityLabel(NSLocalizedString("Sélectionner plusieurs articles", comment: "Select multiple"))
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { scanMessage = nil; scanFeedback = nil; showingScanner = true } label: {
                         Image(systemName: "barcode.viewfinder")
                     }
                     .accessibilityLabel(NSLocalizedString("Scanner un code-barres", comment: "Scan barcode"))
@@ -282,6 +307,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                         .accessibilityLabel(NSLocalizedString("Réglages", comment: "Settings"))
                 }
             }
+            .safeAreaInset(edge: .bottom) { batchBar }
             .searchable(text: $model.query,
                         prompt: NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"))
             .onChange(of: model.query) { _, _ in model.search() }
@@ -317,7 +343,8 @@ struct ProductListView<Impression: View, Sheets: View>: View {
             }
     }
 
-    /// Scanner de code-barres / QR : au scan, on interroge EBP par code-barres.
+    /// Scanner de code-barres / QR. Mode simple : un scan ouvre la fiche. Mode multiple : chaque
+    /// scan ajoute l'article au lot (dédoublonnage → +1) sans quitter le scanner.
     private var scannerSheet: some View {
         NavigationStack {
             ZStack {
@@ -326,18 +353,49 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                     onError: { message in showingScanner = false; scanMessage = message },
                     types: QRScannerView.productCodeTypes
                 )
+                .id(scanGeneration)   // recrée la vue après chaque scan multiple pour réarmer
                 .ignoresSafeArea(edges: .bottom)
 
-                RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(.white.opacity(0.9), lineWidth: 3)
-                    .frame(width: 260, height: 180)
-                    .allowsHitTesting(false)
+                VStack {
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(.white.opacity(0.9), lineWidth: 3)
+                        .frame(width: 260, height: 180)
+                        .allowsHitTesting(false)
+                    if multiScan {
+                        VStack(spacing: 6) {
+                            Text(String(format: NSLocalizedString("Lot : %d produit(s) · %d étiquette(s)", comment: "Batch progress while scanning"),
+                                        batch.count, batch.totalLabels))
+                                .font(.subheadline.weight(.semibold))
+                            if let feedback = scanFeedback {
+                                Text(feedback).font(.caption).foregroundStyle(.green)
+                            }
+                        }
+                        .padding(12)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.top, 24)
+                    }
+                }
             }
-            .navigationTitle(NSLocalizedString("Scanner un article", comment: "Scan article"))
+            .navigationTitle(multiScan ? NSLocalizedString("Scan multiple", comment: "Multi scan")
+                                       : NSLocalizedString("Scanner un article", comment: "Scan article"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(NSLocalizedString("Annuler", comment: "Cancel")) { showingScanner = false }
+                    Button(NSLocalizedString("Fermer", comment: "Close scanner")) { showingScanner = false }
+                }
+                ToolbarItem(placement: .principal) {
+                    Toggle(NSLocalizedString("Scan multiple", comment: "Multi scan toggle"), isOn: $multiScan)
+                        .toggleStyle(.button)
+                        .font(.subheadline)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if multiScan && !batch.isEmpty {
+                        Button(String(format: NSLocalizedString("Lot (%d)", comment: "Open batch from scanner"), batch.count)) {
+                            showingScanner = false
+                            selectionMode = false
+                            onOpenBatch()
+                        }
+                    }
                 }
             }
         }
@@ -352,8 +410,13 @@ struct ProductListView<Impression: View, Sheets: View>: View {
         }
     }
 
-    /// Code scanné → recherche EBP par code-barres → ouvre la fiche, ou signale l'absence.
+    /// Code scanné → recherche EBP par code-barres. En mode simple : ouvre la fiche. En mode
+    /// multiple : ajoute au lot (dédoublonnage → +1) et reste sur le scanner.
     private func handleScannedCode(_ code: String) {
+        if multiScan {
+            handleMultiScan(code)
+            return
+        }
         showingScanner = false
         scanLookupInProgress = true
         Task { @MainActor in
@@ -368,6 +431,27 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                 scanMessage = EBPSearchModel.message(for: error)
             }
             scanLookupInProgress = false
+        }
+    }
+
+    /// Scan multiple : interroge EBP, ajoute au lot, affiche un retour, puis réarme le scanner.
+    private func handleMultiScan(_ code: String) {
+        Task { @MainActor in
+            do {
+                if let product = try await model.lookupBarcode(code) {
+                    let wasDuplicate = batch.add(product)
+                    let name = product.label.name.isEmpty ? code : product.label.name
+                    scanFeedback = wasDuplicate
+                        ? String(format: NSLocalizedString("%@ : +1", comment: "Duplicate scan feedback"), name)
+                        : String(format: NSLocalizedString("%@ ajouté", comment: "Added scan feedback"), name)
+                } else {
+                    scanFeedback = String(format: NSLocalizedString("Introuvable : %@", comment: "Not found feedback"), code)
+                }
+            } catch {
+                scanFeedback = EBPSearchModel.message(for: error)
+            }
+            // Réarme le scanner (recrée la vue) pour permettre la lecture suivante.
+            scanGeneration += 1
         }
     }
 
@@ -459,7 +543,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                                        description: Text(NSLocalizedString("Aucun résultat pour cette recherche.", comment: "")))
             }
             ForEach(model.items, id: \.rowID) { item in
-                Button { select(item) } label: { row(item) }
+                Button { tap(item) } label: { row(item) }
                     .onAppear { model.loadMoreIfNeeded(current: item) }
             }
             if model.phase == .loadingMore {
@@ -488,19 +572,29 @@ struct ProductListView<Impression: View, Sheets: View>: View {
     }
 
     private func row(_ item: EBPItem) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(item.caption ?? item.desComClear ?? "—")
-                .font(.headline).foregroundStyle(.primary)
-            HStack(spacing: 10) {
-                if let id = item.id?.trimmingCharacters(in: .whitespaces), !id.isEmpty {
-                    Text(id).font(.caption).foregroundStyle(.secondary)
-                }
-                if let barcode = item.barCode, !barcode.isEmpty {
-                    Text(barcode).font(.caption.monospaced()).foregroundStyle(.secondary)
-                }
-                Spacer()
-                if let ttc = item.salePriceVatIncluded {
-                    Text(priceText(ttc)).font(.subheadline.weight(.semibold))
+        HStack(spacing: 12) {
+            if selectionMode {
+                let inBatch = batch.contains(EBPProductMapper.map(item))
+                Image(systemName: inBatch ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(inBatch ? Color.accentColor : Color.secondary)
+                    .accessibilityLabel(inBatch ? NSLocalizedString("Sélectionné", comment: "Selected")
+                                                : NSLocalizedString("Non sélectionné", comment: "Not selected"))
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.caption ?? item.desComClear ?? "—")
+                    .font(.headline).foregroundStyle(.primary)
+                HStack(spacing: 10) {
+                    if let id = item.id?.trimmingCharacters(in: .whitespaces), !id.isEmpty {
+                        Text(id).font(.caption).foregroundStyle(.secondary)
+                    }
+                    if let barcode = item.barCode, !barcode.isEmpty {
+                        Text(barcode).font(.caption.monospaced()).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if let ttc = item.salePriceVatIncluded {
+                        Text(priceText(ttc)).font(.subheadline.weight(.semibold))
+                    }
                 }
             }
         }
@@ -516,9 +610,43 @@ struct ProductListView<Impression: View, Sheets: View>: View {
         return (f.string(from: r as NSDecimalNumber) ?? "\(r)") + " €"
     }
 
-    private func select(_ item: EBPItem) {
+    /// Tap sur une ligne : en mode sélection, bascule l'appartenance au lot ; sinon, ouvre la fiche.
+    private func tap(_ item: EBPItem) {
         let product = EBPProductMapper.map(item)
-        onSelect(product)        // alimente l'étiquette courante AVANT de pousser la fiche (aperçu live)
-        selected = product
+        if selectionMode {
+            batch.toggle(product)
+        } else {
+            onSelect(product)    // alimente l'étiquette courante AVANT de pousser la fiche (aperçu live)
+            selected = product
+        }
+    }
+
+    /// Barre basse : accès au récap du lot (dès qu'il contient un produit). En mode sélection,
+    /// rappelle le nombre sélectionné et mène directement à « Imprimer la sélection ».
+    @ViewBuilder
+    private var batchBar: some View {
+        if !batch.isEmpty {
+            HStack(spacing: 12) {
+                Image(systemName: "shippingbox.fill").foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(String(format: NSLocalizedString("Lot : %d produit(s)", comment: "Batch count"), batch.count))
+                        .font(.subheadline.weight(.semibold))
+                    Text(String(format: NSLocalizedString("%d étiquette(s)", comment: "Label count"), batch.totalLabels))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button { selectionMode = false; onOpenBatch() } label: {
+                    Text(selectionMode
+                         ? String(format: NSLocalizedString("Imprimer la sélection (%d)", comment: "Print selection"), batch.count)
+                         : NSLocalizedString("Voir le lot", comment: "Open batch"))
+                        .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.bar)
+            .overlay(Divider(), alignment: .top)
+        }
     }
 }
