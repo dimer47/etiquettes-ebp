@@ -25,9 +25,6 @@ struct BatchDetailView<PrinterCard: View, PresentationCard: View>: View {
     let onRetry: () -> Void
     let onSkip: () -> Void
     let onCancel: () -> Void
-    /// Hook de debug (DEBUG only) : bascule l'échec forcé de la 1re étiquette pour tester la reprise.
-    var onToggleDebugFail: (() -> Void)? = nil
-    var debugFailArmed = false
 
     @State private var tab = 0
 
@@ -189,27 +186,34 @@ struct BatchDetailView<PrinterCard: View, PresentationCard: View>: View {
             VStack(spacing: 18) {
                 printerCard()
                 presentationCard()
+                examplePreviewCard
                 summaryCard
                 queueStatusCard
                 printButton
-                #if DEBUG
-                if let onToggleDebugFail {
-                    Button {
-                        onToggleDebugFail()
-                    } label: {
-                        Label(debugFailArmed
-                              ? NSLocalizedString("DEBUG : échec forcé 1re étiquette — ARMÉ", comment: "Debug armed")
-                              : NSLocalizedString("DEBUG : forcer un échec à la 1re étiquette", comment: "Debug arm"),
-                              systemImage: debugFailArmed ? "exclamationmark.triangle.fill" : "ladybug")
-                            .font(.caption)
-                    }
-                    .foregroundStyle(debugFailArmed ? .orange : .secondary)
-                }
-                #endif
             }
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+    }
+
+    /// Aperçu d'exemple : la 1re étiquette du lot rendue avec le modèle/présentation choisis,
+    /// pour voir le rendu avant d'imprimer tout le lot (chaque produit garde son propre contenu).
+    @ViewBuilder
+    private var examplePreviewCard: some View {
+        if let first = batch.entries.first, let image = preview(first.product) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(NSLocalizedString("APERÇU (1ER PRODUIT)", comment: "Example preview header")).font(.headline)
+                Image(uiImage: image).interpolation(.high).resizable()
+                    .aspectRatio(image.size.width / image.size.height, contentMode: .fit)
+                    .background(.white)
+                    .overlay(Rectangle().stroke(Color(.separator), lineWidth: 1))
+                    .accessibilityLabel(NSLocalizedString("Aperçu de l’étiquette du premier produit", comment: "Example preview"))
+                Text(NSLocalizedString("Le modèle choisi s’applique à tout le lot ; chaque produit garde ses propres infos.", comment: "Example preview help"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .modifier(BatchCardStyle())
+        }
     }
 
     private var summaryCard: some View {

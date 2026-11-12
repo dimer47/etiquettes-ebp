@@ -16,9 +16,6 @@ struct ContentView: View {
     @State private var queueState: PrintQueueMachine.State?
     /// Demande d'ouverture du récap multi-produits (navigation depuis liste/scan).
     @State private var showingBatch = false
-    /// Hook de debug : force l'échec de la k-ième unité (1-based) de la prochaine file, pour
-    /// reproduire la pause/reprise en démo (aucun effet si nil ou k hors borne).
-    @State private var debugFailUnit: Int?
     /// Continuation réveillée par la reprise utilisateur (relancer / ignorer / annuler).
     @State private var resumeContinuation: CheckedContinuation<QueueResume, Never>?
     /// Étiquette courante : alimentée par l'article EBP sélectionné (plus de saisie manuelle).
@@ -170,9 +167,7 @@ struct ContentView: View {
             onPrintAll: { startBatchQueue() },
             onRetry: { resume(.retry) },
             onSkip: { resume(.skip) },
-            onCancel: { resume(.cancel) },
-            onToggleDebugFail: { debugFailUnit = (debugFailUnit == nil) ? 1 : nil },
-            debugFailArmed: debugFailUnit != nil
+            onCancel: { resume(.cancel) }
         )
     }
 
@@ -206,14 +201,12 @@ struct ContentView: View {
     @MainActor
     private func runBatchQueue(_ initial: PrintQueueMachine) async {
         var machine = initial
-        var unitCounter = 0   // rang absolu de l'unité tentée (pour le hook de debug)
 
-        while case .printing(let unit, _) = machine.state {
+        while case .printing = machine.state {
             guard let current = machine.currentUnit,
                   let product = batch.product(id: current.jobID) else { break }
-            unitCounter = unit + 1
 
-            let result = await printOneUnit(product.label, unitNumber: unitCounter)
+            let result = await printOneUnit(product.label)
             switch result {
             case .success:
                 machine.markPrinted()
@@ -248,16 +241,9 @@ struct ContentView: View {
 
     /// Imprime UNE étiquette et attend sa fin, en réutilisant `submit()` (même moteur que le
     /// mono-produit). Détermine le résultat en observant l'état du service après soumission.
-    /// Le hook de debug `debugFailUnit` force un échec sans toucher l'imprimante.
+    /// En l'absence d'imprimante réelle prête (simulateur), l'impression est simulée.
     @MainActor
-    private func printOneUnit(_ label: ProductLabel, unitNumber: Int) async -> UnitOutcome {
-        // Hook de debug : échec forcé de la k-ième unité, UNE fois (désarmé aussitôt), pour
-        // reproduire la pause puis vérifier qu'un « Relancer » repart et réussit.
-        if let k = debugFailUnit, k == unitNumber {
-            debugFailUnit = nil
-            try? await Task.sleep(for: .milliseconds(300))
-            return .failure(NSLocalizedString("Échec simulé (debug) pour tester la reprise.", comment: "Debug forced failure"))
-        }
+    private func printOneUnit(_ label: ProductLabel) async -> UnitOutcome {
         guard (try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) != nil else {
             return .failure(NSLocalizedString("Article invalide (EAN ou prix).", comment: "Invalid label"))
         }
