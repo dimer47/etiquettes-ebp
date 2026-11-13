@@ -30,6 +30,8 @@ struct ContentView: View {
     /// Onglet de l'historique : 0 = consultés, 1 = imprimés.
     @State private var historyTab = 0
     @State private var message: String?
+    /// Message après l'ouverture d'un fichier .ebplabel / .ebpprinter reçu (AirDrop…).
+    @State private var importMessage: String?
     @State private var ebpQuantity = 1
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
     @AppStorage("labelArrangement") private var selectedArrangement = LabelArrangement.current.rawValue
@@ -130,6 +132,12 @@ struct ContentView: View {
             .alert(NSLocalizedString("Impression", comment: "Print alert"), isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
                 Button("OK") { message = nil }
             } message: { Text(message ?? "") }
+            .alert(NSLocalizedString("Import", comment: "Import alert"),
+                   isPresented: Binding(get: { importMessage != nil }, set: { if !$0 { importMessage = nil } })) {
+                Button("OK") { importMessage = nil }
+            } message: { Text(importMessage ?? "") }
+            // Fichier .ebplabel / .ebpprinter reçu (AirDrop, Messages, Fichiers…) : importe son contenu.
+            .onOpenURL { url in importMessage = ShareFileImporter.open(url, templates: templates, setup: setup, printer: printer) }
             .onChange(of: netum.jobError) { _, error in
                 guard let error else { return }
                 message = error

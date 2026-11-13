@@ -17,6 +17,48 @@
      À retirer / remplacer par du HTTPS avant toute gateway non-locale ou de production. -->
 <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
 <key>UILaunchScreen</key><dict/>
+<!-- Types de documents d'échange : l'app est proposée à la réception d'un .ebplabel / .ebpprinter
+     (AirDrop, Messages, Fichiers…). Ouverture via onOpenURL. -->
+<key>CFBundleDocumentTypes</key>
+<array>
+    <dict>
+        <key>CFBundleTypeName</key><string>Modèle d’étiquette EBP</string>
+        <key>CFBundleTypeRole</key><string>Editor</string>
+        <key>LSHandlerRank</key><string>Owner</string>
+        <key>LSItemContentTypes</key>
+        <array><string>tech.idsynergy.etiquettes-ebp.label</string></array>
+    </dict>
+    <dict>
+        <key>CFBundleTypeName</key><string>Réglages imprimante EBP</string>
+        <key>CFBundleTypeRole</key><string>Editor</string>
+        <key>LSHandlerRank</key><string>Owner</string>
+        <key>LSItemContentTypes</key>
+        <array><string>tech.idsynergy.etiquettes-ebp.printer</string></array>
+    </dict>
+</array>
+<key>UTExportedTypeDeclarations</key>
+<array>
+    <dict>
+        <key>UTTypeIdentifier</key><string>tech.idsynergy.etiquettes-ebp.label</string>
+        <key>UTTypeDescription</key><string>Modèle d’étiquette EBP</string>
+        <key>UTTypeConformsTo</key>
+        <array><string>public.json</string></array>
+        <key>UTTypeTagSpecification</key>
+        <dict>
+            <key>public.filename-extension</key><array><string>ebplabel</string></array>
+        </dict>
+    </dict>
+    <dict>
+        <key>UTTypeIdentifier</key><string>tech.idsynergy.etiquettes-ebp.printer</string>
+        <key>UTTypeDescription</key><string>Réglages imprimante EBP</string>
+        <key>UTTypeConformsTo</key>
+        <array><string>public.json</string></array>
+        <key>UTTypeTagSpecification</key>
+        <dict>
+            <key>public.filename-extension</key><array><string>ebpprinter</string></array>
+        </dict>
+    </dict>
+</array>
 <key>UISupportedInterfaceOrientations</key>
 <array>
     <string>UIInterfaceOrientationPortrait</string>

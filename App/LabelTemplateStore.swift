@@ -49,6 +49,15 @@ final class LabelTemplateLibraryStore: ObservableObject {
         persist()
     }
 
+    /// Importe des modèles REÇUS (partage QR/fichier) comme nouveaux modèles perso éditables,
+    /// dédoublonnés par nom. Retourne les ids ajoutés.
+    @discardableResult
+    func importTemplates(_ templates: [LabelTemplate]) -> [UUID] {
+        let ids = library.importTemplates(templates)
+        persist()
+        return ids
+    }
+
     /// Supprime un modèle perso.
     func delete(id: UUID) {
         library.delete(id: id)

@@ -1,0 +1,120 @@
+import SwiftUI
+
+/// Feuille de PARTAGE unifiée : on lui donne le payload déjà encodé, son titre, son sous-titre et
+/// les infos de fichier (nom + extension). Elle décide du transport :
+/// - si le JSON tient sous `SharePayload.qrByteLimit` ET qu'on n'a pas forcé le fichier → QR à
+///   l'écran, que l'autre téléphone scanne ;
+/// - sinon → bouton « Partager le fichier » qui ouvre la share sheet (AirDrop, Messages…).
+///
+/// Esthétique Liquid Glass cohérente avec le reste de l'app (carte arrondie, QR sur fond blanc).
+struct ShareQRView: View {
+    let title: String
+    let subtitle: String
+    /// Payload JSON déjà encodé (modèles ou réglages).
+    let payload: Data
+    /// Nom et extension du fichier de repli (.ebplabel / .ebpprinter).
+    let fileName: String
+    let fileExtension: String
+    /// Force le fichier (ex. partage de plusieurs modèles) même si ça tiendrait dans un QR.
+    var forceFile = false
+    let onClose: () -> Void
+
+    @State private var shareURL: URL?
+    @State private var showingShare = false
+
+    /// Le QR est possible si on ne force pas le fichier, que ça tient sous la limite, et que la
+    /// génération d'image réussit.
+    private var qrImage: UIImage? {
+        guard !forceFile, payload.count <= SharePayload.qrByteLimit,
+              let text = String(data: payload, encoding: .utf8) else { return nil }
+        return QRImageRenderer.image(for: text)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 22) {
+                    VStack(spacing: 8) {
+                        Text(title).font(.title2.weight(.bold)).multilineTextAlignment(.center)
+                        Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 24).padding(.top, 8)
+
+                    if let qrImage {
+                        qrCard(qrImage)
+                        Text(NSLocalizedString("Scannez ce QR code depuis l’autre téléphone, via « Importer » dans l’app.", comment: "Share QR hint"))
+                            .font(.footnote).foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center).padding(.horizontal, 32)
+                        fileButton(label: NSLocalizedString("Partager par fichier (AirDrop…)", comment: "Share file alt"),
+                                   prominent: false)
+                    } else {
+                        fileCard
+                        fileButton(label: NSLocalizedString("Partager le fichier", comment: "Share file"),
+                                   prominent: true)
+                    }
+                }
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(NSLocalizedString("Partager", comment: "Share title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button(NSLocalizedString("Fermer", comment: "Close"), action: onClose) }
+            .sheet(isPresented: $showingShare) {
+                if let shareURL { ShareSheet(items: [shareURL]) }
+            }
+        }
+    }
+
+    private func qrCard(_ image: UIImage) -> some View {
+        Image(uiImage: image)
+            .interpolation(.none)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 240, height: 240)
+            .padding(18)
+            .background(.white, in: RoundedRectangle(cornerRadius: 20))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color(.separator), lineWidth: 1))
+            .shadow(color: .black.opacity(0.08), radius: 12, y: 6)
+            .padding(.horizontal, 24)
+    }
+
+    private var fileCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "doc.badge.arrow.up")
+                .font(.system(size: 44)).foregroundStyle(.tint)
+            Text(NSLocalizedString("Trop volumineux pour un QR code", comment: "Too big for QR"))
+                .font(.headline)
+            Text(NSLocalizedString("Le partage se fait par un fichier à envoyer à l’autre téléphone (AirDrop, Messages…). Il l’ouvre pour importer.", comment: "File share explain"))
+                .font(.footnote).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+        .padding(.horizontal, 24)
+    }
+
+    @ViewBuilder
+    private func fileButton(label: String, prominent: Bool) -> some View {
+        let action = {
+            guard let url = ShareFileWriter.write(payload, name: fileName, ext: fileExtension) else { return }
+            shareURL = url
+            showingShare = true
+        }
+        let content = Label(label, systemImage: "square.and.arrow.up")
+            .font(.headline)
+            .frame(maxWidth: prominent ? .infinity : nil)
+            .padding(.vertical, prominent ? 6 : 2)
+        Group {
+            if prominent {
+                Button(action: action) { content }.buttonStyle(.borderedProminent)
+            } else {
+                Button(action: action) { content }.buttonStyle(.bordered)
+            }
+        }
+        .controlSize(.large)
+        .padding(.horizontal, 24)
+    }
+}
