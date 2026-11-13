@@ -369,9 +369,9 @@ struct ContentView: View {
     /// Carte « Présentation de l'étiquette » : ouvre le sélecteur de format graphique à miniatures.
     private var presentationCard: some View {
         Button {
+            // Les miniatures sont rendues à la demande par chaque tuile (voir presentationTile),
+            // avec un cache persistant par clé : rien à préparer ici.
             showingPresentation = true
-            thumbnailStore.prepare(label: selectionPreviewLabel, size: labelSize,
-                                   arrangement: labelArrangement, width: layoutWidth, reset: true)
         } label: {
             HStack {
                 Image(systemName: "square.grid.2x2.fill")
@@ -669,18 +669,26 @@ struct ContentView: View {
     private func presentationTile(title: String, detail: String, size: LabelSize,
                                   arrangement: LabelArrangement, selected: Bool,
                                   fullWidth: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
+        let thumbnailKey = LabelThumbnailStore.key(size: size, arrangement: arrangement, width: layoutWidth)
+        return VStack(alignment: .leading, spacing: 7) {
             ZStack {
                 Color.white
-                if let image = thumbnailStore.images[LabelThumbnailStore.key(size: size, arrangement: arrangement, width: layoutWidth)] {
+                if let image = thumbnailStore.images[thumbnailKey] {
                     Image(uiImage: image).interpolation(.high).resizable()
                         .aspectRatio(CGFloat(layoutWidth) / CGFloat(size.heightDots), contentMode: .fit)
                         .padding(5)
-                } else if thumbnailStore.failed.contains(LabelThumbnailStore.key(size: size, arrangement: arrangement, width: layoutWidth)) {
+                } else if thumbnailStore.failed.contains(thumbnailKey) {
                     Text("Aperçu indisponible").font(.caption).foregroundStyle(.secondary)
                 } else {
                     ProgressView().tint(.blue)
                 }
+            }
+            // Chaque tuile demande SA propre miniature. `.task(id:)` se (re)lance à l'apparition
+            // de la tuile et à chaque changement de clé (format/disposition sélectionné, produit) :
+            // une clé non encore résolue est toujours redemandée — plus de spinner permanent.
+            .task(id: thumbnailKey) {
+                await thumbnailStore.thumbnail(for: selectionPreviewLabel, size: size,
+                                               arrangement: arrangement, width: layoutWidth)
             }
             .frame(height: fullWidth ? CGFloat(size.heightDots) * 0.82 : 125)
             .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -766,62 +774,56 @@ private struct PrintCardStyle: ViewModifier {
     }
 }
 
+/// Cache des miniatures de l'écran « Présentation », rendu À LA DEMANDE et idempotent.
+///
+/// Historique du bug : une version précédente préparait toutes les combinaisons d'un coup à
+/// l'ouverture (`prepare`), via un `pending`/`generation` et des Task par clé. Deux failles en
+/// résultaient : (1) quand la sélection changeait, les tuiles pointaient vers de nouvelles clés
+/// jamais préparées → spinner permanent ; (2) une Task en vol pouvait voir sa génération périmée
+/// et laisser la clé hors de `images`/`failed` → spinner éternel. Le rendu UIKit hors main
+/// thread aggravait le tout.
+///
+/// Nouveau modèle : chaque tuile demande SA propre clé via `thumbnail(...)` depuis un
+/// `.task(id:)`. Le cache (`images` + `failed`) est persistant par clé et survit aux scrolls et
+/// réouvertures : une clé déjà résolue n'est jamais regénérée. Le rendu se fait sur le MainActor
+/// et aboutit TOUJOURS à un état terminal (image ou échec). `reset(for:)` ne vide le cache que
+/// lorsque l'étiquette source change réellement. Pas de `pending` ni de `generation` : rien ne
+/// peut rester « en attente ».
 @MainActor
 private final class LabelThumbnailStore: ObservableObject {
     @Published private(set) var images: [String: UIImage] = [:]
     @Published private(set) var failed: Set<String> = []
-    private var pending: Set<String> = []
-    private var generation = 0
+    /// Empreinte de l'étiquette dont provient le cache courant (pour invalider au changement).
+    private var sourceSignature: String?
 
     nonisolated static func key(size: LabelSize, arrangement: LabelArrangement, width: Int) -> String {
         "\(size.rawValue).\(arrangement.rawValue).\(width)"
     }
 
-    func prepare(label: ProductLabel, size: LabelSize, arrangement: LabelArrangement,
-                 width: Int, reset: Bool = false) {
-        if reset {
-            generation += 1
-            images.removeAll()
-            failed.removeAll()
-            pending.removeAll()
-        }
-        let currentGeneration = generation
-        let combinations = LabelSize.allCases.map { ($0, arrangement) }
-            + LabelArrangement.allCases.map { (size, $0) }
-        let missing = combinations.filter { combination in
-            let imageKey = Self.key(size: combination.0, arrangement: combination.1, width: width)
-            guard images[imageKey] == nil, !pending.contains(imageKey) else { return false }
-            pending.insert(imageKey)
-            return true
-        }
-        // Le rendu passe par UIKit (UIGraphicsImageRenderer, UIFont, NSString.draw), qui n'est
-        // pas thread-safe hors du main thread : lancé depuis un Task.detached, il pouvait se
-        // bloquer sur un verrou interne pour certaines combinaisons et figer la boucle — les
-        // combinaisons suivantes restaient alors en `pending`, d'où un spinner infini. On rend
-        // donc sur le MainActor, chaque combinaison isolée (une clé = une tâche), avec un
-        // Task.yield() pour ne pas geler l'UI pendant la série. accept() est garanti pour
-        // CHAQUE clé de `missing` : en cas d'échec, la clé tombe en `failed` (« indisponible »),
-        // jamais en attente perpétuelle.
-        for (imageSize, imageArrangement) in missing {
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                await Task.yield()
-                let imageKey = Self.key(size: imageSize, arrangement: imageArrangement, width: width)
-                let bitmap = try? LabelRenderer.render(label, size: imageSize, arrangement: imageArrangement,
-                                                       layoutWidth: width)
-                let image = bitmap.flatMap(LabelRenderer.preview)
-                self.accept(image, for: imageKey, generation: currentGeneration)
-            }
-        }
+    /// Vide le cache si l'étiquette source a changé (nouveau produit ou données modifiées).
+    func reset(for label: ProductLabel) {
+        let signature = String(label.hashValue)
+        guard signature != sourceSignature else { return }
+        sourceSignature = signature
+        images.removeAll()
+        failed.removeAll()
     }
 
-    private func accept(_ image: UIImage?, for key: String, generation request: Int) {
-        guard generation == request else {
-            pending.remove(key)
-            return
-        }
-        if let image { images[key] = image }
-        else { failed.insert(key) }
-        pending.remove(key)
+    /// Rend (une seule fois) la miniature d'une clé si elle n'est pas déjà résolue. Idempotent :
+    /// un appel pour une clé déjà en cache (image ou échec) ne fait rien. Toujours terminal.
+    func thumbnail(for label: ProductLabel, size: LabelSize, arrangement: LabelArrangement, width: Int) async {
+        reset(for: label)
+        let imageKey = Self.key(size: size, arrangement: arrangement, width: width)
+        guard images[imageKey] == nil, !failed.contains(imageKey) else { return }
+        // Laisse l'UI respirer avant un rendu UIKit potentiellement lourd ; sur MainActor, donc
+        // thread-safe. Si la tâche est annulée entre-temps (tuile retirée), on sort sans écrire :
+        // la clé reste simplement non résolue et sera redemandée au prochain affichage.
+        await Task.yield()
+        if Task.isCancelled { return }
+        let bitmap = try? LabelRenderer.render(label, size: size, arrangement: arrangement, layoutWidth: width)
+        let image = bitmap.flatMap(LabelRenderer.preview)
+        // Revalide la clé : une autre tâche a pu la résoudre pendant le yield.
+        guard images[imageKey] == nil, !failed.contains(imageKey) else { return }
+        if let image { images[imageKey] = image } else { failed.insert(imageKey) }
     }
 }
