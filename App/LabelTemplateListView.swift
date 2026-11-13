@@ -57,6 +57,17 @@ struct LabelTemplateListView: View {
     @State private var newName = ""
     @State private var showingNew = false
 
+    /// Modèle en cours de partage (feuille QR/fichier) ; nil = aucune.
+    @State private var sharing: LabelTemplate?
+    /// Partage de PLUSIEURS modèles : sélection multiple active + modèles cochés.
+    @State private var selecting = false
+    @State private var selected: Set<UUID> = []
+    @State private var sharingMultiple: [LabelTemplate]?
+    /// Import par scan QR.
+    @State private var showingImport = false
+    /// Message après un import réussi (nombre de modèles ajoutés).
+    @State private var importMessage: String?
+
     private var previewLabel: ProductLabel {
         ((try? EAN13.completed(sampleLabel.ean)) != nil &&
          PriceFormatter.formatted(sampleLabel.price, currency: sampleLabel.currency) != nil)
@@ -84,11 +95,32 @@ struct LabelTemplateListView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(NSLocalizedString("Terminé", comment: "Done")) { onClose() }
+                    if selecting {
+                        Button(NSLocalizedString("Annuler", comment: "Cancel")) { endSelection() }
+                    } else {
+                        Button(NSLocalizedString("Terminé", comment: "Done")) { onClose() }
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { newName = ""; showingNew = true } label: {
-                        Label(NSLocalizedString("Nouveau", comment: "New template"), systemImage: "plus")
+                    if selecting {
+                        Button(NSLocalizedString("Partager", comment: "Share")) { shareSelected() }
+                            .disabled(selected.isEmpty)
+                    } else {
+                        Menu {
+                            Button { newName = ""; showingNew = true } label: {
+                                Label(NSLocalizedString("Nouveau modèle", comment: "New template"), systemImage: "plus")
+                            }
+                            Button { showingImport = true } label: {
+                                Label(NSLocalizedString("Importer (scanner un QR)", comment: "Import via QR"), systemImage: "qrcode.viewfinder")
+                            }
+                            Button {
+                                selecting = true; selected = []
+                            } label: {
+                                Label(NSLocalizedString("Partager plusieurs modèles…", comment: "Share several"), systemImage: "square.and.arrow.up.on.square")
+                            }
+                        } label: {
+                            Label(NSLocalizedString("Plus", comment: "More"), systemImage: "ellipsis.circle")
+                        }
                     }
                 }
             }
@@ -98,6 +130,38 @@ struct LabelTemplateListView: View {
                                         size: size, layoutWidth: layoutWidth,
                                         onSelect: { id in selectedTemplateID = id; editing = nil })
             }
+            .sheet(item: $sharing) { template in
+                ShareQRView(
+                    title: template.name,
+                    subtitle: NSLocalizedString("Partagez ce modèle d’étiquette avec un autre téléphone.", comment: "Share one template subtitle"),
+                    payload: TemplateSharePayload(templates: [template]).encoded(),
+                    fileName: template.name,
+                    fileExtension: ShareDocumentType.templateExtension,
+                    onClose: { sharing = nil })
+            }
+            .sheet(isPresented: Binding(get: { sharingMultiple != nil }, set: { if !$0 { sharingMultiple = nil } })) {
+                if let models = sharingMultiple {
+                    ShareQRView(
+                        title: String(format: NSLocalizedString("%d modèles", comment: "N templates"), models.count),
+                        subtitle: NSLocalizedString("Plusieurs modèles se partagent par fichier (AirDrop, Messages…).", comment: "Share several subtitle"),
+                        payload: TemplateSharePayload(templates: models).encoded(),
+                        fileName: NSLocalizedString("Modèles d’étiquette", comment: "Templates file name"),
+                        fileExtension: ShareDocumentType.templateExtension,
+                        forceFile: true,
+                        onClose: { sharingMultiple = nil })
+                }
+            }
+            .sheet(isPresented: $showingImport) {
+                ImportScanView(
+                    title: NSLocalizedString("Importer un modèle", comment: "Import template title"),
+                    hint: NSLocalizedString("Scannez le QR affiché par l’autre téléphone (Modèles → Partager).", comment: "Import template hint"),
+                    onScanned: importScanned,
+                    onClose: { showingImport = false })
+            }
+            .alert(NSLocalizedString("Import", comment: "Import alert"),
+                   isPresented: Binding(get: { importMessage != nil }, set: { if !$0 { importMessage = nil } })) {
+                Button("OK") { importMessage = nil }
+            } message: { Text(importMessage ?? "") }
             .alert(NSLocalizedString("Nouveau modèle", comment: "New template"), isPresented: $showingNew) {
                 TextField(NSLocalizedString("Nom du modèle", comment: "Template name"), text: $newName)
                 Button(NSLocalizedString("Créer", comment: "Create")) {
@@ -110,10 +174,41 @@ struct LabelTemplateListView: View {
         }
     }
 
+    /// Partage les modèles cochés : un seul → feuille QR/fichier simple ; plusieurs → fichier.
+    private func shareSelected() {
+        let models = store.all.filter { selected.contains($0.id) }
+        guard !models.isEmpty else { return }
+        endSelection()
+        if models.count == 1 { sharing = models[0] } else { sharingMultiple = models }
+    }
+
+    private func endSelection() {
+        selecting = false
+        selected = []
+    }
+
+    /// Décode un QR scanné, importe les modèles (dédoublonnés), renvoie le résultat à afficher.
+    private func importScanned(_ raw: String) -> ImportOutcome {
+        switch TemplateSharePayload.decode(fromQRString: raw) {
+        case .success(let payload):
+            let ids = store.importTemplates(payload.templates)
+            if let first = ids.first { selectedTemplateID = first }
+            return .success(String(format: NSLocalizedString("%d modèle(s) importé(s).", comment: "Imported N templates"), ids.count))
+        case .failure(let error):
+            return .failure(error.userMessage)
+        }
+    }
+
     private func row(_ template: LabelTemplate, locked: Bool) -> some View {
         let key = TemplateThumbnailStore.key(for: previewLabel, template: template, size: size, width: layoutWidth)
         let isSelected = selectedTemplateID == template.id
+        let isChecked = selected.contains(template.id)
         return HStack(spacing: 12) {
+            if selecting {
+                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isChecked ? Color.blue : Color.secondary)
+            }
             ZStack {
                 Color.white
                 if let image = thumbnails.images[key] {
@@ -152,30 +247,41 @@ struct LabelTemplateListView: View {
                 }
             }
             Spacer()
-            Menu {
-                Button { selectedTemplateID = template.id } label: {
-                    Label(NSLocalizedString("Choisir ce modèle", comment: "Choose template"), systemImage: "checkmark.circle")
-                }
-                Button { editing = template } label: {
-                    Label(locked ? NSLocalizedString("Ouvrir", comment: "Open") : NSLocalizedString("Modifier", comment: "Edit"),
-                          systemImage: locked ? "eye" : "pencil")
-                }
-                Button {
-                    if let copy = store.duplicate(id: template.id) { editing = copy }
-                } label: {
-                    Label(NSLocalizedString("Dupliquer", comment: "Duplicate"), systemImage: "plus.square.on.square")
-                }
-                if !locked {
-                    Button(role: .destructive) { store.delete(id: template.id) } label: {
-                        Label(NSLocalizedString("Supprimer", comment: "Delete"), systemImage: "trash")
+            if !selecting {
+                Menu {
+                    Button { selectedTemplateID = template.id } label: {
+                        Label(NSLocalizedString("Choisir ce modèle", comment: "Choose template"), systemImage: "checkmark.circle")
                     }
+                    Button { editing = template } label: {
+                        Label(locked ? NSLocalizedString("Ouvrir", comment: "Open") : NSLocalizedString("Modifier", comment: "Edit"),
+                              systemImage: locked ? "eye" : "pencil")
+                    }
+                    Button {
+                        if let copy = store.duplicate(id: template.id) { editing = copy }
+                    } label: {
+                        Label(NSLocalizedString("Dupliquer", comment: "Duplicate"), systemImage: "plus.square.on.square")
+                    }
+                    Button { sharing = template } label: {
+                        Label(NSLocalizedString("Partager", comment: "Share"), systemImage: "square.and.arrow.up")
+                    }
+                    if !locked {
+                        Button(role: .destructive) { store.delete(id: template.id) } label: {
+                            Label(NSLocalizedString("Supprimer", comment: "Delete"), systemImage: "trash")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle").font(.title3).foregroundStyle(.secondary)
                 }
-            } label: {
-                Image(systemName: "ellipsis.circle").font(.title3).foregroundStyle(.secondary)
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { selectedTemplateID = template.id }
+        .onTapGesture {
+            if selecting {
+                if isChecked { selected.remove(template.id) } else { selected.insert(template.id) }
+            } else {
+                selectedTemplateID = template.id
+            }
+        }
     }
 
     /// Pilule « icône + libellé » serrés (spacing 4), padding et forme identiques pour les

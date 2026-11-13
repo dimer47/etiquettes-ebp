@@ -15,6 +15,10 @@ struct PrinterSelectionView: View {
     let onTestPrint: () -> Void
     let onClose: () -> Void
 
+    @State private var sharingSettings = false
+    @State private var importingSettings = false
+    @State private var importMessage: String?
+
     var body: some View {
         NavigationStack {
             Form {
@@ -56,6 +60,23 @@ struct PrinterSelectionView: View {
                     BrotherConnectionSections(setup: setup, brother: brother)
                 }
 
+                Section {
+                    Button {
+                        sharingSettings = true
+                    } label: {
+                        Label(NSLocalizedString("Partager les réglages imprimante", comment: "Share printer settings"), systemImage: "square.and.arrow.up")
+                    }
+                    Button {
+                        importingSettings = true
+                    } label: {
+                        Label(NSLocalizedString("Importer des réglages (scanner un QR)", comment: "Import printer settings"), systemImage: "qrcode.viewfinder")
+                    }
+                } header: {
+                    Text(NSLocalizedString("Partage entre téléphones", comment: "Printer sharing section"))
+                } footer: {
+                    Text(NSLocalizedString("Partage le modèle, le papier et la qualité. L’appairage Bluetooth, propre à chaque téléphone, n’est pas transféré.", comment: "Printer sharing footer"))
+                }
+
                 Section("Test") {
                     Button("Imprimer une étiquette de test", action: onTestPrint)
                         .disabled(!canTestPrint)
@@ -64,6 +85,27 @@ struct PrinterSelectionView: View {
             .navigationTitle("Imprimante")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { Button("Fermer", action: onClose) }
+            .sheet(isPresented: $sharingSettings) {
+                let payload = PrinterSettingsSharing.capture(setup: setup, printer: printer)
+                ShareQRView(
+                    title: NSLocalizedString("Réglages imprimante", comment: "Printer settings share title"),
+                    subtitle: PrinterSettingsSharing.summary(for: payload),
+                    payload: payload.encoded(),
+                    fileName: NSLocalizedString("Réglages imprimante", comment: "Printer settings file name"),
+                    fileExtension: ShareDocumentType.printerExtension,
+                    onClose: { sharingSettings = false })
+            }
+            .sheet(isPresented: $importingSettings) {
+                ImportScanView(
+                    title: NSLocalizedString("Importer des réglages", comment: "Import printer settings title"),
+                    hint: NSLocalizedString("Scannez le QR affiché par l’autre téléphone (Imprimante → Partager les réglages).", comment: "Import printer hint"),
+                    onScanned: importSettingsScanned,
+                    onClose: { importingSettings = false })
+            }
+            .alert(NSLocalizedString("Import", comment: "Import alert"),
+                   isPresented: Binding(get: { importMessage != nil }, set: { if !$0 { importMessage = nil } })) {
+                Button("OK") { importMessage = nil }
+            } message: { Text(importMessage ?? "") }
             .onChange(of: setup.brand) { _, brand in
                 switch brand {
                 case .pocket5890: netum.stopScan(); printer.scan()
@@ -79,6 +121,17 @@ struct PrinterSelectionView: View {
             SystemReportSheet(report: SystemReport(parsing: brother.systemReport ?? ""))
         }
         .presentationDetents([.medium, .large])
+    }
+
+    /// Décode un QR de réglages scanné et les applique localement (sans toucher à la connexion).
+    private func importSettingsScanned(_ raw: String) -> ImportOutcome {
+        switch PrinterSettingsPayload.decode(fromQRString: raw) {
+        case .success(let payload):
+            PrinterSettingsSharing.apply(payload, setup: setup, printer: printer)
+            return .success(NSLocalizedString("Réglages imprimante appliqués.", comment: "Printer settings applied"))
+        case .failure(let error):
+            return .failure(error.userMessage)
+        }
     }
 
     @ViewBuilder
