@@ -244,4 +244,50 @@ final class LabelTemplateTests: XCTestCase {
         XCTAssertNil(label.generatedAtText)
         XCTAssertNil(CellContent.dateGeneration(nil).text(for: label, formattedPrice: nil))
     }
+
+    // MARK: - Clé de miniature (anti-spinner)
+
+    /// Deux modèles affichés côte à côte (preset + perso) doivent produire des clés distinctes :
+    /// c'est ce qui garantit que la miniature de l'un n'écrase jamais celle de l'autre dans le
+    /// cache. C'était la cause du loader infini sur les modèles perso.
+    func testThumbnailKeysDistinctAcrossTemplates() {
+        let label = ProductLabel()
+        let size = LabelSize.allCases.first!
+        let preset = LabelTemplatePresets.default
+        let custom = preset.duplicated(named: "Perso")
+
+        let keyPreset = preset.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: 384)
+        let keyCustom = custom.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: 384)
+
+        XCTAssertNotEqual(keyPreset, keyCustom, "Un preset et un modèle perso partagent une clé → ils s'écrasent dans le cache")
+
+        // Simule un cache partagé : les deux miniatures coexistent, aucune ne reste non résolue.
+        var cache: [String: String] = [:]
+        cache[keyPreset] = "image-preset"
+        cache[keyCustom] = "image-custom"
+        XCTAssertEqual(cache[keyPreset], "image-preset")
+        XCTAssertEqual(cache[keyCustom], "image-custom")
+        XCTAssertEqual(cache.count, 2)
+    }
+
+    /// La clé est stable tant que le modèle et l'étiquette ne changent pas (sinon un `.task(id:)`
+    /// se relancerait sans fin), mais change dès que l'étiquette source change (ce qui remplace
+    /// proprement le reset global : l'ancienne entrée devient inerte).
+    func testThumbnailKeyStableThenInvalidatedByLabelChange() {
+        let template = LabelTemplatePresets.default
+        let size = LabelSize.allCases.first!
+
+        let labelA = ProductLabel(productReference: "AAA")
+        let labelB = ProductLabel(productReference: "BBB")
+
+        let key1 = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 384)
+        let key2 = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 384)
+        XCTAssertEqual(key1, key2, "Même modèle + même étiquette → clé stable")
+
+        let keyOtherLabel = template.thumbnailKey(forLabelSignature: labelB.hashValue, size: size, width: 384)
+        XCTAssertNotEqual(key1, keyOtherLabel, "Changement d'étiquette → nouvelle clé")
+
+        let keyOtherWidth = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 512)
+        XCTAssertNotEqual(key1, keyOtherWidth, "Changement de largeur → nouvelle clé")
+    }
 }

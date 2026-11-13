@@ -50,6 +50,15 @@ public struct LabelTemplate: Codable, Equatable, Identifiable, Hashable {
                       baseArrangement: nil, lines: materializedLines())
     }
 
+    /// Clé de cache d'une miniature de ce modèle. Elle embarque la signature de l'étiquette
+    /// source (`labelSignature`) : quand l'étiquette change, la clé change, donc l'ancienne
+    /// entrée du cache devient inerte sans qu'aucun reset impératif n'efface le rendu en cours
+    /// d'une autre miniature. Deux modèles distincts, ou un même modèle à des tailles/largeurs
+    /// différentes, produisent toujours des clés distinctes.
+    public func thumbnailKey(forLabelSignature labelSignature: Int, size: LabelSize, width: Int) -> String {
+        "\(labelSignature).\(id.uuidString).\(size.rawValue).\(width).\(lines.count).\(baseArrangement?.rawValue ?? "custom")"
+    }
+
     /// Les lignes effectives à éditer/rendre : celles du modèle, ou les lignes de référence
     /// dérivées de l'arrangement de base pour un preset d'usine.
     public func materializedLines() -> [TemplateLine] {
