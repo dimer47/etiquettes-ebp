@@ -92,6 +92,44 @@ final class GatewayTests: XCTestCase {
         XCTAssertEqual(d.isActive, true)
     }
 
+    func testMapperPopulatesLabelAdditionalFields() throws {
+        // Les nouveaux champs bindables remontent DANS le label, déjà formatés (jamais la valeur
+        // brute EBP) : prix HT/TVA en monnaie, stock/poids/volume en quantités nettoyées, codes
+        // tels quels. Les montants arrivent en 8 décimales comme chez EBP.
+        let json = #"""
+        {
+            "Caption": "Motoréducteur", "SalePriceVatExcluded": "420.00000000",
+            "SalePriceVatIncluded": "504.00000000", "VatAmount": "84.00000000",
+            "RealStock": "5.00000000", "VirtualStock": "8.00000000",
+            "SupplierId": "FR01066", "UnitId": "UNIT", "Weight": "12.50000000",
+            "Volume": "0.03500000", "SubFamilyId": "SF001"
+        }
+        """#
+        let label = EBPProductMapper.map(try makeItem(json), locale: Locale(identifier: "fr_FR")).label
+        XCTAssertEqual(label.priceExclVat, "420,00 €")   // monnaie, pas « 420.00000000 »
+        XCTAssertEqual(label.vatAmount, "84,00 €")
+        XCTAssertEqual(label.realStock, "5")             // nettoyé des zéros
+        XCTAssertEqual(label.virtualStock, "8")
+        XCTAssertEqual(label.supplier, "FR01066")        // code tel quel
+        XCTAssertEqual(label.unit, "UNIT")
+        XCTAssertEqual(label.weight, "12,5")
+        XCTAssertEqual(label.volume, "0,035")
+        XCTAssertEqual(label.subFamily, "SF001")
+    }
+
+    func testMapperAdditionalFieldsNilWhenAbsent() throws {
+        let label = EBPProductMapper.map(try makeItem(#"{ "Caption": "P" }"#)).label
+        XCTAssertNil(label.priceExclVat)
+        XCTAssertNil(label.vatAmount)
+        XCTAssertNil(label.realStock)
+        XCTAssertNil(label.virtualStock)
+        XCTAssertNil(label.supplier)
+        XCTAssertNil(label.unit)
+        XCTAssertNil(label.weight)
+        XCTAssertNil(label.volume)
+        XCTAssertNil(label.subFamily)
+    }
+
     func testMapperVatRateFallsBackToTtcMinusHt() throws {
         // Pas de VatAmount : le taux se déduit de (TTC − HT) / HT.
         let json = #"{ "Caption": "P", "SalePriceVatExcluded": 100.0, "SalePriceVatIncluded": 120.0 }"#

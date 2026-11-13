@@ -87,6 +87,16 @@ public enum EBPProductMapper {
             }
         }
 
+        let details = mapDetails(item, ttcValue: item.salePriceVatIncluded,
+                                 htValue: item.salePriceVatExcluded, locale: locale)
+
+        // Les champs additionnels portés par le label sont les MÊMES valeurs déjà formatées que
+        // `details` (écran) : une seule source de vérité, pour que l'étiquette perso et la fiche
+        // article affichent exactement la même chose. HT formaté monnaie à part (details n'a que
+        // le HT via `priceExclVat` du MappedProduct, non monétaire).
+        let htFormatted = item.salePriceVatExcluded.map { formatted($0, locale: locale) }
+            .flatMap { PriceFormatter.formatted($0, currency: .eur, locale: locale) }
+
         let label = ProductLabel(
             name: name,
             category: (item.familyId?.trimmed) ?? "",
@@ -95,11 +105,18 @@ public enum EBPProductMapper {
             ean: ean,
             price: ttc,
             currency: .eur,
-            priceCaption: NSLocalizedString("Prix de vente TTC", comment: "Default price caption")
+            priceCaption: NSLocalizedString("Prix de vente TTC", comment: "Default price caption"),
+            priceExclVat: htFormatted,
+            vatAmount: details.vatAmount.flatMap { PriceFormatter.formatted($0, currency: .eur, locale: locale) },
+            realStock: details.realStock,
+            virtualStock: details.virtualStock,
+            subFamily: details.subFamilyId,
+            supplier: details.supplierId,
+            unit: details.unitId,
+            weight: details.weight,
+            volume: details.volume
         )
 
-        let details = mapDetails(item, ttcValue: item.salePriceVatIncluded,
-                                 htValue: item.salePriceVatExcluded, locale: locale)
         return MappedProduct(label: label, priceExclVat: ht, eanWasInvalid: eanWasInvalid, details: details)
     }
 

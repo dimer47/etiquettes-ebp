@@ -41,21 +41,11 @@ struct LabelTemplateEditorView: View {
         _draft = State(initialValue: start)
     }
 
-    /// Clé de rendu : change à chaque modification du brouillon → relance le `.task`.
+    /// Clé de rendu : change à chaque modification du brouillon (via `contentSignature`, qui
+    /// couvre contenu, style, préfixe/suffixe, placeholder et mode de rendu du code) → relance
+    /// le `.task`. Inclut aussi la signature de l'étiquette source, la taille et la largeur.
     private var liveKey: String {
-        var hasher = Hasher()
-        hasher.combine(draft.id)
-        hasher.combine(draft.baseArrangement)
-        for line in draft.lines {
-            hasher.combine(line.layout)
-            for cell in line.cells {
-                hasher.combine(cell.content)
-                hasher.combine(cell.style)
-            }
-        }
-        hasher.combine(size)
-        hasher.combine(layoutWidth)
-        return String(hasher.finalize())
+        draft.thumbnailKey(forLabelSignature: sampleLabel.hashValue, size: size, width: layoutWidth)
     }
 
     var body: some View {
@@ -224,6 +214,15 @@ struct LabelTemplateEditorView: View {
         case .refRayon: "square.grid.3x3"
         case .famille: "folder"
         case .prixTTC: "eurosign"
+        case .prixHT: "eurosign.circle"
+        case .montantTVA: "percent"
+        case .stockReel: "shippingbox"
+        case .stockDispo: "shippingbox.and.arrow.backward"
+        case .sousFamille: "folder.badge.gearshape"
+        case .fournisseur: "building.2"
+        case .unite: "ruler"
+        case .poids: "scalemass"
+        case .volume: "cube"
         case .codeBarres: "barcode"
         case .dateGeneration: "calendar"
         case .texteLibre: "text.quote"
@@ -252,6 +251,12 @@ struct LabelTemplateEditorView: View {
                     if cellBinding.wrappedValue.content.isDate {
                         dateFormatSection(cellBinding)
                     }
+                    if cellBinding.wrappedValue.content.isBarcode {
+                        codeRenderingSection(cellBinding)
+                    }
+                    if decorationsApply(to: cellBinding.wrappedValue) {
+                        decorationsSection(cellBinding)
+                    }
                     Section(NSLocalizedString("Taille", comment: "Size")) {
                         Picker(NSLocalizedString("Taille", comment: "Size"), selection: cellBinding.style.size) {
                             ForEach(CellStyle.Size.allCases, id: \.self) { s in Text(s.title).tag(s) }
@@ -277,6 +282,47 @@ struct LabelTemplateEditorView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { Button(NSLocalizedString("Terminé", comment: "Done")) { editingCell = nil } }
             }
+        }
+    }
+
+    // MARK: - Rendu du code (code-barres / QR) et décorations (préfixe/suffixe/placeholder)
+
+    /// Vrai si la section décorations a du sens pour ce contenu. Exclue pour « Vide » (aucune
+    /// valeur) et pour un code-barres LINÉAIRE (préfixe/suffixe/placeholder ne s'y affichent pas) ;
+    /// incluse pour un code en mode QR (ils décorent la valeur encodée).
+    private func decorationsApply(to cell: TemplateCell) -> Bool {
+        if case .vide = cell.content { return false }
+        if cell.content.isBarcode && cell.codeRendering == .barcode { return false }
+        return true
+    }
+
+    @ViewBuilder
+    private func codeRenderingSection(_ cell: Binding<TemplateCell>) -> some View {
+        Section(NSLocalizedString("Rendu du code", comment: "Code rendering section")) {
+            Picker(NSLocalizedString("Type", comment: "Code rendering type"), selection: cell.codeRendering) {
+                ForEach(CodeRendering.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
+            }
+            .pickerStyle(.segmented)
+            Text(cell.wrappedValue.codeRendering == .qr
+                 ? NSLocalizedString("Le QR encode la valeur de la cellule (le code-barres EAN par défaut), redimensionné pour tenir dans la cellule.", comment: "QR hint")
+                 : NSLocalizedString("Code-barres EAN-13 linéaire, chiffres sous les barres.", comment: "Barcode hint"))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func decorationsSection(_ cell: Binding<TemplateCell>) -> some View {
+        Section {
+            TextField(NSLocalizedString("Préfixe (avant la valeur)", comment: "Prefix field"), text: cell.prefix)
+                .autocorrectionDisabled()
+            TextField(NSLocalizedString("Suffixe (après la valeur)", comment: "Suffix field"), text: cell.suffix)
+                .autocorrectionDisabled()
+            TextField(NSLocalizedString("Valeur de repli si vide", comment: "Placeholder field"), text: cell.placeholder)
+                .autocorrectionDisabled()
+        } header: {
+            Text(NSLocalizedString("Préfixe · suffixe · repli", comment: "Decorations section"))
+        } footer: {
+            Text(NSLocalizedString("Préfixe et suffixe entourent la valeur (ex. « Réf. », « kg »). La valeur de repli s’affiche seule quand le champ est vide.", comment: "Decorations footer"))
         }
     }
 

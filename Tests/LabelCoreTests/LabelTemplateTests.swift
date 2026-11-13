@@ -244,4 +244,141 @@ final class LabelTemplateTests: XCTestCase {
         XCTAssertNil(label.generatedAtText)
         XCTAssertNil(CellContent.dateGeneration(nil).text(for: label, formattedPrice: nil))
     }
+
+    // MARK: - Nouveaux champs bindables
+
+    func testNewBindableContentsResolveFromLabel() {
+        let label = ProductLabel(name: "N", priceExclVat: "420,00 €", vatAmount: "84,00 €",
+                                 realStock: "5", virtualStock: "8", subFamily: "SF001",
+                                 supplier: "FR01066", unit: "UNIT", weight: "12,5", volume: "0,035")
+        XCTAssertEqual(CellContent.prixHT.text(for: label, formattedPrice: nil), "420,00 €")
+        XCTAssertEqual(CellContent.montantTVA.text(for: label, formattedPrice: nil), "84,00 €")
+        XCTAssertEqual(CellContent.stockReel.text(for: label, formattedPrice: nil), "5")
+        XCTAssertEqual(CellContent.stockDispo.text(for: label, formattedPrice: nil), "8")
+        XCTAssertEqual(CellContent.sousFamille.text(for: label, formattedPrice: nil), "SF001")
+        XCTAssertEqual(CellContent.fournisseur.text(for: label, formattedPrice: nil), "FR01066")
+        XCTAssertEqual(CellContent.unite.text(for: label, formattedPrice: nil), "UNIT")
+        XCTAssertEqual(CellContent.poids.text(for: label, formattedPrice: nil), "12,5")
+        XCTAssertEqual(CellContent.volume.text(for: label, formattedPrice: nil), "0,035")
+    }
+
+    func testNewBindableContentsNilWhenFieldMissing() {
+        let label = ProductLabel(name: "N")   // aucun champ additionnel renseigné
+        XCTAssertNil(CellContent.prixHT.text(for: label, formattedPrice: nil))
+        XCTAssertNil(CellContent.stockReel.text(for: label, formattedPrice: nil))
+        XCTAssertNil(CellContent.poids.text(for: label, formattedPrice: nil))
+    }
+
+    func testNewContentsCodableRoundTrip() throws {
+        for content in [CellContent.prixHT, .montantTVA, .stockReel, .stockDispo,
+                        .sousFamille, .fournisseur, .unite, .poids, .volume] {
+            let cell = TemplateCell(content: content)
+            let restored = try JSONDecoder().decode(TemplateCell.self, from: JSONEncoder().encode(cell))
+            XCTAssertEqual(restored.content, content)
+        }
+    }
+
+    // MARK: - Préfixe / suffixe / placeholder
+
+    func testPrefixSuffixWrapValue() {
+        let label = ProductLabel(name: "N", weight: "12,5")
+        let cell = TemplateCell(content: .poids, prefix: "Poids : ", suffix: " kg")
+        XCTAssertEqual(cell.decoratedText(for: label, formattedPrice: nil), "Poids : 12,5 kg")
+    }
+
+    func testPlaceholderShownAloneWhenValueMissing() {
+        let label = ProductLabel(name: "N")   // stock non renseigné
+        let stockCell = TemplateCell(content: .stockReel, prefix: "[", suffix: "]", placeholder: "N/A")
+        // Valeur absente → le repli s'affiche SEUL, sans préfixe ni suffixe.
+        XCTAssertEqual(stockCell.decoratedText(for: label, formattedPrice: nil), "N/A")
+        // Valeur présente → préfixe + valeur + suffixe.
+        let withStock = ProductLabel(name: "N", realStock: "5")
+        XCTAssertEqual(stockCell.decoratedText(for: withStock, formattedPrice: nil), "[5]")
+    }
+
+    func testNoValueNoPlaceholderYieldsNil() {
+        let label = ProductLabel(name: "N")
+        let cell = TemplateCell(content: .stockReel, prefix: "x", suffix: "y")
+        XCTAssertNil(cell.decoratedText(for: label, formattedPrice: nil))
+    }
+
+    func testFreeTextAlsoDecorated() {
+        let label = ProductLabel(name: "N")
+        let cell = TemplateCell(content: .texteLibre("PROMO"), prefix: "<< ", suffix: " >>")
+        XCTAssertEqual(cell.decoratedText(for: label, formattedPrice: nil), "<< PROMO >>")
+    }
+
+    func testDecorationsCodableRoundTrip() throws {
+        let cell = TemplateCell(content: .poids, prefix: "P:", suffix: "kg", placeholder: "—",
+                                codeRendering: .barcode)
+        let restored = try JSONDecoder().decode(TemplateCell.self, from: JSONEncoder().encode(cell))
+        XCTAssertEqual(restored.prefix, "P:")
+        XCTAssertEqual(restored.suffix, "kg")
+        XCTAssertEqual(restored.placeholder, "—")
+        XCTAssertEqual(restored.codeRendering, .barcode)
+    }
+
+    func testDecorationsBackwardCompatibleDefaults() throws {
+        // Une cellule sauvegardée avant l'ajout des décorations décode avec des valeurs neutres.
+        let legacy = #"{"content":{"kind":"designation"}}"#
+        let cell = try JSONDecoder().decode(TemplateCell.self, from: Data(legacy.utf8))
+        XCTAssertEqual(cell.prefix, "")
+        XCTAssertEqual(cell.suffix, "")
+        XCTAssertEqual(cell.placeholder, "")
+        XCTAssertEqual(cell.codeRendering, .barcode)
+    }
+
+    // MARK: - Rendu du code (QR)
+
+    func testCodeRenderingModeAndPayload() {
+        let barcodeCell = TemplateCell(content: .codeBarres, codeRendering: .barcode)
+        XCTAssertFalse(barcodeCell.rendersAsQR)
+        let qrCell = TemplateCell(content: .codeBarres, codeRendering: .qr)
+        XCTAssertTrue(qrCell.rendersAsQR)
+        // Le mode QR n'a d'effet que sur une cellule de type code.
+        let textQR = TemplateCell(content: .designation, codeRendering: .qr)
+        XCTAssertFalse(textQR.rendersAsQR)
+    }
+
+    func testQRGeneratesNonEmptyGrid() {
+        let grid = QRCode.modules(for: "4006381333931")
+        XCTAssertFalse(grid.isEmpty)
+        XCTAssertEqual(grid.count, grid.first?.count)   // carré
+        XCTAssertTrue(grid.contains { $0.contains(true) })  // au moins un module noir
+    }
+
+    func testQREmptyStringYieldsEmptyGrid() {
+        XCTAssertTrue(QRCode.modules(for: "").isEmpty)
+        XCTAssertTrue(QRCode.modules(for: "   ").isEmpty)
+    }
+
+    // MARK: - Signature de contenu / clé de miniature
+
+    func testContentSignatureChangesWithDecorations() {
+        let base = LabelTemplate(name: "T", lines: [.full(TemplateCell(content: .poids))])
+        var withSuffix = base
+        withSuffix.lines[0].cells[0].suffix = "kg"
+        XCTAssertNotEqual(base.contentSignature, withSuffix.contentSignature)
+
+        var withPlaceholder = base
+        withPlaceholder.lines[0].cells[0].placeholder = "—"
+        XCTAssertNotEqual(base.contentSignature, withPlaceholder.contentSignature)
+
+        var asQR = LabelTemplate(name: "T", lines: [.full(TemplateCell(content: .codeBarres))])
+        let asBarcode = asQR
+        asQR.lines[0].cells[0].codeRendering = .qr
+        XCTAssertNotEqual(asBarcode.contentSignature, asQR.contentSignature)
+    }
+
+    func testThumbnailKeyChangesWithContentAndLabel() {
+        let t1 = LabelTemplate(name: "T", lines: [.full(TemplateCell(content: .poids))])
+        var t2 = t1
+        t2.lines[0].cells[0].suffix = "kg"   // modif sans changer le nombre de lignes
+        let k1 = t1.thumbnailKey(forLabelSignature: 1, size: .standard, width: 384)
+        let k2 = t2.thumbnailKey(forLabelSignature: 1, size: .standard, width: 384)
+        XCTAssertNotEqual(k1, k2, "la clé doit changer dès qu'une décoration change")
+        // Changement d'étiquette source → clé différente aussi.
+        let k3 = t1.thumbnailKey(forLabelSignature: 2, size: .standard, width: 384)
+        XCTAssertNotEqual(k1, k3)
+    }
 }

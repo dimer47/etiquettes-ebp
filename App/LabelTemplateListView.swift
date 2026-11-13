@@ -7,18 +7,14 @@ import SwiftUI
 final class TemplateThumbnailStore: ObservableObject {
     @Published private(set) var images: [String: UIImage] = [:]
     @Published private(set) var failed: Set<String> = []
-    private var sourceSignature: String?
 
-    nonisolated static func key(template: LabelTemplate, size: LabelSize, width: Int) -> String {
-        "\(template.id.uuidString).\(size.rawValue).\(width).\(template.lines.count).\(template.baseArrangement?.rawValue ?? "custom")"
-    }
-
-    func reset(for label: ProductLabel) {
-        let signature = String(label.hashValue)
-        guard signature != sourceSignature else { return }
-        sourceSignature = signature
-        images.removeAll()
-        failed.removeAll()
+    /// Clé idempotente : identité + taille + largeur + signature de l'étiquette source + signature
+    /// du contenu du modèle (`LabelTemplate.thumbnailKey`). Un changement d'étiquette OU de modèle
+    /// (contenu, style, préfixe/suffixe, placeholder, mode QR) renouvelle la clé → le `.task(id:)`
+    /// se relance et les anciennes entrées deviennent inertes. Plus de `reset` impératif qui
+    /// effaçait les tuiles concurrentes (spinner figé déjà rencontré).
+    nonisolated static func key(label: ProductLabel, template: LabelTemplate, size: LabelSize, width: Int) -> String {
+        template.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
     }
 
     /// Invalide la miniature d'un modèle précis (après édition de ses zones) : les clés sont
@@ -29,8 +25,7 @@ final class TemplateThumbnailStore: ObservableObject {
     }
 
     func thumbnail(for label: ProductLabel, template: LabelTemplate, size: LabelSize, width: Int) async {
-        reset(for: label)
-        let key = Self.key(template: template, size: size, width: width)
+        let key = Self.key(label: label, template: template, size: size, width: width)
         guard images[key] == nil, !failed.contains(key) else { return }
         await Task.yield()
         if Task.isCancelled { return }
@@ -113,7 +108,7 @@ struct LabelTemplateListView: View {
     }
 
     private func row(_ template: LabelTemplate, locked: Bool) -> some View {
-        let key = TemplateThumbnailStore.key(template: template, size: size, width: layoutWidth)
+        let key = TemplateThumbnailStore.key(label: previewLabel, template: template, size: size, width: layoutWidth)
         let isSelected = selectedTemplateID == template.id
         return HStack(spacing: 12) {
             ZStack {

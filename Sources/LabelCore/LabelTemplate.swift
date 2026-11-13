@@ -57,6 +57,35 @@ public struct LabelTemplate: Codable, Equatable, Identifiable, Hashable {
         if let baseArrangement { return TemplateLine.referenceLines(for: baseArrangement) }
         return TemplateLine.referenceLines(for: .current)
     }
+
+    /// Signature stable du CONTENU rendu du modèle : tout ce qui change le rendu (arrangement de
+    /// base, disposition des lignes, et pour chaque cellule : contenu, style, préfixe/suffixe,
+    /// placeholder, mode de rendu du code). Sert à bâtir une clé de cache qui se renouvelle dès
+    /// qu'une cellule change — y compris une modif qui ne touche pas le nombre de lignes (sinon
+    /// la miniature resterait figée : bug d'aperçu déjà rencontré).
+    public var contentSignature: Int {
+        var hasher = Hasher()
+        hasher.combine(baseArrangement)
+        for line in lines {
+            hasher.combine(line.layout)
+            for cell in line.cells {
+                hasher.combine(cell.content)
+                hasher.combine(cell.style)
+                hasher.combine(cell.prefix)
+                hasher.combine(cell.suffix)
+                hasher.combine(cell.placeholder)
+                hasher.combine(cell.codeRendering)
+            }
+        }
+        return hasher.finalize()
+    }
+
+    /// Clé de cache d'une miniature : identité + taille + largeur + signature de l'étiquette
+    /// source + signature du contenu du modèle. Pure et testable. Toute modif du modèle OU de
+    /// l'étiquette renouvelle la clé → `.task(id:)` relancé, pas de spinner figé ni d'aperçu périmé.
+    public func thumbnailKey(forLabelSignature labelSignature: Int, size: LabelSize, width: Int) -> String {
+        "\(id.uuidString).\(size.rawValue).\(width).\(labelSignature).\(contentSignature)"
+    }
 }
 
 /// Une ligne du modèle : pleine largeur (1 cellule) ou deux colonnes (2 cellules).
@@ -124,25 +153,83 @@ public struct TemplateLine: Codable, Equatable, Identifiable, Hashable {
     }
 }
 
-/// Une cellule : un contenu et son style.
+/// Mode de rendu d'une cellule qui porte un code (code-barres par défaut) : barres EAN-13
+/// linéaires, ou QR code. Le QR encode la valeur de la cellule et se redimensionne pour tenir
+/// dans sa cellule, comme les barres.
+public enum CodeRendering: String, Codable, CaseIterable, Hashable {
+    case barcode   // code-barres EAN-13 linéaire (historique)
+    case qr        // QR code (CoreImage)
+    public var title: String {
+        switch self {
+        case .barcode: NSLocalizedString("Code-barres (EAN)", comment: "Code rendering")
+        case .qr: NSLocalizedString("QR code", comment: "Code rendering")
+        }
+    }
+}
+
+/// Une cellule : un contenu, son style, et des décorations optionnelles (préfixe/suffixe,
+/// placeholder, mode de rendu d'un code).
 public struct TemplateCell: Codable, Equatable, Identifiable, Hashable {
     public var id: UUID
     public var content: CellContent
     public var style: CellStyle
+    /// Texte libre affiché AVANT la valeur rendue (ex. « Réf. »). Vide = aucun.
+    public var prefix: String
+    /// Texte libre affiché APRÈS la valeur rendue (ex. « kg »). Vide = aucun.
+    public var suffix: String
+    /// Valeur de repli affichée quand le champ bindé est vide/nul (ex. « — »). Vide = la cellule
+    /// reste vide quand la valeur manque.
+    public var placeholder: String
+    /// Mode de rendu quand le contenu est un code (code-barres par défaut) : linéaire ou QR.
+    public var codeRendering: CodeRendering
 
-    public init(id: UUID = UUID(), content: CellContent, style: CellStyle = CellStyle()) {
+    public init(id: UUID = UUID(), content: CellContent, style: CellStyle = CellStyle(),
+                prefix: String = "", suffix: String = "", placeholder: String = "",
+                codeRendering: CodeRendering = .barcode) {
         self.id = id
         self.content = content
         self.style = style
+        self.prefix = prefix
+        self.suffix = suffix
+        self.placeholder = placeholder
+        self.codeRendering = codeRendering
     }
 
-    private enum CodingKeys: String, CodingKey { case id, content, style }
+    private enum CodingKeys: String, CodingKey { case id, content, style, prefix, suffix, placeholder, codeRendering }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
         content = try values.decode(CellContent.self, forKey: .content)
         style = try values.decodeIfPresent(CellStyle.self, forKey: .style) ?? CellStyle()
+        prefix = try values.decodeIfPresent(String.self, forKey: .prefix) ?? ""
+        suffix = try values.decodeIfPresent(String.self, forKey: .suffix) ?? ""
+        placeholder = try values.decodeIfPresent(String.self, forKey: .placeholder) ?? ""
+        codeRendering = try values.decodeIfPresent(CodeRendering.self, forKey: .codeRendering) ?? .barcode
+    }
+
+    /// Vrai si cette cellule doit être rendue en QR code (contenu de type code + mode QR).
+    public var rendersAsQR: Bool { content.isBarcode && codeRendering == .qr }
+
+    /// Texte final à afficher pour cette cellule, décorations appliquées, à partir de la valeur
+    /// brute du champ bindé. Règle : si la valeur est présente → préfixe + valeur + suffixe ;
+    /// si elle est absente (nil/vide) → le placeholder SEUL (sans préfixe/suffixe, car il n'a de
+    /// sens qu'autour d'une vraie valeur). nil si aucune valeur et aucun placeholder.
+    public func decoratedText(for label: ProductLabel, formattedPrice: String?) -> String? {
+        let raw = content.text(for: label, formattedPrice: formattedPrice)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if let raw, !raw.isEmpty {
+            return prefix + raw + suffix
+        }
+        let fallback = placeholder.trimmingCharacters(in: .whitespacesAndNewlines)
+        return fallback.isEmpty ? nil : fallback
+    }
+
+    /// Valeur à encoder dans un code (barres ou QR) : la valeur brute du champ, décorée du
+    /// préfixe/suffixe comme le texte, avec repli sur le placeholder. Pour un code-barres EAN
+    /// classique, le moteur garde l'EAN brut ; cette valeur sert au QR.
+    public func codePayload(for label: ProductLabel, formattedPrice: String?) -> String? {
+        decoratedText(for: label, formattedPrice: formattedPrice)
     }
 }
 
@@ -154,13 +241,25 @@ public enum CellContent: Codable, Equatable, Hashable {
     case refRayon         // ProductLabel.shelfReference
     case famille          // ProductLabel.category
     case prixTTC          // ProductLabel.price + currency, avec priceCaption
-    case codeBarres       // ProductLabel.ean (EAN13, redimensionné dans la cellule)
+    case prixHT           // ProductLabel.priceExclVat (SalePriceVatExcluded, formaté monnaie)
+    case montantTVA       // ProductLabel.vatAmount (VatAmount, formaté monnaie)
+    case stockReel        // ProductLabel.realStock (RealStock, quantité nettoyée)
+    case stockDispo       // ProductLabel.virtualStock (VirtualStock, quantité nettoyée)
+    case sousFamille      // ProductLabel.subFamily (SubFamilyId)
+    case fournisseur      // ProductLabel.supplier (SupplierId)
+    case unite            // ProductLabel.unit (UnitId)
+    case poids            // ProductLabel.weight (Weight, quantité nettoyée)
+    case volume           // ProductLabel.volume (Volume, quantité nettoyée)
+    case codeBarres       // ProductLabel.ean (EAN13 ou QR, redimensionné dans la cellule)
     case dateGeneration(String?)  // ProductLabel.generatedAt ; pattern DateFormatter (nil = défaut)
     case texteLibre(String)
 
     /// Cas « simples » pour alimenter les sélecteurs (date au format par défaut, texte vide).
     public static var selectableKinds: [CellContent] {
-        [.vide, .designation, .refArticle, .refRayon, .famille, .prixTTC, .codeBarres, .dateGeneration(nil), .texteLibre("")]
+        [.vide, .designation, .refArticle, .refRayon, .famille,
+         .prixTTC, .prixHT, .montantTVA, .stockReel, .stockDispo,
+         .sousFamille, .fournisseur, .unite, .poids, .volume,
+         .codeBarres, .dateGeneration(nil), .texteLibre("")]
     }
 
     public var title: String {
@@ -171,6 +270,15 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .refRayon: NSLocalizedString("Réf. rayon", comment: "Cell content")
         case .famille: NSLocalizedString("Famille", comment: "Cell content")
         case .prixTTC: NSLocalizedString("Prix TTC", comment: "Cell content")
+        case .prixHT: NSLocalizedString("Prix HT", comment: "Cell content")
+        case .montantTVA: NSLocalizedString("Montant TVA", comment: "Cell content")
+        case .stockReel: NSLocalizedString("Stock réel", comment: "Cell content")
+        case .stockDispo: NSLocalizedString("Stock disponible", comment: "Cell content")
+        case .sousFamille: NSLocalizedString("Sous-famille", comment: "Cell content")
+        case .fournisseur: NSLocalizedString("Fournisseur", comment: "Cell content")
+        case .unite: NSLocalizedString("Unité", comment: "Cell content")
+        case .poids: NSLocalizedString("Poids", comment: "Cell content")
+        case .volume: NSLocalizedString("Volume", comment: "Cell content")
         case .codeBarres: NSLocalizedString("Code-barres", comment: "Cell content")
         case .dateGeneration: NSLocalizedString("Date de génération", comment: "Cell content")
         case .texteLibre: NSLocalizedString("Texte libre", comment: "Cell content")
@@ -195,8 +303,14 @@ public enum CellContent: Codable, Equatable, Hashable {
     public var isBarcode: Bool { if case .codeBarres = self { return true }; return false }
 
     /// Valeur textuelle à afficher (nil pour .vide, .codeBarres — rendu graphiquement —
-    /// ou une date absente). `formattedPrice` est le prix déjà mis en forme.
+    /// ou une valeur absente). `formattedPrice` est le prix TTC déjà mis en forme.
+    /// Les valeurs EBP (prix HT/TVA, stock, poids, volume…) sont déjà formatées à la source
+    /// (`EBPProductMapper`) : aucune valeur brute ne transite ici.
     public func text(for label: ProductLabel, formattedPrice: String?) -> String? {
+        func nonEmpty(_ s: String?) -> String? {
+            guard let s, !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return s
+        }
         switch self {
         case .vide, .codeBarres: return nil
         case .designation: return label.name
@@ -204,6 +318,15 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .refRayon: return label.shelfReference
         case .famille: return label.category
         case .prixTTC: return formattedPrice
+        case .prixHT: return nonEmpty(label.priceExclVat)
+        case .montantTVA: return nonEmpty(label.vatAmount)
+        case .stockReel: return nonEmpty(label.realStock)
+        case .stockDispo: return nonEmpty(label.virtualStock)
+        case .sousFamille: return nonEmpty(label.subFamily)
+        case .fournisseur: return nonEmpty(label.supplier)
+        case .unite: return nonEmpty(label.unit)
+        case .poids: return nonEmpty(label.weight)
+        case .volume: return nonEmpty(label.volume)
         case .dateGeneration(let pattern): return label.generatedAtFormatted(pattern: pattern)
         case .texteLibre(let value): return value
         }
@@ -221,6 +344,15 @@ public enum CellContent: Codable, Equatable, Hashable {
         case "refRayon": self = .refRayon
         case "famille": self = .famille
         case "prixTTC": self = .prixTTC
+        case "prixHT": self = .prixHT
+        case "montantTVA": self = .montantTVA
+        case "stockReel": self = .stockReel
+        case "stockDispo": self = .stockDispo
+        case "sousFamille": self = .sousFamille
+        case "fournisseur": self = .fournisseur
+        case "unite": self = .unite
+        case "poids": self = .poids
+        case "volume": self = .volume
         case "codeBarres": self = .codeBarres
         case "dateGeneration": self = .dateGeneration(try values.decodeIfPresent(String.self, forKey: .value))
         case "texteLibre": self = .texteLibre(try values.decodeIfPresent(String.self, forKey: .value) ?? "")
@@ -237,6 +369,15 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .refRayon: try container.encode("refRayon", forKey: .kind)
         case .famille: try container.encode("famille", forKey: .kind)
         case .prixTTC: try container.encode("prixTTC", forKey: .kind)
+        case .prixHT: try container.encode("prixHT", forKey: .kind)
+        case .montantTVA: try container.encode("montantTVA", forKey: .kind)
+        case .stockReel: try container.encode("stockReel", forKey: .kind)
+        case .stockDispo: try container.encode("stockDispo", forKey: .kind)
+        case .sousFamille: try container.encode("sousFamille", forKey: .kind)
+        case .fournisseur: try container.encode("fournisseur", forKey: .kind)
+        case .unite: try container.encode("unite", forKey: .kind)
+        case .poids: try container.encode("poids", forKey: .kind)
+        case .volume: try container.encode("volume", forKey: .kind)
         case .codeBarres: try container.encode("codeBarres", forKey: .kind)
         case .dateGeneration(let pattern):
             try container.encode("dateGeneration", forKey: .kind)

@@ -127,13 +127,21 @@ enum LabelRenderer {
             }
             drawLineRows(rows, label: label, ean: ean, price: price, layoutWidth: layoutW)
         }
-        // Barres de chaque cellule code-barres, converties en pixels et peintes.
+        // Codes de chaque cellule (barres EAN ou QR), convertis en pixels et peints après seuillage.
         for row in rows {
-            for placed in row.cells where placed.isBarcode {
-                paintBarcode(&black, modules: modules, width: width, height: height,
-                             cellXLayout: placed.x, cellWidthLayout: placed.width,
-                             topLayout: placed.barcodeBarsTopLayout, barsHeightLayout: placed.barcodeBarsHeightLayout,
-                             sx: sx, sy: sy)
+            for placed in row.cells where placed.isBarcode || placed.isQR {
+                if placed.isQR {
+                    let payload = placed.cell.codePayload(for: label, formattedPrice: price) ?? ean
+                    paintQR(&black, payload: payload, width: width, height: height,
+                            cellXLayout: placed.x, cellWidthLayout: placed.width,
+                            topLayout: placed.barcodeBarsTopLayout, blockHeightLayout: placed.barcodeBarsHeightLayout,
+                            sx: sx, sy: sy)
+                } else {
+                    paintBarcode(&black, modules: modules, width: width, height: height,
+                                 cellXLayout: placed.x, cellWidthLayout: placed.width,
+                                 topLayout: placed.barcodeBarsTopLayout, barsHeightLayout: placed.barcodeBarsHeightLayout,
+                                 sx: sx, sy: sy)
+                }
             }
         }
         return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
@@ -141,11 +149,13 @@ enum LabelRenderer {
 
     /// Une ligne calculée : son `top` et sa hauteur (coordonnées layout) et ses cellules placées.
     private struct LineRow { var top: Int; var height: Int; var cells: [PlacedCell] }
-    /// Une cellule placée : rectangle en coordonnées layout + style + repères code-barres.
+    /// Une cellule placée : rectangle en coordonnées layout + style + repères code/QR.
+    /// `isBarcode` = code-barres EAN linéaire ; `isQR` = QR code (CoreImage).
     private struct PlacedCell {
         var cell: TemplateCell
         var x: Int, width: Int
         var isBarcode: Bool
+        var isQR: Bool
         var barcodeBarsTopLayout: Int
         var barcodeBarsHeightLayout: Int
     }
@@ -157,20 +167,25 @@ enum LabelRenderer {
         var rows: [LineRow] = []
         var cursor = Int(6 * heightScale)
         for line in lines {
-            // Hauteur de ligne = plus grande bande de ses cellules (le code-barres impose un bloc).
-            let bandBase = line.cells.map { $0.content.isBarcode ? 64 : $0.style.size.bandHeight }.max() ?? 27
+            // Hauteur de ligne = plus grande bande de ses cellules. Un code (barres OU QR) impose
+            // un bloc plus haut ; le QR, carré, réclame un peu plus de hauteur que les barres.
+            let bandBase = line.cells.map { cell -> Int in
+                if cell.rendersAsQR { return 88 }
+                return cell.content.isBarcode ? 64 : cell.style.size.bandHeight
+            }.max() ?? 27
             let rowHeight = Int(Double(bandBase) * heightScale)
             var placed: [PlacedCell] = []
             let count = line.cells.count
             for (index, cell) in line.cells.enumerated() {
                 let colWidth = count > 1 ? (layoutWidth - 2 * margin) / 2 - 6 : layoutWidth - 2 * margin
                 let x = count > 1 && index == 1 ? layoutWidth - margin - colWidth : margin
-                let isBar = cell.content.isBarcode
-                // Bloc code-barres : barres en haut, chiffres dessous dans la cellule.
-                let barsHeight = isBar ? Int(Double(rowHeight) * 0.66) : 0
-                placed.append(PlacedCell(cell: cell, x: x, width: colWidth, isBarcode: isBar,
+                let isQR = cell.rendersAsQR
+                let isBar = cell.content.isBarcode && !isQR
+                // Bloc code : barres (chiffres dessous) ou QR carré, en haut de la cellule.
+                let blockHeight = (isBar || isQR) ? Int(Double(rowHeight) * (isQR ? 0.92 : 0.66)) : 0
+                placed.append(PlacedCell(cell: cell, x: x, width: colWidth, isBarcode: isBar, isQR: isQR,
                                          barcodeBarsTopLayout: cursor + Int(2 * heightScale),
-                                         barcodeBarsHeightLayout: barsHeight))
+                                         barcodeBarsHeightLayout: blockHeight))
             }
             rows.append(LineRow(top: cursor, height: rowHeight, cells: placed))
             cursor += rowHeight
@@ -183,6 +198,10 @@ enum LabelRenderer {
                                      price: String, layoutWidth: Int) {
         for row in rows {
             for placed in row.cells {
+                if placed.isQR {
+                    // Le QR est peint après seuillage (paintQR) ; rien à dessiner ici.
+                    continue
+                }
                 if placed.isBarcode {
                     // Chiffres EAN lisibles sous les barres, centrés dans la cellule.
                     let digitsTop = CGFloat(placed.barcodeBarsTopLayout + placed.barcodeBarsHeightLayout)
@@ -196,7 +215,7 @@ enum LabelRenderer {
                          maxSize: 12, bold: true, alignment: .center)
                     continue
                 }
-                guard let text = placed.cell.content.text(for: label, formattedPrice: price) else { continue }
+                guard let text = placed.cell.decoratedText(for: label, formattedPrice: price) else { continue }
                 let style = placed.cell.style
                 let alignment: NSTextAlignment = style.alignH == .leading ? .left : style.alignH == .trailing ? .right : .center
                 // Alignement vertical : décale le rectangle de texte dans la bande.
@@ -235,6 +254,43 @@ enum LabelRenderer {
                 for dot in 0..<modulePx {
                     let px = left + index * modulePx + dot
                     if px >= 0 && px < width { black[y * width + px] = true }
+                }
+            }
+        }
+    }
+
+    /// Peint un QR code dans une cellule : grille carrée de modules centrée dans la cellule, le
+    /// plus grand module ENTIER qui tient dans le bloc (largeur de cellule × hauteur de bloc).
+    /// Monochrome, peint directement sur la grille de pixels finale, comme les barres EAN.
+    private static func paintQR(_ black: inout [Bool], payload: String, width: Int, height: Int,
+                                cellXLayout: Int, cellWidthLayout: Int,
+                                topLayout: Int, blockHeightLayout: Int, sx: Double, sy: Double) {
+        guard blockHeightLayout > 0 else { return }
+        let grid = QRCode.modules(for: payload)
+        let n = grid.count
+        guard n > 0 else { return }
+
+        // Espace disponible en pixels (bloc carré : limité par la plus petite des deux dimensions).
+        let cellWidthPx = Int(Double(cellWidthLayout) * sx)
+        let blockHeightPx = max(1, Int(Double(blockHeightLayout) * sy))
+        let available = min(cellWidthPx, blockHeightPx)
+        let modulePx = max(1, available / n)
+        let qrPx = modulePx * n
+
+        // Centré horizontalement dans la cellule, calé en haut du bloc (comme les barres).
+        let cellLeftPx = Int(Double(cellXLayout) * sx)
+        let left = cellLeftPx + (cellWidthPx - qrPx) / 2
+        let topPx = Int(Double(topLayout) * sy)
+
+        for (ry, rowModules) in grid.enumerated() {
+            for (rx, on) in rowModules.enumerated() where on {
+                for dy in 0..<modulePx {
+                    let py = topPx + ry * modulePx + dy
+                    guard py >= 0, py < height else { continue }
+                    for dx in 0..<modulePx {
+                        let px = left + rx * modulePx + dx
+                        if px >= 0 && px < width { black[py * width + px] = true }
+                    }
                 }
             }
         }
