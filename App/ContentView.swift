@@ -794,19 +794,32 @@ private final class LabelThumbnailStore: ObservableObject {
             pending.insert(imageKey)
             return true
         }
-        Task.detached(priority: .userInitiated) { [weak self] in
-            for (imageSize, imageArrangement) in missing {
+        // Le rendu passe par UIKit (UIGraphicsImageRenderer, UIFont, NSString.draw), qui n'est
+        // pas thread-safe hors du main thread : lancé depuis un Task.detached, il pouvait se
+        // bloquer sur un verrou interne pour certaines combinaisons et figer la boucle — les
+        // combinaisons suivantes restaient alors en `pending`, d'où un spinner infini. On rend
+        // donc sur le MainActor, chaque combinaison isolée (une clé = une tâche), avec un
+        // Task.yield() pour ne pas geler l'UI pendant la série. accept() est garanti pour
+        // CHAQUE clé de `missing` : en cas d'échec, la clé tombe en `failed` (« indisponible »),
+        // jamais en attente perpétuelle.
+        for (imageSize, imageArrangement) in missing {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await Task.yield()
+                let imageKey = Self.key(size: imageSize, arrangement: imageArrangement, width: width)
                 let bitmap = try? LabelRenderer.render(label, size: imageSize, arrangement: imageArrangement,
                                                        layoutWidth: width)
                 let image = bitmap.flatMap(LabelRenderer.preview)
-                let imageKey = Self.key(size: imageSize, arrangement: imageArrangement, width: width)
-                await self?.accept(image, for: imageKey, generation: currentGeneration)
+                self.accept(image, for: imageKey, generation: currentGeneration)
             }
         }
     }
 
     private func accept(_ image: UIImage?, for key: String, generation request: Int) {
-        guard generation == request else { return }
+        guard generation == request else {
+            pending.remove(key)
+            return
+        }
         if let image { images[key] = image }
         else { failed.insert(key) }
         pending.remove(key)
