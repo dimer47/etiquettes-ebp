@@ -728,7 +728,7 @@ struct ContentView: View {
     private func presentationTile(title: String, detail: String, size: LabelSize,
                                   selected: Bool, fullWidth: Bool = false) -> some View {
         // La miniature de format reflète le MODÈLE courant à la hauteur de la tuile.
-        let thumbnailKey = TemplateThumbnailStore.key(template: currentTemplate, size: size, width: layoutWidth)
+        let thumbnailKey = TemplateThumbnailStore.key(for: selectionPreviewLabel, template: currentTemplate, size: size, width: layoutWidth)
         return VStack(alignment: .leading, spacing: 7) {
             ZStack {
                 Color.white

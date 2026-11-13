@@ -50,6 +50,35 @@ public struct LabelTemplate: Codable, Equatable, Identifiable, Hashable {
                       baseArrangement: nil, lines: materializedLines())
     }
 
+    /// Signature du CONTENU de rendu du modèle : lignes, cellules, contenus et styles. Deux
+    /// versions d'un même modèle (après édition) produisent des signatures différentes. C'est
+    /// ce qui fait changer la clé de miniature quand on modifie une cellule sans toucher au
+    /// nombre de lignes — sinon la tuile garderait la même clé, son `.task(id:)` ne se
+    /// relancerait pas et resterait bloquée sur un loader.
+    public var contentSignature: Int {
+        var hasher = Hasher()
+        hasher.combine(baseArrangement)
+        for line in lines {
+            hasher.combine(line.layout)
+            for cell in line.cells {
+                hasher.combine(cell.content)
+                hasher.combine(cell.style)
+            }
+        }
+        return hasher.finalize()
+    }
+
+    /// Clé de cache d'une miniature de ce modèle. Elle embarque la signature de l'étiquette
+    /// source (`labelSignature`) ET la signature de contenu du modèle : quand l'étiquette OU
+    /// le contenu du modèle change, la clé change, le `.task(id:)` de la tuile se relance et
+    /// l'ancienne entrée du cache devient inerte — sans qu'aucun reset impératif n'efface le
+    /// rendu en cours d'une autre miniature. Deux modèles distincts, un même modèle à des
+    /// tailles/largeurs différentes, ou deux versions d'un même modèle après édition,
+    /// produisent toujours des clés distinctes.
+    public func thumbnailKey(forLabelSignature labelSignature: Int, size: LabelSize, width: Int) -> String {
+        "\(labelSignature).\(id.uuidString).\(size.rawValue).\(width).\(contentSignature).\(baseArrangement?.rawValue ?? "custom")"
+    }
+
     /// Les lignes effectives à éditer/rendre : celles du modèle, ou les lignes de référence
     /// dérivées de l'arrangement de base pour un preset d'usine.
     public func materializedLines() -> [TemplateLine] {

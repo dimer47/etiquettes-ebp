@@ -244,4 +244,94 @@ final class LabelTemplateTests: XCTestCase {
         XCTAssertNil(label.generatedAtText)
         XCTAssertNil(CellContent.dateGeneration(nil).text(for: label, formattedPrice: nil))
     }
+
+    // MARK: - Clé de miniature (anti-spinner)
+
+    /// Deux modèles affichés côte à côte (preset + perso) doivent produire des clés distinctes :
+    /// c'est ce qui garantit que la miniature de l'un n'écrase jamais celle de l'autre dans le
+    /// cache. C'était la cause du loader infini sur les modèles perso.
+    func testThumbnailKeysDistinctAcrossTemplates() {
+        let label = ProductLabel()
+        let size = LabelSize.allCases.first!
+        let preset = LabelTemplatePresets.default
+        let custom = preset.duplicated(named: "Perso")
+
+        let keyPreset = preset.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: 384)
+        let keyCustom = custom.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: 384)
+
+        XCTAssertNotEqual(keyPreset, keyCustom, "Un preset et un modèle perso partagent une clé → ils s'écrasent dans le cache")
+
+        // Simule un cache partagé : les deux miniatures coexistent, aucune ne reste non résolue.
+        var cache: [String: String] = [:]
+        cache[keyPreset] = "image-preset"
+        cache[keyCustom] = "image-custom"
+        XCTAssertEqual(cache[keyPreset], "image-preset")
+        XCTAssertEqual(cache[keyCustom], "image-custom")
+        XCTAssertEqual(cache.count, 2)
+    }
+
+    /// La clé est stable tant que le modèle et l'étiquette ne changent pas (sinon un `.task(id:)`
+    /// se relancerait sans fin), mais change dès que l'étiquette source change (ce qui remplace
+    /// proprement le reset global : l'ancienne entrée devient inerte).
+    func testThumbnailKeyStableThenInvalidatedByLabelChange() {
+        let template = LabelTemplatePresets.default
+        let size = LabelSize.allCases.first!
+
+        let labelA = ProductLabel(productReference: "AAA")
+        let labelB = ProductLabel(productReference: "BBB")
+
+        let key1 = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 384)
+        let key2 = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 384)
+        XCTAssertEqual(key1, key2, "Même modèle + même étiquette → clé stable")
+
+        let keyOtherLabel = template.thumbnailKey(forLabelSignature: labelB.hashValue, size: size, width: 384)
+        XCTAssertNotEqual(key1, keyOtherLabel, "Changement d'étiquette → nouvelle clé")
+
+        let keyOtherWidth = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 512)
+        XCTAssertNotEqual(key1, keyOtherWidth, "Changement de largeur → nouvelle clé")
+    }
+
+    /// Scénario « enregistrer une modification » : éditer une cellule (ou ajouter/retirer une
+    /// ligne) d'un modèle, sans changer son id, doit changer sa clé de miniature — sinon le
+    /// `.task(id:)` de la tuile ne se relance pas et l'aperçu reste bloqué sur un loader après
+    /// l'enregistrement. La clé doit refléter le CONTENU du modèle, pas seulement son id.
+    func testThumbnailKeyChangesWhenTemplateContentEdited() {
+        let label = ProductLabel()
+        let size = LabelSize.allCases.first!
+        let width = 384
+
+        var template = LabelTemplatePresets.default.duplicated(named: "Perso")
+        // Garantit un contenu matérialisé à éditer.
+        if template.lines.isEmpty { template.lines = template.materializedLines() }
+        let keyBefore = template.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+
+        // 1) Modifier le style d'une cellule existante (même nombre de lignes).
+        var edited = template
+        let firstCell = edited.lines[0].cells[0]
+        edited.lines[0].cells[0].style = CellStyle(alignH: firstCell.style.alignH,
+                                                   size: firstCell.style.size == .xl ? .s : .xl,
+                                                   bold: !firstCell.style.bold)
+        let keyAfterStyle = edited.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+        XCTAssertNotEqual(keyBefore, keyAfterStyle, "Modifier un style de cellule doit changer la clé (sinon loader figé)")
+
+        // 2) Modifier le contenu d'une cellule.
+        var edited2 = template
+        edited2.lines[0].cells[0].content = .texteLibre("Promo")
+        let keyAfterContent = edited2.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+        XCTAssertNotEqual(keyBefore, keyAfterContent, "Modifier le contenu d'une cellule doit changer la clé")
+
+        // 3) Ajouter une ligne.
+        var edited3 = template
+        edited3.lines.append(.full(TemplateCell(content: .famille)))
+        let keyAfterAddLine = edited3.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+        XCTAssertNotEqual(keyBefore, keyAfterAddLine, "Ajouter une ligne doit changer la clé")
+
+        // La régénération : une tuile qui observe keyBefore puis keyAfter* relance son .task,
+        // car l'id passé à .task(id:) a changé. On simule ce cache : l'ancienne entrée reste,
+        // mais la nouvelle clé n'y est pas → la tuile la (re)génère.
+        var cache: [String: String] = [keyBefore: "ancienne-image"]
+        XCTAssertNil(cache[keyAfterContent], "La nouvelle version n'est pas servie par l'ancienne entrée")
+        cache[keyAfterContent] = "nouvelle-image"
+        XCTAssertEqual(cache[keyAfterContent], "nouvelle-image")
+    }
 }

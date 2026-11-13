@@ -7,30 +7,27 @@ import SwiftUI
 final class TemplateThumbnailStore: ObservableObject {
     @Published private(set) var images: [String: UIImage] = [:]
     @Published private(set) var failed: Set<String> = []
-    private var sourceSignature: String?
 
-    nonisolated static func key(template: LabelTemplate, size: LabelSize, width: Int) -> String {
-        "\(template.id.uuidString).\(size.rawValue).\(width).\(template.lines.count).\(template.baseArrangement?.rawValue ?? "custom")"
-    }
-
-    func reset(for label: ProductLabel) {
-        let signature = String(label.hashValue)
-        guard signature != sourceSignature else { return }
-        sourceSignature = signature
-        images.removeAll()
-        failed.removeAll()
+    /// La clé embarque la signature de l'étiquette source : quand le label change, toutes les
+    /// clés changent, les `.task(id:)` des tuiles se relancent et les anciennes entrées
+    /// deviennent inertes (jamais relues). Aucun reset impératif n'efface le travail d'une
+    /// autre tuile en cours — c'est ce qui laissait les modèles perso bloqués sur un spinner.
+    nonisolated static func key(for label: ProductLabel, template: LabelTemplate, size: LabelSize, width: Int) -> String {
+        template.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
     }
 
     /// Invalide la miniature d'un modèle précis (après édition de ses zones) : les clés sont
     /// retirées du cache pour forcer un nouveau rendu à la prochaine demande.
     func invalidate(templateID: UUID) {
-        images = images.filter { !$0.key.hasPrefix(templateID.uuidString) }
-        failed = failed.filter { !$0.hasPrefix(templateID.uuidString) }
+        images = images.filter { !$0.key.contains(templateID.uuidString) }
+        failed = failed.filter { $0.contains(templateID.uuidString) == false }
     }
 
+    /// Rendu idempotent par clé : si déjà en cache (succès ou échec), on ne régénère rien ;
+    /// sinon on génère et on écrit TOUJOURS un état terminal. Une tâche annulée n'écrit rien,
+    /// la clé sera redemandée au prochain affichage via `.task(id:)`.
     func thumbnail(for label: ProductLabel, template: LabelTemplate, size: LabelSize, width: Int) async {
-        reset(for: label)
-        let key = Self.key(template: template, size: size, width: width)
+        let key = Self.key(for: label, template: template, size: size, width: width)
         guard images[key] == nil, !failed.contains(key) else { return }
         await Task.yield()
         if Task.isCancelled { return }
@@ -113,7 +110,7 @@ struct LabelTemplateListView: View {
     }
 
     private func row(_ template: LabelTemplate, locked: Bool) -> some View {
-        let key = TemplateThumbnailStore.key(template: template, size: size, width: layoutWidth)
+        let key = TemplateThumbnailStore.key(for: previewLabel, template: template, size: size, width: layoutWidth)
         let isSelected = selectedTemplateID == template.id
         return HStack(spacing: 12) {
             ZStack {
