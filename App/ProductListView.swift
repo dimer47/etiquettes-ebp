@@ -311,20 +311,19 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                     .accessibilityLabel(NSLocalizedString("Scanner un code-barres", comment: "Scan barcode"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingFilters = true } label: {
-                        Image(systemName: model.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill"
-                                                                  : "line.3.horizontal.decrease.circle")
-                    }
-                    .accessibilityLabel(NSLocalizedString("Filtres", comment: "Filters"))
-                }
-                ToolbarItem(placement: .topBarTrailing) {
                     Button { onOpenSettings() } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel(NSLocalizedString("Réglages", comment: "Settings"))
                 }
             }
-            .safeAreaInset(edge: .bottom) { batchBar }
-            .searchable(text: $model.query,
-                        prompt: NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"))
+            .safeAreaInset(edge: .bottom) {
+                // Barre basse : recherche + bouton filtre côte à côte, puis récap du lot.
+                // Dans un safeAreaInset(.bottom), SwiftUI remonte le bloc au-dessus du clavier :
+                // le champ et le bouton filtre restent visibles pendant la saisie.
+                VStack(spacing: 0) {
+                    batchBar
+                    searchBar
+                }
+            }
             .onChange(of: model.query) { _, _ in model.search() }
             .onAppear { if model.items.isEmpty { model.reloadNow() } }
             .onChange(of: showingFilters) { wasShown, isShown in
@@ -646,6 +645,56 @@ struct ProductListView<Impression: View, Sheets: View>: View {
         }
     }
 
+    /// Barre de recherche basse : champ de recherche + bouton filtre à droite, côte à côte.
+    /// Remplace le `.searchable` natif (qui ne laisse pas poser de bouton à côté du champ) et
+    /// désencombre la zone haut-droite. Le bouton filtre ouvre la même feuille de filtres ;
+    /// il porte le même indicateur « filtre actif » (icône pleine) que l'ancien bouton de toolbar.
+    ///
+    /// Liquid Glass : la toolbar et le `.searchable` natifs adoptaient automatiquement le
+    /// matériau Liquid Glass d'iOS 26. En reconstruisant la barre à la main, on réapplique
+    /// explicitement `glassEffect` (champ en capsule, bouton en cercle) pour garder le même
+    /// matériau translucide. Repli `.regularMaterial` sur iOS < 26, comme ailleurs dans l'app.
+    /// Pas de fond opaque sur le conteneur : le translucide laisse voir la liste dessous.
+    private var searchBar: some View {
+        GlassEffectContainerCompat {
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(.secondary)
+                    TextField(NSLocalizedString("Rechercher (libellé ou référence)", comment: "Search"),
+                              text: $model.query)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.search)
+                    if !model.query.isEmpty {
+                        Button { model.query = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel(NSLocalizedString("Effacer la recherche", comment: "Clear search"))
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .glassCapsule()
+
+                Button { showingFilters = true } label: {
+                    Image(systemName: model.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill"
+                                                              : "line.3.horizontal.decrease.circle")
+                        .font(.title2)
+                        // Couleur = indicateur d'état : gris quand aucun filtre n'est actif,
+                        // teinte d'accent (bleu) quand un filtre est posé. Complète l'icône
+                        // pleine/contour portée par hasActiveFilters.
+                        .foregroundStyle(model.hasActiveFilters ? Color.accentColor : Color.secondary)
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel(NSLocalizedString("Filtres", comment: "Filters"))
+                .glassCircle()
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
     /// Barre basse : accès au récap du lot (dès qu'il contient un produit). En mode sélection,
     /// rappelle le nombre sélectionné et mène directement à « Imprimer la sélection ». Un bouton
     /// « Annuler la sélection » vide le lot et sort du mode sélection.
@@ -684,6 +733,47 @@ struct ProductListView<Impression: View, Sheets: View>: View {
             .padding(.vertical, 10)
             .background(.bar)
             .overlay(Divider(), alignment: .top)
+        }
+    }
+}
+
+// MARK: - Liquid Glass (compat iOS < 26)
+//
+// Helpers qui appliquent le matériau Liquid Glass d'iOS 26 (glassEffect /
+// GlassEffectContainer) aux vues reconstruites à la main, avec un repli
+// `.regularMaterial` sur les versions antérieures (deployment target 17.0).
+
+private extension View {
+    /// Champ de recherche : matériau Liquid Glass en capsule (repli `.regularMaterial`).
+    @ViewBuilder
+    func glassCapsule() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: .capsule)
+        } else {
+            self.background(.regularMaterial, in: Capsule())
+        }
+    }
+
+    /// Bouton filtre : matériau Liquid Glass interactif en cercle (repli `.regularMaterial`).
+    @ViewBuilder
+    func glassCircle() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: .circle)
+        } else {
+            self.background(.regularMaterial, in: Circle())
+        }
+    }
+}
+
+/// Conteneur Liquid Glass : regroupe les éléments translucides pour un rendu cohérent
+/// (fusion du matériau) sur iOS 26 ; transparent (passe-plat) sur les versions antérieures.
+private struct GlassEffectContainerCompat<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 10) { content() }
+        } else {
+            content()
         }
     }
 }

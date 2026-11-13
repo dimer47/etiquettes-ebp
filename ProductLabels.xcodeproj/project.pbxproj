@@ -254,6 +254,7 @@
 				1E3F4FD42CD5353AD63D7170 /* Frameworks */,
 				5EEC8E1CABA298AF9CB3BA60 /* Resources */,
 				DD0000000000000000000004 /* Embed Frameworks */,
+				DD0000000000000000000099 /* Auto-incrémenter le build number */,
 			);
 			buildRules = (
 			);
@@ -311,6 +312,25 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		DD0000000000000000000099 /* Auto-incrémenter le build number */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Auto-incrémenter le build number";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"${SRCROOT}/Tools/bump_build_number.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXVariantGroup section */
 		AA0000000000000000000001 /* InfoPlist.strings */ = {
