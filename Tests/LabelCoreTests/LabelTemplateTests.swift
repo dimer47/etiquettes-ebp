@@ -352,6 +352,60 @@ final class LabelTemplateTests: XCTestCase {
         XCTAssertTrue(QRCode.modules(for: "   ").isEmpty)
     }
 
+    // MARK: - Code libre
+
+    func testCodeLibreIsACodeCellWithSavedValue() {
+        let cell = TemplateCell(content: .codeLibre("ABC-123"), codeRendering: .qr)
+        XCTAssertTrue(cell.content.isBarcode)   // « isBarcode » = cellule de type code (barres ou QR)
+        XCTAssertTrue(cell.rendersAsQR)
+        // Le code libre n'affiche aucun texte (rendu graphiquement).
+        XCTAssertNil(cell.content.text(for: ProductLabel(), formattedPrice: nil))
+    }
+
+    func testCodeValueSourceArticleVsFree() {
+        let label = ProductLabel(ean: "4006381333931")
+        // Code-barres article → valeur = EAN de l'article.
+        XCTAssertEqual(CellContent.codeBarres.codeValue(for: label), "4006381333931")
+        // Code libre → valeur = chaîne saisie, quelle que soit l'étiquette.
+        XCTAssertEqual(CellContent.codeLibre("MA-VALEUR").codeValue(for: label), "MA-VALEUR")
+        // Un contenu non-code n'a pas de valeur encodable.
+        XCTAssertNil(CellContent.designation.codeValue(for: label))
+    }
+
+    func testCodePayloadUsesCodeValue() {
+        let label = ProductLabel(ean: "4006381333931")
+        let article = TemplateCell(content: .codeBarres)
+        XCTAssertEqual(article.codePayload(for: label), "4006381333931")
+        let free = TemplateCell(content: .codeLibre("https://ex.fr/p/42"))
+        XCTAssertEqual(free.codePayload(for: label), "https://ex.fr/p/42")
+    }
+
+    func testFreeCodeQRGeneratesNonEmptyGrid() {
+        // Une valeur libre quelconque (non EAN) produit un QR non vide.
+        let grid = QRCode.modules(for: "LOT-2026-XY/işçi")
+        XCTAssertFalse(grid.isEmpty)
+        XCTAssertTrue(grid.contains { $0.contains(true) })
+    }
+
+    func testCodeLibreCodableRoundTrip() throws {
+        let cell = TemplateCell(content: .codeLibre("REF\u{00a0}42"), codeRendering: .qr)
+        let restored = try JSONDecoder().decode(TemplateCell.self, from: JSONEncoder().encode(cell))
+        XCTAssertEqual(restored.content, .codeLibre("REF\u{00a0}42"))
+        XCTAssertEqual(restored.codeRendering, .qr)
+    }
+
+    func testContentSignatureChangesWithFreeCodeValueAndMode() {
+        let base = LabelTemplate(name: "T", lines: [.full(TemplateCell(content: .codeLibre("A")))])
+        // Changer la VALEUR saisie change la signature.
+        var otherValue = base
+        otherValue.lines[0].cells[0].content = .codeLibre("B")
+        XCTAssertNotEqual(base.contentSignature, otherValue.contentSignature)
+        // Basculer le mode de rendu change la signature.
+        var asQR = base
+        asQR.lines[0].cells[0].codeRendering = .qr
+        XCTAssertNotEqual(base.contentSignature, asQR.contentSignature)
+    }
+
     // MARK: - Signature de contenu / clé de miniature
 
     func testContentSignatureChangesWithDecorations() {

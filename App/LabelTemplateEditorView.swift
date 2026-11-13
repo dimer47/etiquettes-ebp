@@ -198,6 +198,10 @@ struct LabelTemplateEditorView: View {
 
     private func cellTitle(_ cell: TemplateCell) -> String {
         if case .texteLibre(let v) = cell.content, !v.isEmpty { return "« \(v) »" }
+        if case .codeLibre(let v) = cell.content, !v.isEmpty {
+            let mode = cell.codeRendering == .qr ? "QR" : NSLocalizedString("Code-barres", comment: "Code rendering")
+            return "\(mode) · \(v)"
+        }
         return cell.content.title
     }
     private func styleSummary(_ style: CellStyle) -> String {
@@ -224,6 +228,7 @@ struct LabelTemplateEditorView: View {
         case .poids: "scalemass"
         case .volume: "cube"
         case .codeBarres: "barcode"
+        case .codeLibre: "qrcode"
         case .dateGeneration: "calendar"
         case .texteLibre: "text.quote"
         }
@@ -246,6 +251,11 @@ struct LabelTemplateEditorView: View {
                         }
                         if case .texteLibre = cellBinding.wrappedValue.content {
                             TextField(NSLocalizedString("Texte à afficher", comment: "Free text"), text: freeTextBinding(cellBinding))
+                        }
+                        if case .codeLibre = cellBinding.wrappedValue.content {
+                            TextField(NSLocalizedString("Valeur à encoder", comment: "Free code value"), text: freeCodeBinding(cellBinding))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
                         }
                     }
                     if cellBinding.wrappedValue.content.isDate {
@@ -288,25 +298,35 @@ struct LabelTemplateEditorView: View {
     // MARK: - Rendu du code (code-barres / QR) et décorations (préfixe/suffixe/placeholder)
 
     /// Vrai si la section décorations a du sens pour ce contenu. Exclue pour « Vide » (aucune
-    /// valeur) et pour un code-barres LINÉAIRE (préfixe/suffixe/placeholder ne s'y affichent pas) ;
-    /// incluse pour un code en mode QR (ils décorent la valeur encodée).
+    /// valeur) et pour toute cellule de type CODE (le préfixe/suffixe/placeholder entoure un texte
+    /// lisible, pas une valeur encodée en barres ou QR).
     private func decorationsApply(to cell: TemplateCell) -> Bool {
         if case .vide = cell.content { return false }
-        if cell.content.isBarcode && cell.codeRendering == .barcode { return false }
+        if cell.content.isBarcode { return false }
         return true
     }
 
+    /// Segment « Code-barres / QR » affiché pour toute cellule de type code (code-barres article
+    /// ET code libre). L'aide s'adapte à la source de la valeur encodée.
     @ViewBuilder
     private func codeRenderingSection(_ cell: Binding<TemplateCell>) -> some View {
-        Section(NSLocalizedString("Rendu du code", comment: "Code rendering section")) {
+        let isFree = { if case .codeLibre = cell.wrappedValue.content { return true }; return false }()
+        Section(NSLocalizedString("Type de rendu", comment: "Code rendering section")) {
             Picker(NSLocalizedString("Type", comment: "Code rendering type"), selection: cell.codeRendering) {
                 ForEach(CodeRendering.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
             }
             .pickerStyle(.segmented)
-            Text(cell.wrappedValue.codeRendering == .qr
-                 ? NSLocalizedString("Le QR encode la valeur de la cellule (le code-barres EAN par défaut), redimensionné pour tenir dans la cellule.", comment: "QR hint")
-                 : NSLocalizedString("Code-barres EAN-13 linéaire, chiffres sous les barres.", comment: "Barcode hint"))
+            Text(codeRenderingHint(qr: cell.wrappedValue.codeRendering == .qr, free: isFree))
                 .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func codeRenderingHint(qr: Bool, free: Bool) -> String {
+        switch (qr, free) {
+        case (false, false): return NSLocalizedString("Code-barres EAN-13 de l’article, chiffres sous les barres.", comment: "Barcode hint article")
+        case (true, false): return NSLocalizedString("QR code encodant le code-barres (EAN) de l’article, redimensionné dans la cellule.", comment: "QR hint article")
+        case (false, true): return NSLocalizedString("Code-barres EAN-13 de la valeur saisie (si elle forme un EAN valide, sinon QR).", comment: "Barcode hint free")
+        case (true, true): return NSLocalizedString("QR code encodant la valeur saisie, redimensionné dans la cellule.", comment: "QR hint free")
         }
     }
 
@@ -338,6 +358,8 @@ struct LabelTemplateEditorView: View {
                     cell.wrappedValue.content = .texteLibre(existing)
                 } else if case .dateGeneration = kind, case .dateGeneration(let existing) = cell.wrappedValue.content {
                     cell.wrappedValue.content = .dateGeneration(existing)
+                } else if case .codeLibre = kind, case .codeLibre(let existing) = cell.wrappedValue.content {
+                    cell.wrappedValue.content = .codeLibre(existing)
                 } else {
                     cell.wrappedValue.content = kind
                 }
@@ -348,6 +370,12 @@ struct LabelTemplateEditorView: View {
         Binding(
             get: { if case .texteLibre(let v) = cell.wrappedValue.content { return v }; return "" },
             set: { cell.wrappedValue.content = .texteLibre($0) }
+        )
+    }
+    private func freeCodeBinding(_ cell: Binding<TemplateCell>) -> Binding<String> {
+        Binding(
+            get: { if case .codeLibre(let v) = cell.wrappedValue.content { return v }; return "" },
+            set: { cell.wrappedValue.content = .codeLibre($0) }
         )
     }
 

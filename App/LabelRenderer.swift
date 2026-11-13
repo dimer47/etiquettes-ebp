@@ -15,8 +15,11 @@ enum LabelRenderer {
         if let arrangement = template.baseArrangement {
             return try render(label, size: size, arrangement: arrangement, scale: scale, layoutWidth: layoutWidth)
         }
-        let ean = try EAN13.completed(label.ean)
-        guard let price = PriceFormatter.formatted(label.price, currency: label.currency) else { throw LabelError.invalidPrice }
+        // Modèle perso : l'EAN article n'est utilisé que par les cellules « code-barres article ».
+        // S'il est invalide, on ne bloque pas tout le rendu (un modèle peut n'avoir qu'un code
+        // libre ou aucun code) ; ces cellules basculeront en repli au moment de les peindre.
+        let ean = (try? EAN13.completed(label.ean)) ?? ""
+        let price = PriceFormatter.formatted(label.price, currency: label.currency) ?? ""
         return try renderLines(label, template: template, ean: ean, price: price,
                                size: size, scale: scale, layoutWidth: layoutWidth)
     }
@@ -108,7 +111,16 @@ enum LabelRenderer {
         let layoutW = isWide ? WideLabelLayout.width : Self.width
         let layoutH = size.heightDots
         let rows = computeLineRows(template.lines, layoutWidth: layoutW, layoutHeight: layoutH)
-        let modules = try EAN13.modules(for: ean)
+
+        // Résolution de chaque cellule code, indexée par id de cellule : mode effectif (barres ou
+        // QR) et, pour les barres, les chiffres EAN complétés. Un code LIBRE en mode barres n'est
+        // encodable que si sa valeur forme un EAN-13 valide ; sinon on bascule en QR (repli).
+        var resolved: [UUID: ResolvedCode] = [:]
+        for row in rows {
+            for placed in row.cells where placed.isBarcode || placed.isQR {
+                resolved[placed.cell.id] = resolveCode(placed.cell, label: label, fallbackEAN: ean)
+            }
+        }
 
         // Largeur/hauteur finales et échelle layout→pixels.
         let width: Int, height: Int
@@ -125,26 +137,49 @@ enum LabelRenderer {
                 context.cgContext.scaleBy(x: CGFloat(width) / CGFloat(layoutW),
                                           y: CGFloat(height) / CGFloat(layoutH))
             }
-            drawLineRows(rows, label: label, ean: ean, price: price, layoutWidth: layoutW)
+            drawLineRows(rows, resolved: resolved, label: label, price: price, layoutWidth: layoutW)
         }
         // Codes de chaque cellule (barres EAN ou QR), convertis en pixels et peints après seuillage.
         for row in rows {
             for placed in row.cells where placed.isBarcode || placed.isQR {
-                if placed.isQR {
-                    let payload = placed.cell.codePayload(for: label, formattedPrice: price) ?? ean
+                switch resolved[placed.cell.id] {
+                case .qr(let payload):
                     paintQR(&black, payload: payload, width: width, height: height,
                             cellXLayout: placed.x, cellWidthLayout: placed.width,
                             topLayout: placed.barcodeBarsTopLayout, blockHeightLayout: placed.barcodeBarsHeightLayout,
                             sx: sx, sy: sy)
-                } else {
-                    paintBarcode(&black, modules: modules, width: width, height: height,
+                case .barcode(_, let barModules):
+                    paintBarcode(&black, modules: barModules, width: width, height: height,
                                  cellXLayout: placed.x, cellWidthLayout: placed.width,
                                  topLayout: placed.barcodeBarsTopLayout, barsHeightLayout: placed.barcodeBarsHeightLayout,
                                  sx: sx, sy: sy)
+                case .none:
+                    break
                 }
             }
         }
         return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+    }
+
+    /// Résolution d'une cellule code : QR (payload) ou barres (chiffres EAN + modules).
+    private enum ResolvedCode {
+        case qr(payload: String)
+        case barcode(digits: String, modules: [Bool])
+    }
+
+    /// Détermine comment rendre une cellule code. Mode QR → encode la valeur de la cellule
+    /// (repli sur l'EAN article). Mode barres → EAN-13 de la valeur si elle est complétable,
+    /// sinon repli QR (un code libre arbitraire n'est pas un EAN-13).
+    private static func resolveCode(_ cell: TemplateCell, label: ProductLabel, fallbackEAN: String) -> ResolvedCode {
+        let value = (cell.codePayload(for: label)?.isEmpty == false ? cell.codePayload(for: label)! : fallbackEAN)
+        if cell.codeRendering == .qr {
+            return .qr(payload: value)
+        }
+        if let ean = try? EAN13.completed(value), let modules = try? EAN13.modules(for: ean) {
+            return .barcode(digits: ean, modules: modules)
+        }
+        // Valeur non encodable en EAN-13 : repli propre sur un QR de la valeur saisie.
+        return .qr(payload: value)
     }
 
     /// Une ligne calculée : son `top` et sa hauteur (coordonnées layout) et ses cellules placées.
@@ -193,26 +228,26 @@ enum LabelRenderer {
         return rows
     }
 
-    /// Dessine le texte de toutes les cellules (hors barres, peintes après seuillage).
-    private static func drawLineRows(_ rows: [LineRow], label: ProductLabel, ean: String,
-                                     price: String, layoutWidth: Int) {
+    /// Dessine le texte de toutes les cellules (les codes — barres ou QR — sont peints après
+    /// seuillage ; seuls les chiffres sous un code-barres sont du texte dessiné ici).
+    private static func drawLineRows(_ rows: [LineRow], resolved: [UUID: ResolvedCode],
+                                     label: ProductLabel, price: String, layoutWidth: Int) {
         for row in rows {
             for placed in row.cells {
-                if placed.isQR {
-                    // Le QR est peint après seuillage (paintQR) ; rien à dessiner ici.
-                    continue
-                }
-                if placed.isBarcode {
-                    // Chiffres EAN lisibles sous les barres, centrés dans la cellule.
-                    let digitsTop = CGFloat(placed.barcodeBarsTopLayout + placed.barcodeBarsHeightLayout)
-                    let third = CGFloat(placed.width) / 3
-                    let x0 = CGFloat(placed.x)
-                    draw(String(ean.prefix(1)), in: CGRect(x: x0, y: digitsTop, width: third, height: 18),
-                         maxSize: 12, bold: true, alignment: .center)
-                    draw(String(ean.dropFirst().prefix(6)), in: CGRect(x: x0 + third, y: digitsTop, width: third, height: 18),
-                         maxSize: 12, bold: true, alignment: .center)
-                    draw(String(ean.suffix(6)), in: CGRect(x: x0 + 2 * third, y: digitsTop, width: third, height: 18),
-                         maxSize: 12, bold: true, alignment: .center)
+                if placed.isBarcode || placed.isQR {
+                    // Chiffres lisibles sous les barres uniquement si la cellule est résolue en
+                    // code-barres (un QR, choisi ou en repli, n'affiche pas de chiffres).
+                    if case .barcode(let digits, _) = resolved[placed.cell.id] {
+                        let digitsTop = CGFloat(placed.barcodeBarsTopLayout + placed.barcodeBarsHeightLayout)
+                        let third = CGFloat(placed.width) / 3
+                        let x0 = CGFloat(placed.x)
+                        draw(String(digits.prefix(1)), in: CGRect(x: x0, y: digitsTop, width: third, height: 18),
+                             maxSize: 12, bold: true, alignment: .center)
+                        draw(String(digits.dropFirst().prefix(6)), in: CGRect(x: x0 + third, y: digitsTop, width: third, height: 18),
+                             maxSize: 12, bold: true, alignment: .center)
+                        draw(String(digits.suffix(6)), in: CGRect(x: x0 + 2 * third, y: digitsTop, width: third, height: 18),
+                             maxSize: 12, bold: true, alignment: .center)
+                    }
                     continue
                 }
                 guard let text = placed.cell.decoratedText(for: label, formattedPrice: price) else { continue }

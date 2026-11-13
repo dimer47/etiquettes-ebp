@@ -161,8 +161,8 @@ public enum CodeRendering: String, Codable, CaseIterable, Hashable {
     case qr        // QR code (CoreImage)
     public var title: String {
         switch self {
-        case .barcode: NSLocalizedString("Code-barres (EAN)", comment: "Code rendering")
-        case .qr: NSLocalizedString("QR code", comment: "Code rendering")
+        case .barcode: NSLocalizedString("Code-barres", comment: "Code rendering")
+        case .qr: NSLocalizedString("QR", comment: "Code rendering")
         }
     }
 }
@@ -225,11 +225,11 @@ public struct TemplateCell: Codable, Equatable, Identifiable, Hashable {
         return fallback.isEmpty ? nil : fallback
     }
 
-    /// Valeur à encoder dans un code (barres ou QR) : la valeur brute du champ, décorée du
-    /// préfixe/suffixe comme le texte, avec repli sur le placeholder. Pour un code-barres EAN
-    /// classique, le moteur garde l'EAN brut ; cette valeur sert au QR.
-    public func codePayload(for label: ProductLabel, formattedPrice: String?) -> String? {
-        decoratedText(for: label, formattedPrice: formattedPrice)
+    /// Valeur à encoder dans le code (barres ou QR) d'une cellule de type code : l'EAN de
+    /// l'article (`codeBarres`) ou la valeur saisie (`codeLibre`). nil pour tout autre contenu.
+    /// Non décorée du préfixe/suffixe : ceux-ci entourent un texte lisible, pas une valeur encodée.
+    public func codePayload(for label: ProductLabel) -> String? {
+        content.codeValue(for: label)
     }
 }
 
@@ -251,15 +251,16 @@ public enum CellContent: Codable, Equatable, Hashable {
     case poids            // ProductLabel.weight (Weight, quantité nettoyée)
     case volume           // ProductLabel.volume (Volume, quantité nettoyée)
     case codeBarres       // ProductLabel.ean (EAN13 ou QR, redimensionné dans la cellule)
+    case codeLibre(String) // valeur saisie, rendue en code visuel (EAN13 ou QR selon codeRendering)
     case dateGeneration(String?)  // ProductLabel.generatedAt ; pattern DateFormatter (nil = défaut)
     case texteLibre(String)
 
-    /// Cas « simples » pour alimenter les sélecteurs (date au format par défaut, texte vide).
+    /// Cas « simples » pour alimenter les sélecteurs (date au format par défaut, texte/code vides).
     public static var selectableKinds: [CellContent] {
         [.vide, .designation, .refArticle, .refRayon, .famille,
          .prixTTC, .prixHT, .montantTVA, .stockReel, .stockDispo,
          .sousFamille, .fournisseur, .unite, .poids, .volume,
-         .codeBarres, .dateGeneration(nil), .texteLibre("")]
+         .codeBarres, .codeLibre(""), .dateGeneration(nil), .texteLibre("")]
     }
 
     public var title: String {
@@ -279,16 +280,17 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .unite: NSLocalizedString("Unité", comment: "Cell content")
         case .poids: NSLocalizedString("Poids", comment: "Cell content")
         case .volume: NSLocalizedString("Volume", comment: "Cell content")
-        case .codeBarres: NSLocalizedString("Code-barres", comment: "Cell content")
+        case .codeBarres: NSLocalizedString("Code-barres article", comment: "Cell content")
+        case .codeLibre: NSLocalizedString("Code libre", comment: "Cell content")
         case .dateGeneration: NSLocalizedString("Date de génération", comment: "Cell content")
         case .texteLibre: NSLocalizedString("Texte libre", comment: "Cell content")
         }
     }
 
-    /// true si deux contenus sont du même « genre » (texte libre et date ignorent leur valeur).
+    /// true si deux contenus sont du même « genre » (texte/code libre et date ignorent leur valeur).
     public func sameKind(as other: CellContent) -> Bool {
         switch (self, other) {
-        case (.texteLibre, .texteLibre), (.dateGeneration, .dateGeneration): return true
+        case (.texteLibre, .texteLibre), (.dateGeneration, .dateGeneration), (.codeLibre, .codeLibre): return true
         default: return self == other
         }
     }
@@ -300,9 +302,24 @@ public enum CellContent: Codable, Equatable, Hashable {
     }
     public var isDate: Bool { if case .dateGeneration = self { return true }; return false }
 
-    public var isBarcode: Bool { if case .codeBarres = self { return true }; return false }
+    /// true pour une cellule de type CODE : le code-barres de l'article (EAN) ou un code libre
+    /// saisi. Ces cellules sont rendues graphiquement (barres ou QR) et portent le segment de
+    /// choix du type de rendu. Le nom historique est conservé pour ne pas disperser les usages.
+    public var isBarcode: Bool {
+        switch self { case .codeBarres, .codeLibre: return true; default: return false }
+    }
 
-    /// Valeur textuelle à afficher (nil pour .vide, .codeBarres — rendu graphiquement —
+    /// Valeur à encoder dans le code (barres ou QR) pour une cellule de type code : l'EAN de
+    /// l'article pour `codeBarres`, la valeur saisie pour `codeLibre`. nil pour tout autre contenu.
+    public func codeValue(for label: ProductLabel) -> String? {
+        switch self {
+        case .codeBarres: return label.ean.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .codeLibre(let value): return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        default: return nil
+        }
+    }
+
+    /// Valeur textuelle à afficher (nil pour .vide et les codes — rendus graphiquement —
     /// ou une valeur absente). `formattedPrice` est le prix TTC déjà mis en forme.
     /// Les valeurs EBP (prix HT/TVA, stock, poids, volume…) sont déjà formatées à la source
     /// (`EBPProductMapper`) : aucune valeur brute ne transite ici.
@@ -312,7 +329,7 @@ public enum CellContent: Codable, Equatable, Hashable {
             return s
         }
         switch self {
-        case .vide, .codeBarres: return nil
+        case .vide, .codeBarres, .codeLibre: return nil
         case .designation: return label.name
         case .refArticle: return String(format: NSLocalizedString("Réf. %@", comment: "Product reference on label"), label.productReference)
         case .refRayon: return label.shelfReference
@@ -354,6 +371,7 @@ public enum CellContent: Codable, Equatable, Hashable {
         case "poids": self = .poids
         case "volume": self = .volume
         case "codeBarres": self = .codeBarres
+        case "codeLibre": self = .codeLibre(try values.decodeIfPresent(String.self, forKey: .value) ?? "")
         case "dateGeneration": self = .dateGeneration(try values.decodeIfPresent(String.self, forKey: .value))
         case "texteLibre": self = .texteLibre(try values.decodeIfPresent(String.self, forKey: .value) ?? "")
         default: self = .vide
@@ -379,6 +397,9 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .poids: try container.encode("poids", forKey: .kind)
         case .volume: try container.encode("volume", forKey: .kind)
         case .codeBarres: try container.encode("codeBarres", forKey: .kind)
+        case .codeLibre(let value):
+            try container.encode("codeLibre", forKey: .kind)
+            try container.encode(value, forKey: .value)
         case .dateGeneration(let pattern):
             try container.encode("dateGeneration", forKey: .kind)
             try container.encodeIfPresent(pattern, forKey: .value)
