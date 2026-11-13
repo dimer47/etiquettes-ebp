@@ -14,14 +14,34 @@ public struct ProductLabel: Codable, Equatable, Hashable {
     /// données sauvegardées avant l'ajout de ce champ → rétro-compatible au décodage).
     public var generatedAt: Date?
 
-    public init(name: String = NSLocalizedString("Spray Acrylique", comment: "Sample product"), category: String = NSLocalizedString("Peinture / Aérosols", comment: "Sample category"), shelfReference: String = NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Sample shelf reference"), productReference: String = "4523187", ean: String = "4006381333931", price: String = "5,95", currency: LabelCurrency = .eur, priceCaption: String = NSLocalizedString("Prix de vente TTC", comment: "Default price caption"), generatedAt: Date? = nil) {
+    // Champs additionnels bindables sur un modèle perso. Tous optionnels (nil = EBP ne les
+    // renseigne pas) et DÉJÀ FORMATÉS par `EBPProductMapper` (jamais la valeur brute EBP) :
+    // les prix portent devise + 2 décimales, les quantités sont nettoyées de leurs zéros.
+    // Codable rétro-compatible : absents des données sauvegardées avant leur ajout.
+    public var priceExclVat: String?   // SalePriceVatExcluded, formaté monnaie (ex. « 420,00 € »)
+    public var vatAmount: String?      // VatAmount, formaté monnaie
+    public var realStock: String?      // RealStock, quantité nettoyée (ex. « 5 »)
+    public var virtualStock: String?   // VirtualStock, quantité nettoyée
+    public var subFamily: String?      // SubFamilyId (code tel quel)
+    public var supplier: String?       // SupplierId (code tel quel, ex. « FR01066 »)
+    public var unit: String?           // UnitId (UNIT, ML, KG, M…)
+    public var weight: String?         // Weight, quantité nettoyée (ex. « 12,5 »)
+    public var volume: String?         // Volume, quantité nettoyée
+
+    public init(name: String = NSLocalizedString("Spray Acrylique", comment: "Sample product"), category: String = NSLocalizedString("Peinture / Aérosols", comment: "Sample category"), shelfReference: String = NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Sample shelf reference"), productReference: String = "4523187", ean: String = "4006381333931", price: String = "5,95", currency: LabelCurrency = .eur, priceCaption: String = NSLocalizedString("Prix de vente TTC", comment: "Default price caption"), generatedAt: Date? = nil,
+                priceExclVat: String? = nil, vatAmount: String? = nil, realStock: String? = nil, virtualStock: String? = nil, subFamily: String? = nil, supplier: String? = nil, unit: String? = nil, weight: String? = nil, volume: String? = nil) {
         self.name = name; self.category = category; self.shelfReference = shelfReference
         self.productReference = productReference; self.ean = ean; self.price = price; self.currency = currency
         self.priceCaption = priceCaption; self.generatedAt = generatedAt
+        self.priceExclVat = priceExclVat; self.vatAmount = vatAmount
+        self.realStock = realStock; self.virtualStock = virtualStock
+        self.subFamily = subFamily; self.supplier = supplier; self.unit = unit
+        self.weight = weight; self.volume = volume
     }
 
     private enum CodingKeys: String, CodingKey {
         case name, category, shelfReference, productReference, ean, price, currency, priceCaption, generatedAt
+        case priceExclVat, vatAmount, realStock, virtualStock, subFamily, supplier, unit, weight, volume
     }
 
     public init(from decoder: Decoder) throws {
@@ -35,6 +55,15 @@ public struct ProductLabel: Codable, Equatable, Hashable {
         currency = try values.decodeIfPresent(LabelCurrency.self, forKey: .currency) ?? .eur
         priceCaption = try values.decodeIfPresent(String.self, forKey: .priceCaption) ?? NSLocalizedString("Prix de vente TTC", comment: "Default price caption")
         generatedAt = try values.decodeIfPresent(Date.self, forKey: .generatedAt)
+        priceExclVat = try values.decodeIfPresent(String.self, forKey: .priceExclVat)
+        vatAmount = try values.decodeIfPresent(String.self, forKey: .vatAmount)
+        realStock = try values.decodeIfPresent(String.self, forKey: .realStock)
+        virtualStock = try values.decodeIfPresent(String.self, forKey: .virtualStock)
+        subFamily = try values.decodeIfPresent(String.self, forKey: .subFamily)
+        supplier = try values.decodeIfPresent(String.self, forKey: .supplier)
+        unit = try values.decodeIfPresent(String.self, forKey: .unit)
+        weight = try values.decodeIfPresent(String.self, forKey: .weight)
+        volume = try values.decodeIfPresent(String.self, forKey: .volume)
     }
 
     /// Date de génération formatée au format par défaut « 11/05/2026 15:17:00 ».

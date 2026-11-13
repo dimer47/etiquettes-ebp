@@ -41,21 +41,11 @@ struct LabelTemplateEditorView: View {
         _draft = State(initialValue: start)
     }
 
-    /// Clé de rendu : change à chaque modification du brouillon → relance le `.task`.
+    /// Clé de rendu : change à chaque modification du brouillon (via `contentSignature`, qui
+    /// couvre contenu, style, préfixe/suffixe, placeholder et mode de rendu du code) → relance
+    /// le `.task`. Inclut aussi la signature de l'étiquette source, la taille et la largeur.
     private var liveKey: String {
-        var hasher = Hasher()
-        hasher.combine(draft.id)
-        hasher.combine(draft.baseArrangement)
-        for line in draft.lines {
-            hasher.combine(line.layout)
-            for cell in line.cells {
-                hasher.combine(cell.content)
-                hasher.combine(cell.style)
-            }
-        }
-        hasher.combine(size)
-        hasher.combine(layoutWidth)
-        return String(hasher.finalize())
+        draft.thumbnailKey(forLabelSignature: sampleLabel.hashValue, size: size, width: layoutWidth)
     }
 
     var body: some View {
@@ -208,6 +198,10 @@ struct LabelTemplateEditorView: View {
 
     private func cellTitle(_ cell: TemplateCell) -> String {
         if case .texteLibre(let v) = cell.content, !v.isEmpty { return "« \(v) »" }
+        if case .codeLibre(let v) = cell.content, !v.isEmpty {
+            let mode = cell.codeRendering == .qr ? "QR" : NSLocalizedString("Code-barres", comment: "Code rendering")
+            return "\(mode) · \(v)"
+        }
         return cell.content.title
     }
     private func styleSummary(_ style: CellStyle) -> String {
@@ -224,7 +218,17 @@ struct LabelTemplateEditorView: View {
         case .refRayon: "square.grid.3x3"
         case .famille: "folder"
         case .prixTTC: "eurosign"
+        case .prixHT: "eurosign.circle"
+        case .montantTVA: "percent"
+        case .stockReel: "shippingbox"
+        case .stockDispo: "shippingbox.and.arrow.backward"
+        case .sousFamille: "folder.badge.gearshape"
+        case .fournisseur: "building.2"
+        case .unite: "ruler"
+        case .poids: "scalemass"
+        case .volume: "cube"
         case .codeBarres: "barcode"
+        case .codeLibre: "qrcode"
         case .dateGeneration: "calendar"
         case .texteLibre: "text.quote"
         }
@@ -248,9 +252,20 @@ struct LabelTemplateEditorView: View {
                         if case .texteLibre = cellBinding.wrappedValue.content {
                             TextField(NSLocalizedString("Texte à afficher", comment: "Free text"), text: freeTextBinding(cellBinding))
                         }
+                        if case .codeLibre = cellBinding.wrappedValue.content {
+                            TextField(NSLocalizedString("Valeur à encoder", comment: "Free code value"), text: freeCodeBinding(cellBinding))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                        }
                     }
                     if cellBinding.wrappedValue.content.isDate {
                         dateFormatSection(cellBinding)
+                    }
+                    if cellBinding.wrappedValue.content.isBarcode {
+                        codeRenderingSection(cellBinding)
+                    }
+                    if decorationsApply(to: cellBinding.wrappedValue) {
+                        decorationsSection(cellBinding)
                     }
                     Section(NSLocalizedString("Taille", comment: "Size")) {
                         Picker(NSLocalizedString("Taille", comment: "Size"), selection: cellBinding.style.size) {
@@ -280,6 +295,57 @@ struct LabelTemplateEditorView: View {
         }
     }
 
+    // MARK: - Rendu du code (code-barres / QR) et décorations (préfixe/suffixe/placeholder)
+
+    /// Vrai si la section décorations a du sens pour ce contenu. Exclue pour « Vide » (aucune
+    /// valeur) et pour toute cellule de type CODE (le préfixe/suffixe/placeholder entoure un texte
+    /// lisible, pas une valeur encodée en barres ou QR).
+    private func decorationsApply(to cell: TemplateCell) -> Bool {
+        if case .vide = cell.content { return false }
+        if cell.content.isBarcode { return false }
+        return true
+    }
+
+    /// Segment « Code-barres / QR » affiché pour toute cellule de type code (code-barres article
+    /// ET code libre). L'aide s'adapte à la source de la valeur encodée.
+    @ViewBuilder
+    private func codeRenderingSection(_ cell: Binding<TemplateCell>) -> some View {
+        let isFree = { if case .codeLibre = cell.wrappedValue.content { return true }; return false }()
+        Section(NSLocalizedString("Type de rendu", comment: "Code rendering section")) {
+            Picker(NSLocalizedString("Type", comment: "Code rendering type"), selection: cell.codeRendering) {
+                ForEach(CodeRendering.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
+            }
+            .pickerStyle(.segmented)
+            Text(codeRenderingHint(qr: cell.wrappedValue.codeRendering == .qr, free: isFree))
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func codeRenderingHint(qr: Bool, free: Bool) -> String {
+        switch (qr, free) {
+        case (false, false): return NSLocalizedString("Code-barres EAN-13 de l’article, chiffres sous les barres.", comment: "Barcode hint article")
+        case (true, false): return NSLocalizedString("QR code encodant le code-barres (EAN) de l’article, redimensionné dans la cellule.", comment: "QR hint article")
+        case (false, true): return NSLocalizedString("Code-barres EAN-13 de la valeur saisie (si elle forme un EAN valide, sinon QR).", comment: "Barcode hint free")
+        case (true, true): return NSLocalizedString("QR code encodant la valeur saisie, redimensionné dans la cellule.", comment: "QR hint free")
+        }
+    }
+
+    @ViewBuilder
+    private func decorationsSection(_ cell: Binding<TemplateCell>) -> some View {
+        Section {
+            TextField(NSLocalizedString("Préfixe (avant la valeur)", comment: "Prefix field"), text: cell.prefix)
+                .autocorrectionDisabled()
+            TextField(NSLocalizedString("Suffixe (après la valeur)", comment: "Suffix field"), text: cell.suffix)
+                .autocorrectionDisabled()
+            TextField(NSLocalizedString("Valeur de repli si vide", comment: "Placeholder field"), text: cell.placeholder)
+                .autocorrectionDisabled()
+        } header: {
+            Text(NSLocalizedString("Préfixe · suffixe · repli", comment: "Decorations section"))
+        } footer: {
+            Text(NSLocalizedString("Préfixe et suffixe entourent la valeur (ex. « Réf. », « kg »). La valeur de repli s’affiche seule quand le champ est vide.", comment: "Decorations footer"))
+        }
+    }
+
     /// Binding sur le « genre » de contenu (par titre, pour piloter le Picker), en conservant
     /// la valeur du texte libre quand on reste sur « Texte libre ».
     private func contentKindBinding(_ cell: Binding<TemplateCell>) -> Binding<String> {
@@ -292,6 +358,8 @@ struct LabelTemplateEditorView: View {
                     cell.wrappedValue.content = .texteLibre(existing)
                 } else if case .dateGeneration = kind, case .dateGeneration(let existing) = cell.wrappedValue.content {
                     cell.wrappedValue.content = .dateGeneration(existing)
+                } else if case .codeLibre = kind, case .codeLibre(let existing) = cell.wrappedValue.content {
+                    cell.wrappedValue.content = .codeLibre(existing)
                 } else {
                     cell.wrappedValue.content = kind
                 }
@@ -302,6 +370,12 @@ struct LabelTemplateEditorView: View {
         Binding(
             get: { if case .texteLibre(let v) = cell.wrappedValue.content { return v }; return "" },
             set: { cell.wrappedValue.content = .texteLibre($0) }
+        )
+    }
+    private func freeCodeBinding(_ cell: Binding<TemplateCell>) -> Binding<String> {
+        Binding(
+            get: { if case .codeLibre(let v) = cell.wrappedValue.content { return v }; return "" },
+            set: { cell.wrappedValue.content = .codeLibre($0) }
         )
     }
 

@@ -12,6 +12,7 @@ final class TemplateThumbnailStore: ObservableObject {
     /// clés changent, les `.task(id:)` des tuiles se relancent et les anciennes entrées
     /// deviennent inertes (jamais relues). Aucun reset impératif n'efface le travail d'une
     /// autre tuile en cours — c'est ce qui laissait les modèles perso bloqués sur un spinner.
+    /// La signature de contenu du modèle couvre aussi préfixe/suffixe/placeholder/mode QR.
     nonisolated static func key(for label: ProductLabel, template: LabelTemplate, size: LabelSize, width: Int) -> String {
         template.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
     }
