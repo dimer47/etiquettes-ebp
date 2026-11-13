@@ -9,15 +9,19 @@ public struct ProductLabel: Codable, Equatable, Hashable {
     public var price: String
     public var currency: LabelCurrency
     public var priceCaption: String
+    /// Date de génération de l'étiquette, posée au moment d'imprimer ou de prévisualiser.
+    /// Optionnelle : nil pour les étiquettes qui n'affichent pas de date (et pour les
+    /// données sauvegardées avant l'ajout de ce champ → rétro-compatible au décodage).
+    public var generatedAt: Date?
 
-    public init(name: String = NSLocalizedString("Spray Acrylique", comment: "Sample product"), category: String = NSLocalizedString("Peinture / Aérosols", comment: "Sample category"), shelfReference: String = NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Sample shelf reference"), productReference: String = "4523187", ean: String = "4006381333931", price: String = "5,95", currency: LabelCurrency = .eur, priceCaption: String = NSLocalizedString("Prix de vente TTC", comment: "Default price caption")) {
+    public init(name: String = NSLocalizedString("Spray Acrylique", comment: "Sample product"), category: String = NSLocalizedString("Peinture / Aérosols", comment: "Sample category"), shelfReference: String = NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Sample shelf reference"), productReference: String = "4523187", ean: String = "4006381333931", price: String = "5,95", currency: LabelCurrency = .eur, priceCaption: String = NSLocalizedString("Prix de vente TTC", comment: "Default price caption"), generatedAt: Date? = nil) {
         self.name = name; self.category = category; self.shelfReference = shelfReference
         self.productReference = productReference; self.ean = ean; self.price = price; self.currency = currency
-        self.priceCaption = priceCaption
+        self.priceCaption = priceCaption; self.generatedAt = generatedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case name, category, shelfReference, productReference, ean, price, currency, priceCaption
+        case name, category, shelfReference, productReference, ean, price, currency, priceCaption, generatedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -30,6 +34,87 @@ public struct ProductLabel: Codable, Equatable, Hashable {
         price = try values.decode(String.self, forKey: .price)
         currency = try values.decodeIfPresent(LabelCurrency.self, forKey: .currency) ?? .eur
         priceCaption = try values.decodeIfPresent(String.self, forKey: .priceCaption) ?? NSLocalizedString("Prix de vente TTC", comment: "Default price caption")
+        generatedAt = try values.decodeIfPresent(Date.self, forKey: .generatedAt)
+    }
+
+    /// Date de génération formatée au format par défaut « 11/05/2026 15:17:00 ».
+    public var generatedAtText: String? {
+        generatedAt.map { LabelDateFormatter.text(for: $0, pattern: nil) }
+    }
+
+    /// Date de génération formatée selon un pattern DateFormatter donné (nil = format par défaut).
+    public func generatedAtFormatted(pattern: String?) -> String? {
+        generatedAt.map { LabelDateFormatter.text(for: $0, pattern: pattern) }
+    }
+}
+
+/// Formatage de la date de génération sur les étiquettes.
+///
+/// Le modèle stocke un pattern DateFormatter (Unicode, ex. "dd/MM/yyyy"). L'éditeur propose
+/// des presets prêts à l'emploi et un format personnalisé saisi en tokens simples
+/// (JJ, MM, AAAA, HH, mm, ss) traduits ici en pattern Unicode.
+public enum LabelDateFormatter {
+    /// Pattern utilisé quand aucun format n'est choisi.
+    public static let defaultPattern = "dd/MM/yyyy HH:mm:ss"
+
+    public static func text(for date: Date, pattern: String?) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = (pattern?.isEmpty == false ? pattern! : defaultPattern)
+        return f.string(from: date)
+    }
+
+    /// Un preset de format proposé dans l'éditeur : un libellé en tokens simples et le pattern réel.
+    public struct Preset: Equatable, Identifiable, Sendable {
+        public let label: String     // ex. "JJ/MM/AAAA HH:mm"
+        public let pattern: String   // ex. "dd/MM/yyyy HH:mm"
+        public var id: String { pattern }
+    }
+
+    /// Liste de formats prêts, libellés en tokens français lisibles.
+    public static let presets: [Preset] = [
+        Preset(label: "JJ/MM", pattern: "dd/MM"),
+        Preset(label: "JJ/MM/AAAA", pattern: "dd/MM/yyyy"),
+        Preset(label: "JJ/MM/AAAA HH:mm", pattern: "dd/MM/yyyy HH:mm"),
+        Preset(label: "JJ/MM/AAAA HH:mm:ss", pattern: "dd/MM/yyyy HH:mm:ss"),
+        Preset(label: "HH:mm", pattern: "HH:mm"),
+        Preset(label: "HH:mm:ss", pattern: "HH:mm:ss"),
+        Preset(label: "AAAA-MM-JJ", pattern: "yyyy-MM-dd"),
+        Preset(label: "AAAA-MM-JJ HH:mm:ss", pattern: "yyyy-MM-dd HH:mm:ss"),
+        Preset(label: "JJ-MM-AAAA", pattern: "dd-MM-yyyy"),
+        Preset(label: "MM/AAAA", pattern: "MM/yyyy"),
+    ]
+
+    /// Convertit un motif en tokens simples (JJ MM AAAA HH mm ss) vers un pattern DateFormatter.
+    /// JJ→dd, MM→MM (mois), AAAA→yyyy, HH→HH (24 h), mm→mm (minutes), ss→ss. Les autres
+    /// caractères (séparateurs /, -, :, espaces) sont conservés tels quels.
+    public static func pattern(fromTokens tokens: String) -> String {
+        var result = ""
+        var rest = Substring(tokens)
+        // Remplacement glouton, du token le plus long au plus court, pour éviter les collisions.
+        let rules: [(String, String)] = [("AAAA", "yyyy"), ("JJ", "dd"), ("MM", "MM"),
+                                          ("HH", "HH"), ("mm", "mm"), ("ss", "ss")]
+        outer: while let first = rest.first {
+            for (token, replacement) in rules where rest.hasPrefix(token) {
+                result += replacement
+                rest = rest.dropFirst(token.count)
+                continue outer
+            }
+            result.append(first)
+            rest = rest.dropFirst()
+        }
+        return result
+    }
+
+    /// Convertit un pattern DateFormatter vers des tokens simples lisibles (pour pré-remplir le
+    /// champ « format personnalisé » depuis un pattern stocké).
+    public static func tokens(fromPattern pattern: String) -> String {
+        var result = pattern
+        for (token, p) in [("AAAA", "yyyy"), ("JJ", "dd"), ("MM", "MM"),
+                           ("HH", "HH"), ("mm", "mm"), ("ss", "ss")] {
+            result = result.replacingOccurrences(of: p, with: token)
+        }
+        return result
     }
 }
 
