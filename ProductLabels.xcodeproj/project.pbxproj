@@ -41,7 +41,6 @@
 		AA0000000000000000000008 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* Localizable.strings */; };
 		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
 		A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */; };
-		B749FB7510124A76A786DA11 /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */; };
 		B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA14 /* CategoryLibrary.swift */; };
 		BB0000000000000000000001 /* PrintedLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* PrintedLabel.swift */; };
 		BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* LabelHistoryStore.swift */; };
@@ -115,7 +114,6 @@
 		8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabelApp.swift; sourceTree = "<group>"; };
 		BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThermalBitmapRotation.swift; sourceTree = "<group>"; };
 		A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelPresentation.swift; sourceTree = "<group>"; };
-		B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
 		B749FB7510124A76A786DA14 /* CategoryLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryLibrary.swift; sourceTree = "<group>"; };
 		BB0000000000000000000003 /* PrintedLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintedLabel.swift; sourceTree = "<group>"; };
 		BB0000000000000000000004 /* LabelHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelHistoryStore.swift; sourceTree = "<group>"; };
@@ -197,7 +195,6 @@
 				C9485C1DE846860B7012E33A /* LabelRenderer.swift */,
 				7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */,
 				2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */,
-				B749FB7510124A76A786DA12 /* BarcodeScannerView.swift */,
 				BB0000000000000000000004 /* LabelHistoryStore.swift */,
 				CC0000000000000000000010 /* BrotherConsoleView.swift */,
 				CC0000000000000000000012 /* NetumPrinterService.swift */,
@@ -419,7 +416,6 @@
 				0F84EF6A4D312FEDD83FD793 /* EAN13.swift in Sources */,
 				9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */,
 				A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */,
-				B749FB7510124A76A786DA11 /* BarcodeScannerView.swift in Sources */,
 				B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */,
 				BB0000000000000000000001 /* PrintedLabel.swift in Sources */,
 				BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */,

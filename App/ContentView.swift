@@ -7,7 +7,6 @@ struct ContentView: View {
     @StateObject private var setup = PrinterSetup()
     @StateObject private var brother = BrotherPrinterService()
     @StateObject private var netum = NetumPrinterService()
-    @StateObject private var thumbnailStore = LabelThumbnailStore()
     @StateObject private var formatThumbnails = TemplateThumbnailStore()
     @StateObject private var templates = LabelTemplateLibraryStore()
     @StateObject private var history = LabelHistoryStore()
@@ -841,56 +840,3 @@ private struct PrintCardStyle: ViewModifier {
     }
 }
 
-/// Cache des miniatures de l'écran « Présentation », rendu À LA DEMANDE et idempotent.
-///
-/// Historique du bug : une version précédente préparait toutes les combinaisons d'un coup à
-/// l'ouverture (`prepare`), via un `pending`/`generation` et des Task par clé. Deux failles en
-/// résultaient : (1) quand la sélection changeait, les tuiles pointaient vers de nouvelles clés
-/// jamais préparées → spinner permanent ; (2) une Task en vol pouvait voir sa génération périmée
-/// et laisser la clé hors de `images`/`failed` → spinner éternel. Le rendu UIKit hors main
-/// thread aggravait le tout.
-///
-/// Nouveau modèle : chaque tuile demande SA propre clé via `thumbnail(...)` depuis un
-/// `.task(id:)`. Le cache (`images` + `failed`) est persistant par clé et survit aux scrolls et
-/// réouvertures : une clé déjà résolue n'est jamais regénérée. Le rendu se fait sur le MainActor
-/// et aboutit TOUJOURS à un état terminal (image ou échec). `reset(for:)` ne vide le cache que
-/// lorsque l'étiquette source change réellement. Pas de `pending` ni de `generation` : rien ne
-/// peut rester « en attente ».
-@MainActor
-private final class LabelThumbnailStore: ObservableObject {
-    @Published private(set) var images: [String: UIImage] = [:]
-    @Published private(set) var failed: Set<String> = []
-    /// Empreinte de l'étiquette dont provient le cache courant (pour invalider au changement).
-    private var sourceSignature: String?
-
-    nonisolated static func key(size: LabelSize, arrangement: LabelArrangement, width: Int) -> String {
-        "\(size.rawValue).\(arrangement.rawValue).\(width)"
-    }
-
-    /// Vide le cache si l'étiquette source a changé (nouveau produit ou données modifiées).
-    func reset(for label: ProductLabel) {
-        let signature = String(label.hashValue)
-        guard signature != sourceSignature else { return }
-        sourceSignature = signature
-        images.removeAll()
-        failed.removeAll()
-    }
-
-    /// Rend (une seule fois) la miniature d'une clé si elle n'est pas déjà résolue. Idempotent :
-    /// un appel pour une clé déjà en cache (image ou échec) ne fait rien. Toujours terminal.
-    func thumbnail(for label: ProductLabel, size: LabelSize, arrangement: LabelArrangement, width: Int) async {
-        reset(for: label)
-        let imageKey = Self.key(size: size, arrangement: arrangement, width: width)
-        guard images[imageKey] == nil, !failed.contains(imageKey) else { return }
-        // Laisse l'UI respirer avant un rendu UIKit potentiellement lourd ; sur MainActor, donc
-        // thread-safe. Si la tâche est annulée entre-temps (tuile retirée), on sort sans écrire :
-        // la clé reste simplement non résolue et sera redemandée au prochain affichage.
-        await Task.yield()
-        if Task.isCancelled { return }
-        let bitmap = try? LabelRenderer.render(label, size: size, arrangement: arrangement, layoutWidth: width)
-        let image = bitmap.flatMap(LabelRenderer.preview)
-        // Revalide la clé : une autre tâche a pu la résoudre pendant le yield.
-        guard images[imageKey] == nil, !failed.contains(imageKey) else { return }
-        if let image { images[imageKey] = image } else { failed.insert(imageKey) }
-    }
-}
