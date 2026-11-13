@@ -9,15 +9,19 @@ public struct ProductLabel: Codable, Equatable, Hashable {
     public var price: String
     public var currency: LabelCurrency
     public var priceCaption: String
+    /// Date de génération de l'étiquette, posée au moment d'imprimer ou de prévisualiser.
+    /// Optionnelle : nil pour les étiquettes qui n'affichent pas de date (et pour les
+    /// données sauvegardées avant l'ajout de ce champ → rétro-compatible au décodage).
+    public var generatedAt: Date?
 
-    public init(name: String = NSLocalizedString("Spray Acrylique", comment: "Sample product"), category: String = NSLocalizedString("Peinture / Aérosols", comment: "Sample category"), shelfReference: String = NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Sample shelf reference"), productReference: String = "4523187", ean: String = "4006381333931", price: String = "5,95", currency: LabelCurrency = .eur, priceCaption: String = NSLocalizedString("Prix de vente TTC", comment: "Default price caption")) {
+    public init(name: String = NSLocalizedString("Spray Acrylique", comment: "Sample product"), category: String = NSLocalizedString("Peinture / Aérosols", comment: "Sample category"), shelfReference: String = NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Sample shelf reference"), productReference: String = "4523187", ean: String = "4006381333931", price: String = "5,95", currency: LabelCurrency = .eur, priceCaption: String = NSLocalizedString("Prix de vente TTC", comment: "Default price caption"), generatedAt: Date? = nil) {
         self.name = name; self.category = category; self.shelfReference = shelfReference
         self.productReference = productReference; self.ean = ean; self.price = price; self.currency = currency
-        self.priceCaption = priceCaption
+        self.priceCaption = priceCaption; self.generatedAt = generatedAt
     }
 
     private enum CodingKeys: String, CodingKey {
-        case name, category, shelfReference, productReference, ean, price, currency, priceCaption
+        case name, category, shelfReference, productReference, ean, price, currency, priceCaption, generatedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -30,7 +34,24 @@ public struct ProductLabel: Codable, Equatable, Hashable {
         price = try values.decode(String.self, forKey: .price)
         currency = try values.decodeIfPresent(LabelCurrency.self, forKey: .currency) ?? .eur
         priceCaption = try values.decodeIfPresent(String.self, forKey: .priceCaption) ?? NSLocalizedString("Prix de vente TTC", comment: "Default price caption")
+        generatedAt = try values.decodeIfPresent(Date.self, forKey: .generatedAt)
     }
+
+    /// Date de génération formatée « 11/05/2026 15:17:00 », comme les étiquettes magasin.
+    public var generatedAtText: String? {
+        generatedAt.map { LabelDateFormatter.text(for: $0) }
+    }
+}
+
+/// Format de date affiché sur les étiquettes : « JJ/MM/AAAA HH:MM:SS », zone locale.
+public enum LabelDateFormatter {
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_FR")
+        f.dateFormat = "dd/MM/yyyy HH:mm:ss"
+        return f
+    }()
+    public static func text(for date: Date) -> String { formatter.string(from: date) }
 }
 
 public enum LabelCurrency: String, CaseIterable, Codable, Identifiable, Hashable {

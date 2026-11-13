@@ -1,0 +1,389 @@
+import Foundation
+
+/// Modèle d'étiquette configurable : une PILE DE LIGNES ordonnées. Chaque ligne est pleine
+/// largeur (une cellule) ou en deux colonnes (deux cellules). Chaque cellule affiche un
+/// contenu (champ de l'article, texte libre, code-barres, date…) avec un style.
+///
+/// Il remplace le couple figé (LabelSize + LabelArrangement codé en dur). La largeur physique
+/// reste 48 mm et la hauteur suit la taille physique (`LabelSize`), toutes deux séparées.
+///
+/// Deux familles cohabitent :
+/// - PRESETS D'USINE (`isLocked == true`) : les six dispositions historiques. Verrouillés,
+///   non supprimables, lecture seule. Leur rendu délègue au moteur historique par
+///   `LabelArrangement` (pixel-identique à l'existant). Pour les adapter, on les DUPLIQUE.
+/// - MODÈLES PERSO (`isLocked == false`) : éditables, rendus par le moteur lignes/colonnes.
+public struct LabelTemplate: Codable, Equatable, Identifiable, Hashable {
+    public var id: UUID
+    public var name: String
+    /// true pour un preset d'usine : lecture seule, non supprimable.
+    public var isLocked: Bool
+    /// Pour un preset d'usine, l'arrangement historique rendu par `LabelRenderer`.
+    /// nil pour un modèle perso (rendu par le moteur de lignes).
+    public var baseArrangement: LabelArrangement?
+    /// Lignes ordonnées : l'ordre détermine l'ordre vertical de rendu (modèles perso).
+    public var lines: [TemplateLine]
+
+    public init(id: UUID = UUID(), name: String, isLocked: Bool = false,
+                baseArrangement: LabelArrangement? = nil, lines: [TemplateLine] = []) {
+        self.id = id
+        self.name = name
+        self.isLocked = isLocked
+        self.baseArrangement = baseArrangement
+        self.lines = lines
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, name, isLocked, baseArrangement, lines }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        isLocked = try values.decodeIfPresent(Bool.self, forKey: .isLocked) ?? false
+        baseArrangement = try values.decodeIfPresent(LabelArrangement.self, forKey: .baseArrangement)
+        lines = try values.decodeIfPresent([TemplateLine].self, forKey: .lines) ?? []
+    }
+
+    /// Crée une copie éditable (modèle perso) de ce modèle. Un preset verrouillé est
+    /// matérialisé en lignes concrètes pour être modifié librement.
+    public func duplicated(named newName: String) -> LabelTemplate {
+        LabelTemplate(id: UUID(), name: newName, isLocked: false,
+                      baseArrangement: nil, lines: materializedLines())
+    }
+
+    /// Les lignes effectives à éditer/rendre : celles du modèle, ou les lignes de référence
+    /// dérivées de l'arrangement de base pour un preset d'usine.
+    public func materializedLines() -> [TemplateLine] {
+        if !lines.isEmpty { return lines }
+        if let baseArrangement { return TemplateLine.referenceLines(for: baseArrangement) }
+        return TemplateLine.referenceLines(for: .current)
+    }
+}
+
+/// Une ligne du modèle : pleine largeur (1 cellule) ou deux colonnes (2 cellules).
+public struct TemplateLine: Codable, Equatable, Identifiable, Hashable {
+    public enum Layout: String, Codable, CaseIterable, Hashable {
+        case full, twoColumns
+        public var title: String {
+            switch self {
+            case .full: NSLocalizedString("Pleine largeur", comment: "Line layout")
+            case .twoColumns: NSLocalizedString("Deux colonnes", comment: "Line layout")
+            }
+        }
+    }
+
+    public var id: UUID
+    public var layout: Layout
+    public var cells: [TemplateCell]
+
+    public init(id: UUID = UUID(), layout: Layout = .full, cells: [TemplateCell]) {
+        self.id = id
+        self.layout = layout
+        // Normalise : 1 cellule en pleine largeur, 2 en deux colonnes.
+        self.cells = TemplateLine.normalized(cells, for: layout)
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, layout, cells }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        layout = try values.decodeIfPresent(Layout.self, forKey: .layout) ?? .full
+        let decodedCells = try values.decodeIfPresent([TemplateCell].self, forKey: .cells) ?? []
+        cells = TemplateLine.normalized(decodedCells, for: layout)
+    }
+
+    /// Garantit le bon nombre de cellules selon la disposition (1 pleine, 2 colonnes).
+    static func normalized(_ cells: [TemplateCell], for layout: Layout) -> [TemplateCell] {
+        switch layout {
+        case .full:
+            return [cells.first ?? TemplateCell(content: .vide)]
+        case .twoColumns:
+            let left = cells.first ?? TemplateCell(content: .vide, style: CellStyle(alignH: .leading))
+            let right = cells.dropFirst().first ?? TemplateCell(content: .vide, style: CellStyle(alignH: .trailing))
+            return [left, right]
+        }
+    }
+
+    /// Bascule la disposition d'une ligne en conservant au mieux les cellules.
+    public func toggledLayout() -> TemplateLine {
+        switch layout {
+        case .full:
+            let keep = cells.first ?? TemplateCell(content: .vide)
+            return TemplateLine(id: id, layout: .twoColumns,
+                                cells: [keep, TemplateCell(content: .vide, style: CellStyle(alignH: .trailing))])
+        case .twoColumns:
+            return TemplateLine(id: id, layout: .full, cells: [cells.first ?? TemplateCell(content: .vide)])
+        }
+    }
+
+    public static func full(_ cell: TemplateCell) -> TemplateLine {
+        TemplateLine(layout: .full, cells: [cell])
+    }
+    public static func columns(_ left: TemplateCell, _ right: TemplateCell) -> TemplateLine {
+        TemplateLine(layout: .twoColumns, cells: [left, right])
+    }
+}
+
+/// Une cellule : un contenu et son style.
+public struct TemplateCell: Codable, Equatable, Identifiable, Hashable {
+    public var id: UUID
+    public var content: CellContent
+    public var style: CellStyle
+
+    public init(id: UUID = UUID(), content: CellContent, style: CellStyle = CellStyle()) {
+        self.id = id
+        self.content = content
+        self.style = style
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, content, style }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        content = try values.decode(CellContent.self, forKey: .content)
+        style = try values.decodeIfPresent(CellStyle.self, forKey: .style) ?? CellStyle()
+    }
+}
+
+/// Contenu d'une cellule : un champ de l'article, un texte libre, le code-barres, ou vide.
+public enum CellContent: Codable, Equatable, Hashable {
+    case vide
+    case designation      // ProductLabel.name
+    case refArticle       // ProductLabel.productReference
+    case refRayon         // ProductLabel.shelfReference
+    case famille          // ProductLabel.category
+    case prixTTC          // ProductLabel.price + currency, avec priceCaption
+    case codeBarres       // ProductLabel.ean (EAN13, redimensionné dans la cellule)
+    case dateGeneration   // ProductLabel.generatedAt
+    case texteLibre(String)
+
+    /// Cas « simples » (hors texte libre) pour alimenter les sélecteurs.
+    public static var selectableKinds: [CellContent] {
+        [.vide, .designation, .refArticle, .refRayon, .famille, .prixTTC, .codeBarres, .dateGeneration, .texteLibre("")]
+    }
+
+    public var title: String {
+        switch self {
+        case .vide: NSLocalizedString("Vide", comment: "Cell content")
+        case .designation: NSLocalizedString("Désignation", comment: "Cell content")
+        case .refArticle: NSLocalizedString("Réf. article", comment: "Cell content")
+        case .refRayon: NSLocalizedString("Réf. rayon", comment: "Cell content")
+        case .famille: NSLocalizedString("Famille", comment: "Cell content")
+        case .prixTTC: NSLocalizedString("Prix TTC", comment: "Cell content")
+        case .codeBarres: NSLocalizedString("Code-barres", comment: "Cell content")
+        case .dateGeneration: NSLocalizedString("Date de génération", comment: "Cell content")
+        case .texteLibre: NSLocalizedString("Texte libre", comment: "Cell content")
+        }
+    }
+
+    /// true si deux contenus sont du même « genre » (le texte libre ignore sa valeur).
+    public func sameKind(as other: CellContent) -> Bool {
+        switch (self, other) {
+        case (.texteLibre, .texteLibre): return true
+        default: return self == other
+        }
+    }
+
+    public var isBarcode: Bool { if case .codeBarres = self { return true }; return false }
+
+    /// Valeur textuelle à afficher (nil pour .vide, .codeBarres — rendu graphiquement —
+    /// ou une date absente). `formattedPrice` est le prix déjà mis en forme.
+    public func text(for label: ProductLabel, formattedPrice: String?) -> String? {
+        switch self {
+        case .vide, .codeBarres: return nil
+        case .designation: return label.name
+        case .refArticle: return String(format: NSLocalizedString("Réf. %@", comment: "Product reference on label"), label.productReference)
+        case .refRayon: return label.shelfReference
+        case .famille: return label.category
+        case .prixTTC: return formattedPrice
+        case .dateGeneration: return label.generatedAtText
+        case .texteLibre(let value): return value
+        }
+    }
+
+    // Codable manuel : {kind: "...", value: "..."?}.
+    private enum CodingKeys: String, CodingKey { case kind, value }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try values.decode(String.self, forKey: .kind)
+        switch kind {
+        case "designation": self = .designation
+        case "refArticle": self = .refArticle
+        case "refRayon": self = .refRayon
+        case "famille": self = .famille
+        case "prixTTC": self = .prixTTC
+        case "codeBarres": self = .codeBarres
+        case "dateGeneration": self = .dateGeneration
+        case "texteLibre": self = .texteLibre(try values.decodeIfPresent(String.self, forKey: .value) ?? "")
+        default: self = .vide
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .vide: try container.encode("vide", forKey: .kind)
+        case .designation: try container.encode("designation", forKey: .kind)
+        case .refArticle: try container.encode("refArticle", forKey: .kind)
+        case .refRayon: try container.encode("refRayon", forKey: .kind)
+        case .famille: try container.encode("famille", forKey: .kind)
+        case .prixTTC: try container.encode("prixTTC", forKey: .kind)
+        case .codeBarres: try container.encode("codeBarres", forKey: .kind)
+        case .dateGeneration: try container.encode("dateGeneration", forKey: .kind)
+        case .texteLibre(let value):
+            try container.encode("texteLibre", forKey: .kind)
+            try container.encode(value, forKey: .value)
+        }
+    }
+}
+
+/// Style d'une cellule : alignements, taille prédéfinie, gras, italique.
+public struct CellStyle: Codable, Equatable, Hashable {
+    public enum AlignH: String, Codable, CaseIterable, Hashable {
+        case leading, center, trailing
+        public var title: String {
+            switch self {
+            case .leading: NSLocalizedString("Gauche", comment: "Horizontal alignment")
+            case .center: NSLocalizedString("Centré", comment: "Horizontal alignment")
+            case .trailing: NSLocalizedString("Droite", comment: "Horizontal alignment")
+            }
+        }
+    }
+    public enum AlignV: String, Codable, CaseIterable, Hashable {
+        case top, center, bottom
+        public var title: String {
+            switch self {
+            case .top: NSLocalizedString("Haut", comment: "Vertical alignment")
+            case .center: NSLocalizedString("Milieu", comment: "Vertical alignment")
+            case .bottom: NSLocalizedString("Bas", comment: "Vertical alignment")
+            }
+        }
+    }
+    public enum Size: String, Codable, CaseIterable, Hashable {
+        case s, m, l, xl
+        public var title: String {
+            switch self {
+            case .s: "S"; case .m: "M"; case .l: "L"; case .xl: "XL"
+            }
+        }
+        /// Taille de police de base (points de mise en page 384), avant adaptation à la hauteur.
+        public var fontSize: Int {
+            switch self {
+            case .s: 13; case .m: 18; case .l: 26; case .xl: 36
+            }
+        }
+        /// Hauteur de bande réservée à la ligne (points de mise en page 384) pour cette taille.
+        public var bandHeight: Int {
+            switch self {
+            case .s: 20; case .m: 27; case .l: 36; case .xl: 48
+            }
+        }
+    }
+
+    public var alignH: AlignH
+    public var alignV: AlignV
+    public var size: Size
+    public var bold: Bool
+    public var italic: Bool
+
+    public init(alignH: AlignH = .leading, alignV: AlignV = .center,
+                size: Size = .m, bold: Bool = true, italic: Bool = false) {
+        self.alignH = alignH
+        self.alignV = alignV
+        self.size = size
+        self.bold = bold
+        self.italic = italic
+    }
+
+    private enum CodingKeys: String, CodingKey { case alignH, alignV, size, bold, italic }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        alignH = try values.decodeIfPresent(AlignH.self, forKey: .alignH) ?? .leading
+        alignV = try values.decodeIfPresent(AlignV.self, forKey: .alignV) ?? .center
+        size = try values.decodeIfPresent(Size.self, forKey: .size) ?? .m
+        bold = try values.decodeIfPresent(Bool.self, forKey: .bold) ?? true
+        italic = try values.decodeIfPresent(Bool.self, forKey: .italic) ?? false
+    }
+}
+
+public extension TemplateLine {
+    /// Lignes de référence d'un arrangement historique : point de départ quand on duplique
+    /// un preset en modèle perso (approximation éditable). Le preset lui-même reste rendu
+    /// pixel-identique par le moteur historique tant qu'il n'est pas dupliqué.
+    static func referenceLines(for arrangement: LabelArrangement) -> [TemplateLine] {
+        func c(_ content: CellContent, _ size: CellStyle.Size, _ h: CellStyle.AlignH = .leading,
+               bold: Bool = true) -> TemplateCell {
+            TemplateCell(content: content, style: CellStyle(alignH: h, size: size, bold: bold))
+        }
+        switch arrangement {
+        case .current:
+            return [.full(c(.famille, .s)),
+                    .full(c(.refRayon, .s)),
+                    .full(c(.designation, .l)),
+                    .full(c(.codeBarres, .m)),
+                    .columns(c(.refArticle, .s), c(.prixTTC, .xl, .trailing))]
+        case .priceFirst:
+            return [.columns(c(.famille, .s), c(.prixTTC, .xl, .trailing)),
+                    .full(c(.refRayon, .s)),
+                    .full(c(.designation, .l)),
+                    .full(c(.codeBarres, .m)),
+                    .full(c(.refArticle, .s, .center))]
+        case .columns:
+            return [.full(c(.famille, .s)),
+                    .full(c(.refRayon, .s)),
+                    .columns(c(.designation, .l), c(.prixTTC, .xl, .trailing)),
+                    .full(c(.codeBarres, .m)),
+                    .full(c(.refArticle, .s, .center))]
+        case .barcodeFirst:
+            return [.full(c(.famille, .s)),
+                    .full(c(.refRayon, .s)),
+                    .full(c(.codeBarres, .m)),
+                    .full(c(.designation, .l)),
+                    .columns(c(.refArticle, .s), c(.prixTTC, .xl, .trailing))]
+        case .centered:
+            return [.full(c(.famille, .s, .center)),
+                    .full(c(.refRayon, .s, .center)),
+                    .full(c(.designation, .l, .center)),
+                    .full(c(.codeBarres, .m, .center)),
+                    .full(c(.refArticle, .s, .center)),
+                    .full(c(.prixTTC, .l, .center))]
+        case .barcodeLast:
+            return [.full(c(.famille, .s)),
+                    .full(c(.designation, .l)),
+                    .columns(c(.refRayon, .s), c(.prixTTC, .xl, .trailing)),
+                    .full(c(.refArticle, .s, .center)),
+                    .full(c(.codeBarres, .m))]
+        }
+    }
+}
+
+/// Les six presets d'usine : un par disposition historique. Verrouillés.
+public enum LabelTemplatePresets {
+    /// UUID stables (dérivés de l'arrangement) : la sélection persiste entre deux lancements
+    /// et la migration depuis `labelArrangement` retombe sur le bon preset.
+    public static func id(for arrangement: LabelArrangement) -> UUID {
+        switch arrangement {
+        case .current:      return UUID(uuidString: "00000000-0000-0000-0000-0000000000C1")!
+        case .priceFirst:   return UUID(uuidString: "00000000-0000-0000-0000-0000000000C2")!
+        case .columns:      return UUID(uuidString: "00000000-0000-0000-0000-0000000000C3")!
+        case .barcodeFirst: return UUID(uuidString: "00000000-0000-0000-0000-0000000000C4")!
+        case .centered:     return UUID(uuidString: "00000000-0000-0000-0000-0000000000C5")!
+        case .barcodeLast:  return UUID(uuidString: "00000000-0000-0000-0000-0000000000C6")!
+        }
+    }
+
+    public static func preset(for arrangement: LabelArrangement) -> LabelTemplate {
+        LabelTemplate(id: id(for: arrangement), name: arrangement.title, isLocked: true,
+                      baseArrangement: arrangement,
+                      lines: TemplateLine.referenceLines(for: arrangement))
+    }
+
+    /// Tous les presets, dans l'ordre d'affichage (= ordre des arrangements).
+    public static var all: [LabelTemplate] { LabelArrangement.allCases.map { preset(for: $0) } }
+
+    /// Le preset par défaut (disposition rayon actuelle).
+    public static var `default`: LabelTemplate { preset(for: .current) }
+}

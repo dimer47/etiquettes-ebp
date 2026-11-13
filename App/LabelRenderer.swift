@@ -7,6 +7,20 @@ enum LabelRenderer {
     static let barcodeModuleDots = 3
     static let quietZoneDots = 30 // 10 modules on each side
 
+    /// Rend un MODÈLE (`LabelTemplate`). Un preset d'usine, ou tout modèle portant un
+    /// `baseArrangement`, délègue au rendu historique par `LabelArrangement` (pixel-identique
+    /// à l'existant). Un modèle perso (zones libres) passe par le moteur de zones.
+    static func render(_ label: ProductLabel, template: LabelTemplate, size: LabelSize = .standard,
+                       scale: Double = 1, layoutWidth: Int = width) throws -> MonochromeBitmap {
+        if let arrangement = template.baseArrangement {
+            return try render(label, size: size, arrangement: arrangement, scale: scale, layoutWidth: layoutWidth)
+        }
+        let ean = try EAN13.completed(label.ean)
+        guard let price = PriceFormatter.formatted(label.price, currency: label.currency) else { throw LabelError.invalidPrice }
+        return try renderLines(label, template: template, ean: ean, price: price,
+                               size: size, scale: scale, layoutWidth: layoutWidth)
+    }
+
     /// `scale` dessine la même mise en page plus grande, pour une Brother :
     /// le texte est composé à cette résolution, les modules EAN gardent un
     /// nombre entier de points. À 1, c'est exactement le bitmap de la 5890.
@@ -78,6 +92,152 @@ enum LabelRenderer {
             }
         }
         return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+    }
+
+    // MARK: - Moteur de lignes/colonnes (modèles perso)
+
+    /// Rend un modèle perso : une pile de lignes ordonnées (pleine largeur ou deux colonnes),
+    /// chaque cellule rendue selon son contenu et son style. Le code-barres est une cellule
+    /// normale, redimensionnée pour tenir dans sa cellule (pleine largeur ou demi-colonne).
+    /// Le texte est composé en coordonnées de mise en page (384 ou 576 pts) puis mis à l'échelle
+    /// comme le chemin historique ; les barres sont peintes sur la grille de pixels finale.
+    private static func renderLines(_ label: ProductLabel, template: LabelTemplate, ean: String,
+                                    price: String, size: LabelSize, scale: Double,
+                                    layoutWidth: Int) throws -> MonochromeBitmap {
+        let isWide = layoutWidth == WideLabelLayout.width
+        let layoutW = isWide ? WideLabelLayout.width : Self.width
+        let layoutH = size.heightDots
+        let rows = computeLineRows(template.lines, layoutWidth: layoutW, layoutHeight: layoutH)
+        let modules = try EAN13.modules(for: ean)
+
+        // Largeur/hauteur finales et échelle layout→pixels.
+        let width: Int, height: Int
+        let sx: Double, sy: Double
+        if isWide {
+            width = layoutW; height = layoutH; sx = 1; sy = 1
+        } else {
+            let geometry = LabelRasterGeometry(layoutHeight: layoutH, scale: scale)
+            width = geometry.width; height = geometry.height
+            sx = Double(width) / Double(layoutW); sy = Double(height) / Double(layoutH)
+        }
+        var black = try rasterize(width: width, height: height) { context in
+            if !isWide {
+                context.cgContext.scaleBy(x: CGFloat(width) / CGFloat(layoutW),
+                                          y: CGFloat(height) / CGFloat(layoutH))
+            }
+            drawLineRows(rows, label: label, ean: ean, price: price, layoutWidth: layoutW)
+        }
+        // Barres de chaque cellule code-barres, converties en pixels et peintes.
+        for row in rows {
+            for placed in row.cells where placed.isBarcode {
+                paintBarcode(&black, modules: modules, width: width, height: height,
+                             cellXLayout: placed.x, cellWidthLayout: placed.width,
+                             topLayout: placed.barcodeBarsTopLayout, barsHeightLayout: placed.barcodeBarsHeightLayout,
+                             sx: sx, sy: sy)
+            }
+        }
+        return try RasterEncoder.encodeBlackPixels(black, width: width, height: height)
+    }
+
+    /// Une ligne calculée : son `top` et sa hauteur (coordonnées layout) et ses cellules placées.
+    private struct LineRow { var top: Int; var height: Int; var cells: [PlacedCell] }
+    /// Une cellule placée : rectangle en coordonnées layout + style + repères code-barres.
+    private struct PlacedCell {
+        var cell: TemplateCell
+        var x: Int, width: Int
+        var isBarcode: Bool
+        var barcodeBarsTopLayout: Int
+        var barcodeBarsHeightLayout: Int
+    }
+
+    /// Place les lignes verticalement et les cellules horizontalement (coordonnées layout).
+    private static func computeLineRows(_ lines: [TemplateLine], layoutWidth: Int, layoutHeight: Int) -> [LineRow] {
+        let heightScale = Double(layoutHeight) / 208.0
+        let margin = 12
+        var rows: [LineRow] = []
+        var cursor = Int(6 * heightScale)
+        for line in lines {
+            // Hauteur de ligne = plus grande bande de ses cellules (le code-barres impose un bloc).
+            let bandBase = line.cells.map { $0.content.isBarcode ? 64 : $0.style.size.bandHeight }.max() ?? 27
+            let rowHeight = Int(Double(bandBase) * heightScale)
+            var placed: [PlacedCell] = []
+            let count = line.cells.count
+            for (index, cell) in line.cells.enumerated() {
+                let colWidth = count > 1 ? (layoutWidth - 2 * margin) / 2 - 6 : layoutWidth - 2 * margin
+                let x = count > 1 && index == 1 ? layoutWidth - margin - colWidth : margin
+                let isBar = cell.content.isBarcode
+                // Bloc code-barres : barres en haut, chiffres dessous dans la cellule.
+                let barsHeight = isBar ? Int(Double(rowHeight) * 0.66) : 0
+                placed.append(PlacedCell(cell: cell, x: x, width: colWidth, isBarcode: isBar,
+                                         barcodeBarsTopLayout: cursor + Int(2 * heightScale),
+                                         barcodeBarsHeightLayout: barsHeight))
+            }
+            rows.append(LineRow(top: cursor, height: rowHeight, cells: placed))
+            cursor += rowHeight
+        }
+        return rows
+    }
+
+    /// Dessine le texte de toutes les cellules (hors barres, peintes après seuillage).
+    private static func drawLineRows(_ rows: [LineRow], label: ProductLabel, ean: String,
+                                     price: String, layoutWidth: Int) {
+        for row in rows {
+            for placed in row.cells {
+                if placed.isBarcode {
+                    // Chiffres EAN lisibles sous les barres, centrés dans la cellule.
+                    let digitsTop = CGFloat(placed.barcodeBarsTopLayout + placed.barcodeBarsHeightLayout)
+                    let third = CGFloat(placed.width) / 3
+                    let x0 = CGFloat(placed.x)
+                    draw(String(ean.prefix(1)), in: CGRect(x: x0, y: digitsTop, width: third, height: 18),
+                         maxSize: 12, bold: true, alignment: .center)
+                    draw(String(ean.dropFirst().prefix(6)), in: CGRect(x: x0 + third, y: digitsTop, width: third, height: 18),
+                         maxSize: 12, bold: true, alignment: .center)
+                    draw(String(ean.suffix(6)), in: CGRect(x: x0 + 2 * third, y: digitsTop, width: third, height: 18),
+                         maxSize: 12, bold: true, alignment: .center)
+                    continue
+                }
+                guard let text = placed.cell.content.text(for: label, formattedPrice: price) else { continue }
+                let style = placed.cell.style
+                let alignment: NSTextAlignment = style.alignH == .leading ? .left : style.alignH == .trailing ? .right : .center
+                // Alignement vertical : décale le rectangle de texte dans la bande.
+                let fontBand = min(CGFloat(row.height), CGFloat(style.size.bandHeight))
+                let dy: CGFloat
+                switch style.alignV {
+                case .top: dy = 0
+                case .center: dy = (CGFloat(row.height) - fontBand) / 2
+                case .bottom: dy = CGFloat(row.height) - fontBand
+                }
+                draw(text, in: CGRect(x: CGFloat(placed.x), y: CGFloat(row.top) + dy,
+                                      width: CGFloat(placed.width), height: fontBand),
+                     maxSize: CGFloat(style.size.fontSize), bold: style.bold, italic: style.italic,
+                     alignment: alignment)
+            }
+        }
+    }
+
+    /// Peint les barres EAN d'une cellule : code centré DANS la cellule, module entier le plus
+    /// grand qui tient (zones de garde comprises), converti en pixels via (sx, sy).
+    private static func paintBarcode(_ black: inout [Bool], modules: [Bool], width: Int, height: Int,
+                                     cellXLayout: Int, cellWidthLayout: Int,
+                                     topLayout: Int, barsHeightLayout: Int, sx: Double, sy: Double) {
+        guard barsHeightLayout > 0 else { return }
+        // Largeur disponible en pixels, 10 modules de garde de chaque côté.
+        let cellWidthPx = Int(Double(cellWidthLayout) * sx)
+        let totalModules = modules.count + 2 * 10
+        let modulePx = max(1, cellWidthPx / totalModules)
+        let barcodePx = modules.count * modulePx
+        let cellLeftPx = Int(Double(cellXLayout) * sx)
+        let left = cellLeftPx + (cellWidthPx - (barcodePx + 2 * 10 * modulePx)) / 2 + 10 * modulePx
+        let topPx = Int(Double(topLayout) * sy)
+        let barsPx = max(1, Int(Double(barsHeightLayout) * sy))
+        for (index, on) in modules.enumerated() where on {
+            for y in topPx..<min(height, topPx + barsPx) {
+                for dot in 0..<modulePx {
+                    let px = left + index * modulePx + dot
+                    if px >= 0 && px < width { black[y * width + px] = true }
+                }
+            }
+        }
     }
 
     /// Dessine sur fond blanc puis seuille chaque point en noir ou blanc.
@@ -249,20 +409,26 @@ enum LabelRenderer {
         return UIImage(cgImage: image)
     }
 
-    private static func draw(_ text: String, in rect: CGRect, maxSize: CGFloat, bold: Bool, alignment: NSTextAlignment = .center) {
+    private static func draw(_ text: String, in rect: CGRect, maxSize: CGFloat, bold: Bool,
+                             italic: Bool = false, alignment: NSTextAlignment = .center) {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = alignment
         paragraph.lineBreakMode = .byTruncatingTail
+        func font(_ size: CGFloat) -> UIFont {
+            var f = bold ? UIFont.boldSystemFont(ofSize: size) : UIFont.systemFont(ofSize: size)
+            if italic, let descriptor = f.fontDescriptor.withSymbolicTraits(bold ? [.traitItalic, .traitBold] : .traitItalic) {
+                f = UIFont(descriptor: descriptor, size: size)
+            }
+            return f
+        }
         var size = maxSize
         while size > 10 {
-            let font = bold ? UIFont.boldSystemFont(ofSize: size) : UIFont.systemFont(ofSize: size)
-            if (text as NSString).size(withAttributes: [.font: font]).width <= rect.width { break }
+            if (text as NSString).size(withAttributes: [.font: font(size)]).width <= rect.width { break }
             size -= 1
         }
-        let font = bold ? UIFont.boldSystemFont(ofSize: size) : UIFont.systemFont(ofSize: size)
-        (text as NSString).draw(in: rect, withAttributes: [.font: font, .foregroundColor: UIColor.black, .paragraphStyle: paragraph])
+        (text as NSString).draw(in: rect, withAttributes: [.font: font(size), .foregroundColor: UIColor.black, .paragraphStyle: paragraph])
     }
 }
 

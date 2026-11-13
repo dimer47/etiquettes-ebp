@@ -8,6 +8,8 @@ struct ContentView: View {
     @StateObject private var brother = BrotherPrinterService()
     @StateObject private var netum = NetumPrinterService()
     @StateObject private var thumbnailStore = LabelThumbnailStore()
+    @StateObject private var formatThumbnails = TemplateThumbnailStore()
+    @StateObject private var templates = LabelTemplateLibraryStore()
     @StateObject private var history = LabelHistoryStore()
     @StateObject private var viewed = ViewedProductStore()
     /// Lot de produits pour la multi-impression (sélection liste + scan multiple).
@@ -23,6 +25,7 @@ struct ContentView: View {
     @State private var showingPrinters = false
     @State private var showingSettings = false
     @State private var showingPresentation = false
+    @State private var showingTemplates = false
     @State private var showingHistory = false
     /// Onglet de l'historique : 0 = consultés, 1 = imprimés.
     @State private var historyTab = 0
@@ -30,9 +33,31 @@ struct ContentView: View {
     @State private var ebpQuantity = 1
     @AppStorage("labelSize") private var selectedSize = LabelSize.standard.rawValue
     @AppStorage("labelArrangement") private var selectedArrangement = LabelArrangement.current.rawValue
+    /// Modèle d'étiquette choisi (preset d'usine ou modèle perso). Remplace le choix de
+    /// disposition figée pour le rendu. Persisté par id.
+    @AppStorage("labelTemplateID") private var selectedTemplateIDString = ""
 
     private var labelSize: LabelSize { LabelSize(rawValue: selectedSize) ?? .standard }
     private var labelArrangement: LabelArrangement { LabelArrangement(rawValue: selectedArrangement) ?? .current }
+
+    /// Id du modèle courant, sous forme de Binding pour les écrans de sélection/édition.
+    private var selectedTemplateID: Binding<UUID> {
+        Binding(
+            get: { UUID(uuidString: selectedTemplateIDString) ?? LabelTemplatePresets.default.id },
+            set: { selectedTemplateIDString = $0.uuidString }
+        )
+    }
+    /// Le modèle effectivement utilisé pour rendre et imprimer (repli sur le preset par défaut).
+    private var currentTemplate: LabelTemplate {
+        templates.templateOrDefault(id: UUID(uuidString: selectedTemplateIDString))
+    }
+    /// Pose la date de génération sur une étiquette, pour que les modèles qui affichent la
+    /// date de génération l'impriment. Sans effet visible pour les modèles sans ce champ.
+    private func dated(_ label: ProductLabel, at date: Date = Date()) -> ProductLabel {
+        var label = label
+        label.generatedAt = date
+        return label
+    }
 
     private var isBrother: Bool { setup.brand == .brother }
     private var isNetum: Bool { setup.brand == .netum }
@@ -59,11 +84,15 @@ struct ContentView: View {
     }
 
     private var bitmap: MonochromeBitmap? {
-        try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)
+        try? LabelRenderer.render(dated(label), template: currentTemplate, size: labelSize, layoutWidth: layoutWidth)
     }
+    /// Date d'exemple FIXE pour les aperçus/miniatures (clés de cache stables) : les modèles
+    /// qui affichent la date de génération la montrent sans dériver à chaque rendu.
+    private static let previewDate = Date(timeIntervalSince1970: 1_778_000_000)
     private var selectionPreviewLabel: ProductLabel {
-        ((try? EAN13.completed(label.ean)) != nil &&
-         PriceFormatter.formatted(label.price, currency: label.currency) != nil) ? label : ProductLabel()
+        let base = ((try? EAN13.completed(label.ean)) != nil &&
+                    PriceFormatter.formatted(label.price, currency: label.currency) != nil) ? label : ProductLabel()
+        return dated(base, at: Self.previewDate)
     }
     var body: some View {
         NavigationStack {
@@ -95,6 +124,7 @@ struct ContentView: View {
             .navigationDestination(isPresented: $showingBatch) { batchDetail }
             .sheet(isPresented: $showingPrinters) { printerSheet }
             .sheet(isPresented: $showingPresentation) { presentationSheet }
+            .sheet(isPresented: $showingTemplates) { templatesSheet }
             .sheet(isPresented: $showingSettings) { settingsSheet }
             .sheet(isPresented: $showingHistory) { historySheet }
             .alert(NSLocalizedString("Impression", comment: "Print alert"), isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) {
@@ -111,6 +141,11 @@ struct ContentView: View {
             .onAppear {
                 if LabelSize(rawValue: selectedSize) == nil { selectedSize = LabelSize.standard.rawValue }
                 if LabelArrangement(rawValue: selectedArrangement) == nil { selectedArrangement = LabelArrangement.current.rawValue }
+                // Migration : sans modèle choisi, retomber sur le PRESET correspondant à
+                // l'ancienne disposition persistée (labelArrangement) → continuité du rendu.
+                if UUID(uuidString: selectedTemplateIDString) == nil {
+                    selectedTemplateIDString = LabelTemplatePresets.id(for: labelArrangement).uuidString
+                }
                 setup.supportedLabels = { model in BrotherPrinterService.supportedLabelIndices(for: model) }
                 if isNetum { netum.reconnect() } else if !isBrother { printer.reconnect() }
             }
@@ -124,6 +159,7 @@ struct ContentView: View {
         ScrollView {
             VStack(spacing: 18) {
                 printerCard
+                templateCard
                 presentationCard
                 previewCard(for: product.label)
                 quantityCard
@@ -137,7 +173,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled((try? LabelRenderer.render(product.label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) == nil || isPrinting || !printerReady)
+                .disabled((try? LabelRenderer.render(product.label, template: currentTemplate, size: labelSize, layoutWidth: layoutWidth)) == nil || isPrinting || !printerReady)
             }
             .onAppear { label = product.label }   // garantit que l'impression utilise cet article
             .padding()
@@ -157,10 +193,10 @@ struct ContentView: View {
             batch: batch,
             queueState: queueState,
             printerCard: { printerCard },
-            presentationCard: { presentationCard },
+            presentationCard: { VStack(spacing: 18) { templateCard; presentationCard } },
             preview: { product in
-                (try? LabelRenderer.render(product.label, size: labelSize,
-                                           arrangement: labelArrangement, layoutWidth: layoutWidth))
+                (try? LabelRenderer.render(dated(product.label), template: currentTemplate,
+                                           size: labelSize, layoutWidth: layoutWidth))
                     .flatMap(LabelRenderer.preview)
             },
             canPrint: canPrintBatch && !isPrinting,
@@ -253,7 +289,7 @@ struct ContentView: View {
     /// En l'absence d'imprimante réelle prête (simulateur), l'impression est simulée.
     @MainActor
     private func printOneUnit(_ label: ProductLabel) async -> UnitOutcome {
-        guard (try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) != nil else {
+        guard (try? LabelRenderer.render(label, template: currentTemplate, size: labelSize, layoutWidth: layoutWidth)) != nil else {
             return .failure(NSLocalizedString("Article invalide (EAN ou prix).", comment: "Invalid label"))
         }
         // Impression simulée : sortie « à vide » après une courte latence (démo / simulateur).
@@ -270,7 +306,7 @@ struct ContentView: View {
         if isNetum {
             netum.jobError = nil
             var queued = false
-            do { try submit(label, size: labelSize, arrangement: labelArrangement) { queued = true } }
+            do { try submit(label, size: labelSize, template: currentTemplate) { queued = true } }
             catch { return .failure(error.localizedDescription) }
             // Attend la fin du travail (ou une erreur de mise en file).
             await waitWhile { netum.isBusy }
@@ -280,7 +316,7 @@ struct ContentView: View {
             return .success
         } else if isBrother {
             var success = false
-            do { try submit(label, size: labelSize, arrangement: labelArrangement) { success = true } }
+            do { try submit(label, size: labelSize, template: currentTemplate) { success = true } }
             catch { return .failure(error.localizedDescription) }
             await waitWhile { brother.isBusy }
             if brother.statusIsError && !success { return .failure(brother.status) }
@@ -289,7 +325,7 @@ struct ContentView: View {
         } else {
             // 5890 : feu-et-oublie, pas de signal d'erreur dur. On envoie et on attend la fin.
             do {
-                let bitmap = try LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement)
+                let bitmap = try LabelRenderer.render(dated(label), template: currentTemplate, size: labelSize)
                 printer.print(bitmap)
             } catch { return .failure(error.localizedDescription) }
             await waitWhile { printer.printing }
@@ -366,7 +402,31 @@ struct ContentView: View {
         .accessibilityAction(named: Text("Réglages de l’imprimante")) { openPrinters() }
     }
 
-    /// Carte « Présentation de l'étiquette » : ouvre le sélecteur de format graphique à miniatures.
+    /// Carte « Modèle d'étiquette » : ouvre la bibliothèque de modèles (presets + perso).
+    private var templateCard: some View {
+        Button { showingTemplates = true } label: {
+            HStack {
+                Image(systemName: "rectangle.on.rectangle.angled")
+                    .font(.title3).foregroundStyle(.primary)
+                VStack(alignment: .leading) {
+                    Text(NSLocalizedString("Modèle d’étiquette", comment: "Template card title")).font(.headline)
+                    HStack(spacing: 6) {
+                        Text(currentTemplate.name).font(.subheadline).foregroundStyle(.secondary)
+                        if currentTemplate.isLocked {
+                            Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .modifier(PrintCardStyle())
+        }
+        .buttonStyle(ResponsiveCardStyle())
+    }
+
+    /// Carte « Format de l'étiquette » : ouvre le sélecteur de hauteur (LabelSize) à miniatures.
     private var presentationCard: some View {
         Button {
             // Les miniatures sont rendues à la demande par chaque tuile (voir presentationTile),
@@ -377,8 +437,8 @@ struct ContentView: View {
                 Image(systemName: "square.grid.2x2.fill")
                     .font(.title3).foregroundStyle(.primary)
                 VStack(alignment: .leading) {
-                    Text("Présentation de l’étiquette").font(.headline)
-                    Text("\(labelArrangement.title) · \(labelSize.title) (\(printedSizeText))")
+                    Text(NSLocalizedString("Format de l’étiquette", comment: "Format card title")).font(.headline)
+                    Text("\(labelSize.title) (\(printedSizeText))")
                         .font(.subheadline).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -392,7 +452,7 @@ struct ContentView: View {
 
     /// Aperçu live de l'étiquette (le bitmap réel qui sera imprimé), rendu depuis l'étiquette donnée.
     private func previewCard(for previewLabel: ProductLabel) -> some View {
-        let preview = (try? LabelRenderer.render(previewLabel, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth))
+        let preview = (try? LabelRenderer.render(dated(previewLabel), template: currentTemplate, size: labelSize, layoutWidth: layoutWidth))
         return VStack(alignment: .leading, spacing: 8) {
             Text("APERÇU DE L’ÉTIQUETTE").font(.headline)
             if let preview, let image = LabelRenderer.preview(preview) {
@@ -440,7 +500,7 @@ struct ContentView: View {
     /// 5890 en séquence (une étiquette par appel, pilotée par la fin de l'impression).
     private func printCurrentLabel(copies: Int = 1) {
         guard printerReady else { return }
-        guard (try? LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement, layoutWidth: layoutWidth)) != nil else {
+        guard (try? LabelRenderer.render(label, template: currentTemplate, size: labelSize, layoutWidth: layoutWidth)) != nil else {
             message = NSLocalizedString("Article invalide (EAN ou prix).", comment: "Invalid label")
             return
         }
@@ -454,21 +514,21 @@ struct ContentView: View {
         if isNetum {
             let previous = setup.netum.copies
             setup.netum.copies = count
-            do { try submit(label, size: labelSize, arrangement: labelArrangement) {
+            do { try submit(label, size: labelSize, template: currentTemplate) {
                 history.record(entry); setup.netum.copies = previous
             } }
             catch { setup.netum.copies = previous; message = error.localizedDescription }
         } else if isBrother {
             let previous = setup.copies
             setup.copies = count
-            do { try submit(label, size: labelSize, arrangement: labelArrangement) {
+            do { try submit(label, size: labelSize, template: currentTemplate) {
                 history.record(entry); setup.copies = previous
             } }
             catch { setup.copies = previous; message = error.localizedDescription }
         } else {
             // 5890 : une étiquette par appel, en séquence.
             do {
-                let bitmap = try LabelRenderer.render(label, size: labelSize, arrangement: labelArrangement)
+                let bitmap = try LabelRenderer.render(dated(label), template: currentTemplate, size: labelSize)
                 printCopiesSequentially(bitmap, remaining: count, onFinished: { history.record(entry) })
             } catch { message = error.localizedDescription }
         }
@@ -493,19 +553,22 @@ struct ContentView: View {
     /// de 384 points comme avant ; une Brother reçoit la même mise en page
     /// dessinée hors du fil principal à la résolution de sa tête ; la NETUM
     /// reçoit une disposition 80 mm (576 points) ou celle de la 5890 sur 58 mm.
-    private func submit(_ label: ProductLabel, size: LabelSize, arrangement: LabelArrangement,
+    /// Envoie l'étiquette selon le MODÈLE choisi (preset → rendu historique, perso → zones).
+    /// La date de génération est posée ici pour que les modèles qui l'affichent l'impriment.
+    private func submit(_ label: ProductLabel, size: LabelSize, template: LabelTemplate,
                         onQueued: (() -> Void)? = nil) throws {
+        let label = dated(label)
         if isNetum {
-            var bitmap = try LabelRenderer.render(label, size: size, arrangement: arrangement, layoutWidth: layoutWidth)
+            var bitmap = try LabelRenderer.render(label, template: template, size: size, layoutWidth: layoutWidth)
             if setup.netum.rotateContent180 { bitmap = try bitmap.rotated180() }
             netum.print(bitmap: bitmap.bytes, width: bitmap.width, height: bitmap.height,
                         options: setup.netum, onQueued: onQueued)
         } else if isBrother {
             brother.print(job: setup.brotherJob, layoutHeight: size.heightDots, render: { scale in
-                try LabelRenderer.grayImage(LabelRenderer.render(label, size: size, arrangement: arrangement, scale: scale))
+                try LabelRenderer.grayImage(LabelRenderer.render(label, template: template, size: size, scale: scale))
             }, onSuccess: onQueued)
         } else {
-            printer.print(try LabelRenderer.render(label, size: size, arrangement: arrangement), onQueued: onQueued)
+            printer.print(try LabelRenderer.render(label, template: template, size: size), onQueued: onQueued)
         }
     }
 
@@ -533,13 +596,13 @@ struct ContentView: View {
         guard printerReady else { return }
         restore(entry)
         do {
-            _ = try LabelRenderer.render(entry.label, size: entry.size, arrangement: entry.arrangement)
+            _ = try LabelRenderer.render(entry.label, template: currentTemplate, size: entry.size)
             let copy = PrintedLabel(label: entry.label, size: entry.size, arrangement: entry.arrangement,
                                     densityValue: entry.densityValue, leadingFeedDots: entry.leadingFeedDots,
                                     trailingFeedDots: entry.trailingFeedDots,
                                     rotateContent180: entry.rotateContent180,
                                     netum: isNetum ? setup.netum : nil)
-            try submit(entry.label, size: entry.size, arrangement: entry.arrangement) { history.record(copy) }
+            try submit(entry.label, size: entry.size, template: currentTemplate) { history.record(copy) }
         } catch { message = error.localizedDescription }
     }
 
@@ -625,6 +688,16 @@ struct ContentView: View {
         .listStyle(.plain)
     }
 
+    /// Bibliothèque de modèles : presets verrouillés + modèles perso, avec duplication/édition.
+    private var templatesSheet: some View {
+        LabelTemplateListView(store: templates,
+                              sampleLabel: selectionPreviewLabel,
+                              size: labelSize, layoutWidth: layoutWidth,
+                              selectedTemplateID: selectedTemplateID,
+                              onClose: { showingTemplates = false })
+    }
+
+    /// Choix du FORMAT (hauteur LabelSize). La disposition relève désormais du MODÈLE.
     private var presentationSheet: some View {
         NavigationStack {
             ScrollView {
@@ -638,21 +711,7 @@ struct ContentView: View {
                         ForEach(LabelSize.allCases) { size in
                             Button { selectedSize = size.rawValue } label: {
                                 presentationTile(title: size.title, detail: "\(layoutWidthMM) × \(size.heightMillimeters) mm",
-                                                 size: size, arrangement: labelArrangement,
-                                                 selected: labelSize == size, fullWidth: true)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    Text("Disposition").font(.title3.bold())
-                    Text("La miniature est générée avec le même moteur que l’impression.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        ForEach(LabelArrangement.allCases) { arrangement in
-                            Button { selectedArrangement = arrangement.rawValue } label: {
-                                presentationTile(title: arrangement.title, detail: "",
-                                                 size: labelSize, arrangement: arrangement,
-                                                 selected: labelArrangement == arrangement)
+                                                 size: size, selected: labelSize == size, fullWidth: true)
                             }
                             .buttonStyle(.plain)
                         }
@@ -661,34 +720,34 @@ struct ContentView: View {
                 .padding()
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Présentation")
+            .navigationTitle("Format")
             .toolbar { Button("Terminé") { showingPresentation = false } }
         }
     }
 
     private func presentationTile(title: String, detail: String, size: LabelSize,
-                                  arrangement: LabelArrangement, selected: Bool,
-                                  fullWidth: Bool = false) -> some View {
-        let thumbnailKey = LabelThumbnailStore.key(size: size, arrangement: arrangement, width: layoutWidth)
+                                  selected: Bool, fullWidth: Bool = false) -> some View {
+        // La miniature de format reflète le MODÈLE courant à la hauteur de la tuile.
+        let thumbnailKey = TemplateThumbnailStore.key(template: currentTemplate, size: size, width: layoutWidth)
         return VStack(alignment: .leading, spacing: 7) {
             ZStack {
                 Color.white
-                if let image = thumbnailStore.images[thumbnailKey] {
+                if let image = formatThumbnails.images[thumbnailKey] {
                     Image(uiImage: image).interpolation(.high).resizable()
                         .aspectRatio(CGFloat(layoutWidth) / CGFloat(size.heightDots), contentMode: .fit)
                         .padding(5)
-                } else if thumbnailStore.failed.contains(thumbnailKey) {
+                } else if formatThumbnails.failed.contains(thumbnailKey) {
                     Text("Aperçu indisponible").font(.caption).foregroundStyle(.secondary)
                 } else {
                     ProgressView().tint(.blue)
                 }
             }
             // Chaque tuile demande SA propre miniature. `.task(id:)` se (re)lance à l'apparition
-            // de la tuile et à chaque changement de clé (format/disposition sélectionné, produit) :
+            // de la tuile et à chaque changement de clé (format sélectionné, modèle, produit) :
             // une clé non encore résolue est toujours redemandée — plus de spinner permanent.
             .task(id: thumbnailKey) {
-                await thumbnailStore.thumbnail(for: selectionPreviewLabel, size: size,
-                                               arrangement: arrangement, width: layoutWidth)
+                await formatThumbnails.thumbnail(for: selectionPreviewLabel, template: currentTemplate,
+                                                 size: size, width: layoutWidth)
             }
             .frame(height: fullWidth ? CGFloat(size.heightDots) * 0.82 : 125)
             .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -723,7 +782,7 @@ struct ContentView: View {
     private func printTestLabel() {
         let test = ProductLabel(name: NSLocalizedString("TEST TEXTE 12 18 27", comment: "Calibration label"), category: "5890 · 384 points", shelfReference: NSLocalizedString("RÉF RAYON : 12-04-08", comment: "Calibration label"), productReference: NSLocalizedString("TRAITS | || |||", comment: "Calibration label"), ean: "4006381333931", price: "5,95")
         do {
-            try submit(test, size: labelSize, arrangement: labelArrangement)
+            try submit(test, size: labelSize, template: currentTemplate)
             showingPrinters = false
         } catch { message = error.localizedDescription }
     }

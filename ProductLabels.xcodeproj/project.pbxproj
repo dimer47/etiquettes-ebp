@@ -59,6 +59,11 @@
 		CC0000000000000000000013 /* NetumSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000014 /* NetumSettingsView.swift */; };
 		CC0000000000000000000015 /* NetumPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000016 /* NetumPrinter.swift */; };
 		CC0000000000000000000017 /* WideLabelLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000018 /* WideLabelLayout.swift */; };
+		FA0000000000000000000001 /* LabelTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000011 /* LabelTemplate.swift */; };
+		FA0000000000000000000002 /* LabelTemplateLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000012 /* LabelTemplateLibrary.swift */; };
+		FA0000000000000000000003 /* LabelTemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000013 /* LabelTemplateStore.swift */; };
+		FA0000000000000000000004 /* LabelTemplateListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000014 /* LabelTemplateListView.swift */; };
+		FA0000000000000000000005 /* LabelTemplateEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000015 /* LabelTemplateEditorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -129,6 +134,11 @@
 		CC0000000000000000000014 /* NetumSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumSettingsView.swift; sourceTree = "<group>"; };
 		CC0000000000000000000016 /* NetumPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinter.swift; sourceTree = "<group>"; };
 		CC0000000000000000000018 /* WideLabelLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WideLabelLayout.swift; sourceTree = "<group>"; };
+		FA0000000000000000000011 /* LabelTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplate.swift; sourceTree = "<group>"; };
+		FA0000000000000000000012 /* LabelTemplateLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateLibrary.swift; sourceTree = "<group>"; };
+		FA0000000000000000000013 /* LabelTemplateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateStore.swift; sourceTree = "<group>"; };
+		FA0000000000000000000014 /* LabelTemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateListView.swift; sourceTree = "<group>"; };
+		FA0000000000000000000015 /* LabelTemplateEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateEditorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +167,9 @@
 			isa = PBXGroup;
 			children = (
 				4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */,
+				FA0000000000000000000013 /* LabelTemplateStore.swift */,
+				FA0000000000000000000014 /* LabelTemplateListView.swift */,
+				FA0000000000000000000015 /* LabelTemplateEditorView.swift */,
 				EB0000000000000000000070 /* BatchStore.swift */,
 				EB0000000000000000000072 /* BatchDetailView.swift */,
 				EB0000000000000000000042 /* ViewedProductStore.swift */,
@@ -189,6 +202,8 @@
 			isa = PBXGroup;
 			children = (
 				FE99AF2776C04A5A8568E934 /* ProductLabel.swift */,
+				FA0000000000000000000011 /* LabelTemplate.swift */,
+				FA0000000000000000000012 /* LabelTemplateLibrary.swift */,
 				EB0000000000000000000074 /* PrintQueue.swift */,
 				516D0672BE4E8CAD47F01920 /* EAN13.swift */,
 				BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */,
@@ -403,6 +418,11 @@
 				CC0000000000000000000013 /* NetumSettingsView.swift in Sources */,
 				CC0000000000000000000015 /* NetumPrinter.swift in Sources */,
 				CC0000000000000000000017 /* WideLabelLayout.swift in Sources */,
+				FA0000000000000000000001 /* LabelTemplate.swift in Sources */,
+				FA0000000000000000000002 /* LabelTemplateLibrary.swift in Sources */,
+				FA0000000000000000000003 /* LabelTemplateStore.swift in Sources */,
+				FA0000000000000000000004 /* LabelTemplateListView.swift in Sources */,
+				FA0000000000000000000005 /* LabelTemplateEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
