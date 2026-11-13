@@ -290,4 +290,48 @@ final class LabelTemplateTests: XCTestCase {
         let keyOtherWidth = template.thumbnailKey(forLabelSignature: labelA.hashValue, size: size, width: 512)
         XCTAssertNotEqual(key1, keyOtherWidth, "Changement de largeur → nouvelle clé")
     }
+
+    /// Scénario « enregistrer une modification » : éditer une cellule (ou ajouter/retirer une
+    /// ligne) d'un modèle, sans changer son id, doit changer sa clé de miniature — sinon le
+    /// `.task(id:)` de la tuile ne se relance pas et l'aperçu reste bloqué sur un loader après
+    /// l'enregistrement. La clé doit refléter le CONTENU du modèle, pas seulement son id.
+    func testThumbnailKeyChangesWhenTemplateContentEdited() {
+        let label = ProductLabel()
+        let size = LabelSize.allCases.first!
+        let width = 384
+
+        var template = LabelTemplatePresets.default.duplicated(named: "Perso")
+        // Garantit un contenu matérialisé à éditer.
+        if template.lines.isEmpty { template.lines = template.materializedLines() }
+        let keyBefore = template.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+
+        // 1) Modifier le style d'une cellule existante (même nombre de lignes).
+        var edited = template
+        let firstCell = edited.lines[0].cells[0]
+        edited.lines[0].cells[0].style = CellStyle(alignH: firstCell.style.alignH,
+                                                   size: firstCell.style.size == .xl ? .s : .xl,
+                                                   bold: !firstCell.style.bold)
+        let keyAfterStyle = edited.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+        XCTAssertNotEqual(keyBefore, keyAfterStyle, "Modifier un style de cellule doit changer la clé (sinon loader figé)")
+
+        // 2) Modifier le contenu d'une cellule.
+        var edited2 = template
+        edited2.lines[0].cells[0].content = .texteLibre("Promo")
+        let keyAfterContent = edited2.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+        XCTAssertNotEqual(keyBefore, keyAfterContent, "Modifier le contenu d'une cellule doit changer la clé")
+
+        // 3) Ajouter une ligne.
+        var edited3 = template
+        edited3.lines.append(.full(TemplateCell(content: .famille)))
+        let keyAfterAddLine = edited3.thumbnailKey(forLabelSignature: label.hashValue, size: size, width: width)
+        XCTAssertNotEqual(keyBefore, keyAfterAddLine, "Ajouter une ligne doit changer la clé")
+
+        // La régénération : une tuile qui observe keyBefore puis keyAfter* relance son .task,
+        // car l'id passé à .task(id:) a changé. On simule ce cache : l'ancienne entrée reste,
+        // mais la nouvelle clé n'y est pas → la tuile la (re)génère.
+        var cache: [String: String] = [keyBefore: "ancienne-image"]
+        XCTAssertNil(cache[keyAfterContent], "La nouvelle version n'est pas servie par l'ancienne entrée")
+        cache[keyAfterContent] = "nouvelle-image"
+        XCTAssertEqual(cache[keyAfterContent], "nouvelle-image")
+    }
 }
