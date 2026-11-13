@@ -681,6 +681,10 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                     Image(systemName: model.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill"
                                                               : "line.3.horizontal.decrease.circle")
                         .font(.title2)
+                        // Couleur = indicateur d'état : gris quand aucun filtre n'est actif,
+                        // teinte d'accent (bleu) quand un filtre est posé. Complète l'icône
+                        // pleine/contour portée par hasActiveFilters.
+                        .foregroundStyle(model.hasActiveFilters ? Color.accentColor : Color.secondary)
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel(NSLocalizedString("Filtres", comment: "Filters"))
