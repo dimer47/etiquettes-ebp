@@ -21,13 +21,27 @@ struct ShareQRView: View {
 
     @State private var shareURL: URL?
     @State private var showingShare = false
+    /// QR généré UNE fois (rendu synchrone potentiellement lourd) et mis en cache, jamais recalculé
+    /// à chaque passe de `body`. `nil` tant que non généré OU si le payload ne tient pas dans un QR.
+    @State private var qrImage: UIImage?
+    /// true dès que la tentative de génération est terminée, pour distinguer « pas encore généré »
+    /// (on patiente) de « QR impossible » (on montre le repli fichier).
+    @State private var qrResolved = false
 
-    /// Le QR est possible si on ne force pas le fichier, que ça tient sous la limite, et que la
-    /// génération d'image réussit.
-    private var qrImage: UIImage? {
-        guard !forceFile, payload.count <= SharePayload.qrByteLimit,
-              let text = String(data: payload, encoding: .utf8) else { return nil }
-        return QRImageRenderer.image(for: text)
+    /// Le QR est envisageable si on ne force pas le fichier et que ça tient sous la limite. La
+    /// génération effective (et donc le passage éventuel au repli fichier) est tranchée dans `.task`.
+    private var qrEligible: Bool {
+        !forceFile && payload.count <= SharePayload.qrByteLimit
+    }
+
+    private func buildQRIfNeeded() {
+        guard qrEligible, let text = String(data: payload, encoding: .utf8) else {
+            qrImage = nil
+            qrResolved = true
+            return
+        }
+        qrImage = QRImageRenderer.image(for: text)
+        qrResolved = true
     }
 
     var body: some View {
@@ -48,10 +62,12 @@ struct ShareQRView: View {
                             .multilineTextAlignment(.center).padding(.horizontal, 32)
                         fileButton(label: NSLocalizedString("Partager par fichier (AirDrop…)", comment: "Share file alt"),
                                    prominent: false)
-                    } else {
+                    } else if qrResolved {
                         fileCard
                         fileButton(label: NSLocalizedString("Partager le fichier", comment: "Share file"),
                                    prominent: true)
+                    } else {
+                        ProgressView().padding(.top, 40)
                     }
                 }
                 .padding(.bottom, 24)
@@ -61,6 +77,7 @@ struct ShareQRView: View {
             .navigationTitle(NSLocalizedString("Partager", comment: "Share title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { Button(NSLocalizedString("Fermer", comment: "Close"), action: onClose) }
+            .task { buildQRIfNeeded() }
             .sheet(isPresented: $showingShare) {
                 if let shareURL { ShareSheet(items: [shareURL]) }
             }

@@ -17,9 +17,11 @@ public enum SharePayload {
     public static let currentVersion = 1
 
     /// Limite prudente de la charge utile encodable en QR : au-delà, on bascule sur un fichier.
-    /// Un QR « version 40 » monte à ~2,9 Ko en correction M, mais devient dense et dur à scanner
-    /// sur un petit écran ; 2 Ko laisse une marge confortable pour une lecture fiable.
-    public static let qrByteLimit = 2048
+    /// `CIQRCodeGenerator` accepte techniquement jusqu'à ~2,9 Ko, mais le QR devient alors immense
+    /// (≈ 150 modules de côté) et illisible à l'écran d'un téléphone. On plafonne donc à une taille
+    /// réellement SCANNABLE : 512 octets ≈ un QR de ~73 modules, confortable à viser. Un payload
+    /// plus gros (un modèle d'étiquette complet fait ~1,9 Ko) bascule sur le fichier (AirDrop…).
+    public static let qrByteLimit = 512
 
     /// Type de contenu partagé, pour contrôler qu'un fichier reçu correspond bien à ce qu'on
     /// attend (un .ebplabel n'applique pas des réglages imprimante, et inversement).

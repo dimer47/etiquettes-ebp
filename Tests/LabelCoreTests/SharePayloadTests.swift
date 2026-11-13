@@ -56,10 +56,12 @@ final class SharePayloadTests: XCTestCase {
 
     // MARK: - Bascule QR ↔ fichier selon la taille
 
-    func testSingleTemplateFitsInQR() {
+    func testSingleTemplateExceedsQRLimitAndFallsBackToFile() {
+        // Un modèle complet (~1,9 Ko) dépasse la limite SCANNABLE : il doit basculer sur fichier,
+        // jamais produire un QR géant illisible. C'était la cause de l'écran de partage vide.
         let data = TemplateSharePayload(templates: [sampleTemplate()]).encoded()
-        XCTAssertLessThanOrEqual(data.count, SharePayload.qrByteLimit,
-                                 "un modèle simple doit tenir dans un QR")
+        XCTAssertGreaterThan(data.count, SharePayload.qrByteLimit,
+                             "un modèle complet ne doit PAS tenir dans un QR scannable → fichier")
     }
 
     func testManyTemplatesExceedQRLimitAndFallBackToFile() {
