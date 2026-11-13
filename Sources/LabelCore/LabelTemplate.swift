@@ -262,22 +262,26 @@ public struct CellStyle: Codable, Equatable, Hashable {
         }
     }
     public enum Size: String, Codable, CaseIterable, Hashable {
-        case s, m, l, xl
+        // Ordre croissant (XXS la plus fine → XL la plus grande) : c'est aussi l'ordre affiché.
+        case xxs, xs, s, m, l, xl
         public var title: String {
             switch self {
-            case .s: "S"; case .m: "M"; case .l: "L"; case .xl: "XL"
+            case .xxs: "XXS"; case .xs: "XS"; case .s: "S"; case .m: "M"; case .l: "L"; case .xl: "XL"
             }
         }
         /// Taille de police de base (points de mise en page 384), avant adaptation à la hauteur.
+        /// XXS/XS servent surtout d'interlignes fins sur les lignes vides ; comme tailles de
+        /// texte elles restent lisibles (le rendu plancher la police à ~10 points).
         public var fontSize: Int {
             switch self {
-            case .s: 13; case .m: 18; case .l: 26; case .xl: 36
+            case .xxs: 10; case .xs: 11; case .s: 13; case .m: 18; case .l: 26; case .xl: 36
             }
         }
         /// Hauteur de bande réservée à la ligne (points de mise en page 384) pour cette taille.
+        /// Une ligne vide prend cette hauteur : XXS = espace très fin, XS = petit espace.
         public var bandHeight: Int {
             switch self {
-            case .s: 20; case .m: 27; case .l: 36; case .xl: 48
+            case .xxs: 8; case .xs: 13; case .s: 20; case .m: 27; case .l: 36; case .xl: 48
             }
         }
     }

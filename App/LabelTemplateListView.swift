@@ -137,10 +137,13 @@ struct LabelTemplateListView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(template.name).font(.headline)
-                HStack(spacing: 6) {
+                // Badges empilés verticalement : chacun garde sa ligne entière et n'est jamais
+                // tronqué ni coupé au milieu d'un mot (« Sélection-né ») quand la largeur manque.
+                VStack(alignment: .leading, spacing: 4) {
                     if locked {
                         Label(NSLocalizedString("Par défaut", comment: "Default badge"), systemImage: "lock.fill")
                             .font(.caption2.bold())
+                            .lineLimit(1)
                             .padding(.horizontal, 7).padding(.vertical, 3)
                             .background(Color(.tertiarySystemFill), in: Capsule())
                             .foregroundStyle(.secondary)
@@ -148,6 +151,7 @@ struct LabelTemplateListView: View {
                     if isSelected {
                         Label(NSLocalizedString("Sélectionné", comment: "Selected badge"), systemImage: "checkmark.circle.fill")
                             .font(.caption2.bold()).foregroundStyle(.blue)
+                            .lineLimit(1)
                     }
                 }
             }

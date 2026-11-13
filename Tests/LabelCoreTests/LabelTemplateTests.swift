@@ -169,6 +169,33 @@ final class LabelTemplateTests: XCTestCase {
         XCTAssertNil(CellContent.vide.text(for: label, formattedPrice: nil))
     }
 
+    // MARK: - Tailles (gamme XXS → XL)
+
+    func testSizeScaleHasXXSAndXSInIncreasingOrder() {
+        // Ordre affiché = ordre déclaré, du plus fin au plus grand.
+        XCTAssertEqual(CellStyle.Size.allCases, [.xxs, .xs, .s, .m, .l, .xl])
+        XCTAssertEqual(CellStyle.Size.allCases.map(\.title), ["XXS", "XS", "S", "M", "L", "XL"])
+        // bandHeight (hauteur d'une ligne, dont une ligne vide = interligne) strictement croissante.
+        let bands = CellStyle.Size.allCases.map(\.bandHeight)
+        XCTAssertEqual(bands, bands.sorted())
+        XCTAssertEqual(Set(bands).count, bands.count)
+        // XXS est l'espace le plus fin, plus petit que l'ancien plancher S.
+        XCTAssertLessThan(CellStyle.Size.xxs.bandHeight, CellStyle.Size.s.bandHeight)
+        XCTAssertLessThan(CellStyle.Size.xs.bandHeight, CellStyle.Size.s.bandHeight)
+        // Police aussi croissante et toujours strictement positive.
+        let fonts = CellStyle.Size.allCases.map(\.fontSize)
+        XCTAssertEqual(fonts, fonts.sorted())
+        XCTAssertTrue(fonts.allSatisfy { $0 > 0 })
+    }
+
+    func testSizeCodableRoundTripForNewCases() throws {
+        for size in [CellStyle.Size.xxs, .xs] {
+            let cell = TemplateCell(content: .vide, style: CellStyle(size: size))
+            let restored = try JSONDecoder().decode(TemplateCell.self, from: JSONEncoder().encode(cell))
+            XCTAssertEqual(restored.style.size, size)
+        }
+    }
+
     func testDateIsOptionalAndBackwardCompatible() throws {
         // Une étiquette sauvegardée sans date (ancien format) décode avec generatedAt nil.
         let legacy = #"{"name":"X","category":"C","shelfReference":"R","productReference":"P","ean":"4006381333931","price":"1,00"}"#
