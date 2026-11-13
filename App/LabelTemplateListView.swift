@@ -137,21 +137,19 @@ struct LabelTemplateListView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(template.name).font(.headline)
-                // Badges empilés verticalement : chacun garde sa ligne entière et n'est jamais
-                // tronqué ni coupé au milieu d'un mot (« Sélection-né ») quand la largeur manque.
+                // Deux pilules jumelles : icône + texte serrés (HStack dédié, pas de Label dont
+                // SwiftUI étire l'espace icône↔texte dans une largeur contrainte). « Par défaut »
+                // gris, « Sélectionné » bleu. Empilées pour ne jamais se couper au milieu d'un mot.
                 VStack(alignment: .leading, spacing: 4) {
                     if locked {
-                        Label(NSLocalizedString("Par défaut", comment: "Default badge"), systemImage: "lock.fill")
-                            .font(.caption2.bold())
-                            .lineLimit(1)
-                            .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(Color(.tertiarySystemFill), in: Capsule())
-                            .foregroundStyle(.secondary)
+                        badge(NSLocalizedString("Par défaut", comment: "Default badge"),
+                              systemImage: "lock.fill",
+                              foreground: Color.secondary, background: Color(.tertiarySystemFill))
                     }
                     if isSelected {
-                        Label(NSLocalizedString("Sélectionné", comment: "Selected badge"), systemImage: "checkmark.circle.fill")
-                            .font(.caption2.bold()).foregroundStyle(.blue)
-                            .lineLimit(1)
+                        badge(NSLocalizedString("Sélectionné", comment: "Selected badge"),
+                              systemImage: "checkmark.circle.fill",
+                              foreground: Color.blue, background: Color.blue.opacity(0.15))
                     }
                 }
             }
@@ -180,5 +178,19 @@ struct LabelTemplateListView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { selectedTemplateID = template.id }
+    }
+
+    /// Pilule « icône + libellé » serrés (spacing 4), padding et forme identiques pour les
+    /// deux badges → des jumelles cohérentes, juste la couleur change.
+    private func badge(_ text: String, systemImage: String,
+                       foreground: Color, background: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
+            Text(text).lineLimit(1)
+        }
+        .font(.caption2.bold())
+        .foregroundStyle(foreground)
+        .padding(.horizontal, 8).padding(.vertical, 3)
+        .background(background, in: Capsule())
     }
 }

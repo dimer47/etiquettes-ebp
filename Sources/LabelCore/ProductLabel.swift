@@ -37,21 +37,85 @@ public struct ProductLabel: Codable, Equatable, Hashable {
         generatedAt = try values.decodeIfPresent(Date.self, forKey: .generatedAt)
     }
 
-    /// Date de génération formatée « 11/05/2026 15:17:00 », comme les étiquettes magasin.
+    /// Date de génération formatée au format par défaut « 11/05/2026 15:17:00 ».
     public var generatedAtText: String? {
-        generatedAt.map { LabelDateFormatter.text(for: $0) }
+        generatedAt.map { LabelDateFormatter.text(for: $0, pattern: nil) }
+    }
+
+    /// Date de génération formatée selon un pattern DateFormatter donné (nil = format par défaut).
+    public func generatedAtFormatted(pattern: String?) -> String? {
+        generatedAt.map { LabelDateFormatter.text(for: $0, pattern: pattern) }
     }
 }
 
-/// Format de date affiché sur les étiquettes : « JJ/MM/AAAA HH:MM:SS », zone locale.
+/// Formatage de la date de génération sur les étiquettes.
+///
+/// Le modèle stocke un pattern DateFormatter (Unicode, ex. "dd/MM/yyyy"). L'éditeur propose
+/// des presets prêts à l'emploi et un format personnalisé saisi en tokens simples
+/// (JJ, MM, AAAA, HH, mm, ss) traduits ici en pattern Unicode.
 public enum LabelDateFormatter {
-    private static let formatter: DateFormatter = {
+    /// Pattern utilisé quand aucun format n'est choisi.
+    public static let defaultPattern = "dd/MM/yyyy HH:mm:ss"
+
+    public static func text(for date: Date, pattern: String?) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_FR")
-        f.dateFormat = "dd/MM/yyyy HH:mm:ss"
-        return f
-    }()
-    public static func text(for date: Date) -> String { formatter.string(from: date) }
+        f.dateFormat = (pattern?.isEmpty == false ? pattern! : defaultPattern)
+        return f.string(from: date)
+    }
+
+    /// Un preset de format proposé dans l'éditeur : un libellé en tokens simples et le pattern réel.
+    public struct Preset: Equatable, Identifiable, Sendable {
+        public let label: String     // ex. "JJ/MM/AAAA HH:mm"
+        public let pattern: String   // ex. "dd/MM/yyyy HH:mm"
+        public var id: String { pattern }
+    }
+
+    /// Liste de formats prêts, libellés en tokens français lisibles.
+    public static let presets: [Preset] = [
+        Preset(label: "JJ/MM", pattern: "dd/MM"),
+        Preset(label: "JJ/MM/AAAA", pattern: "dd/MM/yyyy"),
+        Preset(label: "JJ/MM/AAAA HH:mm", pattern: "dd/MM/yyyy HH:mm"),
+        Preset(label: "JJ/MM/AAAA HH:mm:ss", pattern: "dd/MM/yyyy HH:mm:ss"),
+        Preset(label: "HH:mm", pattern: "HH:mm"),
+        Preset(label: "HH:mm:ss", pattern: "HH:mm:ss"),
+        Preset(label: "AAAA-MM-JJ", pattern: "yyyy-MM-dd"),
+        Preset(label: "AAAA-MM-JJ HH:mm:ss", pattern: "yyyy-MM-dd HH:mm:ss"),
+        Preset(label: "JJ-MM-AAAA", pattern: "dd-MM-yyyy"),
+        Preset(label: "MM/AAAA", pattern: "MM/yyyy"),
+    ]
+
+    /// Convertit un motif en tokens simples (JJ MM AAAA HH mm ss) vers un pattern DateFormatter.
+    /// JJ→dd, MM→MM (mois), AAAA→yyyy, HH→HH (24 h), mm→mm (minutes), ss→ss. Les autres
+    /// caractères (séparateurs /, -, :, espaces) sont conservés tels quels.
+    public static func pattern(fromTokens tokens: String) -> String {
+        var result = ""
+        var rest = Substring(tokens)
+        // Remplacement glouton, du token le plus long au plus court, pour éviter les collisions.
+        let rules: [(String, String)] = [("AAAA", "yyyy"), ("JJ", "dd"), ("MM", "MM"),
+                                          ("HH", "HH"), ("mm", "mm"), ("ss", "ss")]
+        outer: while let first = rest.first {
+            for (token, replacement) in rules where rest.hasPrefix(token) {
+                result += replacement
+                rest = rest.dropFirst(token.count)
+                continue outer
+            }
+            result.append(first)
+            rest = rest.dropFirst()
+        }
+        return result
+    }
+
+    /// Convertit un pattern DateFormatter vers des tokens simples lisibles (pour pré-remplir le
+    /// champ « format personnalisé » depuis un pattern stocké).
+    public static func tokens(fromPattern pattern: String) -> String {
+        var result = pattern
+        for (token, p) in [("AAAA", "yyyy"), ("JJ", "dd"), ("MM", "MM"),
+                           ("HH", "HH"), ("mm", "mm"), ("ss", "ss")] {
+            result = result.replacingOccurrences(of: p, with: token)
+        }
+        return result
+    }
 }
 
 public enum LabelCurrency: String, CaseIterable, Codable, Identifiable, Hashable {

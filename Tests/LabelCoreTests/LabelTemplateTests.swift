@@ -15,7 +15,7 @@ final class LabelTemplateTests: XCTestCase {
                 .full(TemplateCell(content: .codeBarres, style: CellStyle(size: .m))),
                 .columns(TemplateCell(content: .texteLibre("Promo"), style: CellStyle(size: .m, italic: true)),
                          TemplateCell(content: .prixTTC, style: CellStyle(alignH: .trailing, size: .xl))),
-                .full(TemplateCell(content: .dateGeneration, style: CellStyle(alignH: .center, size: .s)))
+                .full(TemplateCell(content: .dateGeneration(nil), style: CellStyle(alignH: .center, size: .s)))
             ])
         let data = try JSONEncoder().encode(template)
         let restored = try JSONDecoder().decode(LabelTemplate.self, from: data)
@@ -27,12 +27,12 @@ final class LabelTemplateTests: XCTestCase {
         if case .texteLibre(let v) = restored.lines[3].cells[0].content { XCTAssertEqual(v, "Promo") }
         else { XCTFail("texte libre perdu") }
         XCTAssertTrue(restored.lines[3].cells[0].style.italic)
-        XCTAssertEqual(restored.lines[4].cells[0].content, .dateGeneration)
+        XCTAssertEqual(restored.lines[4].cells[0].content, .dateGeneration(nil))
     }
 
     func testCellContentCodableAllKinds() throws {
         let kinds: [CellContent] = [.vide, .designation, .refArticle, .refRayon, .famille,
-                                    .prixTTC, .codeBarres, .dateGeneration, .texteLibre("x")]
+                                    .prixTTC, .codeBarres, .dateGeneration(nil), .texteLibre("x")]
         for kind in kinds {
             let data = try JSONEncoder().encode(TemplateCell(content: kind))
             let restored = try JSONDecoder().decode(TemplateCell.self, from: data)
@@ -160,8 +160,8 @@ final class LabelTemplateTests: XCTestCase {
         XCTAssertEqual(CellContent.prixTTC.text(for: label, formattedPrice: "5,95 €"), "5,95 €")
         XCTAssertEqual(CellContent.texteLibre("Promo").text(for: label, formattedPrice: nil), "Promo")
         // Date formatée « JJ/MM/AAAA HH:MM:SS ».
-        let dateText = CellContent.dateGeneration.text(for: label, formattedPrice: nil)
-        XCTAssertEqual(dateText, LabelDateFormatter.text(for: date))
+        let dateText = CellContent.dateGeneration(nil).text(for: label, formattedPrice: nil)
+        XCTAssertEqual(dateText, LabelDateFormatter.text(for: date, pattern: nil))
         XCTAssertNotNil(dateText)
         XCTAssertTrue(dateText!.range(of: #"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}$"#, options: .regularExpression) != nil)
         // Contenus graphiques / vides : pas de texte.
@@ -196,12 +196,52 @@ final class LabelTemplateTests: XCTestCase {
         }
     }
 
+    // MARK: - Format de la date de génération
+
+    func testDatePresetAndCustomFormatRenderExpectedString() {
+        let date = Date(timeIntervalSince1970: 1_778_000_000) // valeur fixe
+        let label = ProductLabel(ean: "4006381333931", generatedAt: date)
+        // Format par défaut (pattern nil).
+        let def = CellContent.dateGeneration(nil).text(for: label, formattedPrice: nil)
+        XCTAssertEqual(def, LabelDateFormatter.text(for: date, pattern: "dd/MM/yyyy HH:mm:ss"))
+        // Preset « JJ/MM » → pattern "dd/MM".
+        let short = CellContent.dateGeneration("dd/MM").text(for: label, formattedPrice: nil)
+        XCTAssertEqual(short, LabelDateFormatter.text(for: date, pattern: "dd/MM"))
+        XCTAssertTrue(short!.range(of: #"^\d{2}/\d{2}$"#, options: .regularExpression) != nil)
+        // Format heure seule.
+        let hm = CellContent.dateGeneration("HH:mm").text(for: label, formattedPrice: nil)
+        XCTAssertTrue(hm!.range(of: #"^\d{2}:\d{2}$"#, options: .regularExpression) != nil)
+    }
+
+    func testTokensToPatternConversion() {
+        XCTAssertEqual(LabelDateFormatter.pattern(fromTokens: "JJ/MM/AAAA"), "dd/MM/yyyy")
+        XCTAssertEqual(LabelDateFormatter.pattern(fromTokens: "AAAA-MM-JJ HH:mm:ss"), "yyyy-MM-dd HH:mm:ss")
+        XCTAssertEqual(LabelDateFormatter.pattern(fromTokens: "HH:mm"), "HH:mm")
+        // Et l'aller-retour pattern → tokens → pattern est stable.
+        for preset in LabelDateFormatter.presets {
+            let tokens = LabelDateFormatter.tokens(fromPattern: preset.pattern)
+            XCTAssertEqual(LabelDateFormatter.pattern(fromTokens: tokens), preset.pattern, "preset \(preset.label)")
+        }
+    }
+
+    func testDateFormatPersistsOnCell() throws {
+        let cell = TemplateCell(content: .dateGeneration("dd/MM"))
+        let restored = try JSONDecoder().decode(TemplateCell.self, from: JSONEncoder().encode(cell))
+        XCTAssertEqual(restored.content, .dateGeneration("dd/MM"))
+        XCTAssertEqual(restored.content.dateFormatPattern, "dd/MM")
+        // Une date sans format choisi décode avec pattern nil (défaut).
+        let plain = TemplateCell(content: .dateGeneration(nil))
+        let restoredPlain = try JSONDecoder().decode(TemplateCell.self, from: JSONEncoder().encode(plain))
+        XCTAssertEqual(restoredPlain.content, .dateGeneration(nil))
+        XCTAssertNil(restoredPlain.content.dateFormatPattern)
+    }
+
     func testDateIsOptionalAndBackwardCompatible() throws {
         // Une étiquette sauvegardée sans date (ancien format) décode avec generatedAt nil.
         let legacy = #"{"name":"X","category":"C","shelfReference":"R","productReference":"P","ean":"4006381333931","price":"1,00"}"#
         let label = try JSONDecoder().decode(ProductLabel.self, from: Data(legacy.utf8))
         XCTAssertNil(label.generatedAt)
         XCTAssertNil(label.generatedAtText)
-        XCTAssertNil(CellContent.dateGeneration.text(for: label, formattedPrice: nil))
+        XCTAssertNil(CellContent.dateGeneration(nil).text(for: label, formattedPrice: nil))
     }
 }

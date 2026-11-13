@@ -155,12 +155,12 @@ public enum CellContent: Codable, Equatable, Hashable {
     case famille          // ProductLabel.category
     case prixTTC          // ProductLabel.price + currency, avec priceCaption
     case codeBarres       // ProductLabel.ean (EAN13, redimensionné dans la cellule)
-    case dateGeneration   // ProductLabel.generatedAt
+    case dateGeneration(String?)  // ProductLabel.generatedAt ; pattern DateFormatter (nil = défaut)
     case texteLibre(String)
 
-    /// Cas « simples » (hors texte libre) pour alimenter les sélecteurs.
+    /// Cas « simples » pour alimenter les sélecteurs (date au format par défaut, texte vide).
     public static var selectableKinds: [CellContent] {
-        [.vide, .designation, .refArticle, .refRayon, .famille, .prixTTC, .codeBarres, .dateGeneration, .texteLibre("")]
+        [.vide, .designation, .refArticle, .refRayon, .famille, .prixTTC, .codeBarres, .dateGeneration(nil), .texteLibre("")]
     }
 
     public var title: String {
@@ -177,13 +177,20 @@ public enum CellContent: Codable, Equatable, Hashable {
         }
     }
 
-    /// true si deux contenus sont du même « genre » (le texte libre ignore sa valeur).
+    /// true si deux contenus sont du même « genre » (texte libre et date ignorent leur valeur).
     public func sameKind(as other: CellContent) -> Bool {
         switch (self, other) {
-        case (.texteLibre, .texteLibre): return true
+        case (.texteLibre, .texteLibre), (.dateGeneration, .dateGeneration): return true
         default: return self == other
         }
     }
+
+    /// Le pattern de format de la date (nil si ce n'est pas une cellule date).
+    public var dateFormatPattern: String? {
+        if case .dateGeneration(let pattern) = self { return pattern }
+        return nil
+    }
+    public var isDate: Bool { if case .dateGeneration = self { return true }; return false }
 
     public var isBarcode: Bool { if case .codeBarres = self { return true }; return false }
 
@@ -197,7 +204,7 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .refRayon: return label.shelfReference
         case .famille: return label.category
         case .prixTTC: return formattedPrice
-        case .dateGeneration: return label.generatedAtText
+        case .dateGeneration(let pattern): return label.generatedAtFormatted(pattern: pattern)
         case .texteLibre(let value): return value
         }
     }
@@ -215,7 +222,7 @@ public enum CellContent: Codable, Equatable, Hashable {
         case "famille": self = .famille
         case "prixTTC": self = .prixTTC
         case "codeBarres": self = .codeBarres
-        case "dateGeneration": self = .dateGeneration
+        case "dateGeneration": self = .dateGeneration(try values.decodeIfPresent(String.self, forKey: .value))
         case "texteLibre": self = .texteLibre(try values.decodeIfPresent(String.self, forKey: .value) ?? "")
         default: self = .vide
         }
@@ -231,7 +238,9 @@ public enum CellContent: Codable, Equatable, Hashable {
         case .famille: try container.encode("famille", forKey: .kind)
         case .prixTTC: try container.encode("prixTTC", forKey: .kind)
         case .codeBarres: try container.encode("codeBarres", forKey: .kind)
-        case .dateGeneration: try container.encode("dateGeneration", forKey: .kind)
+        case .dateGeneration(let pattern):
+            try container.encode("dateGeneration", forKey: .kind)
+            try container.encodeIfPresent(pattern, forKey: .value)
         case .texteLibre(let value):
             try container.encode("texteLibre", forKey: .kind)
             try container.encode(value, forKey: .value)

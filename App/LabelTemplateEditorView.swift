@@ -249,6 +249,9 @@ struct LabelTemplateEditorView: View {
                             TextField(NSLocalizedString("Texte à afficher", comment: "Free text"), text: freeTextBinding(cellBinding))
                         }
                     }
+                    if cellBinding.wrappedValue.content.isDate {
+                        dateFormatSection(cellBinding)
+                    }
                     Section(NSLocalizedString("Taille", comment: "Size")) {
                         Picker(NSLocalizedString("Taille", comment: "Size"), selection: cellBinding.style.size) {
                             ForEach(CellStyle.Size.allCases, id: \.self) { s in Text(s.title).tag(s) }
@@ -284,8 +287,11 @@ struct LabelTemplateEditorView: View {
             get: { cell.wrappedValue.content.title },
             set: { title in
                 guard let kind = CellContent.selectableKinds.first(where: { $0.title == title }) else { return }
+                // Conserver la valeur portée quand on reste sur le même genre (texte libre, date).
                 if case .texteLibre = kind, case .texteLibre(let existing) = cell.wrappedValue.content {
                     cell.wrappedValue.content = .texteLibre(existing)
+                } else if case .dateGeneration = kind, case .dateGeneration(let existing) = cell.wrappedValue.content {
+                    cell.wrappedValue.content = .dateGeneration(existing)
                 } else {
                     cell.wrappedValue.content = kind
                 }
@@ -296,6 +302,61 @@ struct LabelTemplateEditorView: View {
         Binding(
             get: { if case .texteLibre(let v) = cell.wrappedValue.content { return v }; return "" },
             set: { cell.wrappedValue.content = .texteLibre($0) }
+        )
+    }
+
+    // MARK: - Format de la date de génération
+
+    /// Date d'exemple pour l'aperçu du format (fixe → résultat stable et parlant).
+    private var dateSample: Date { sampleLabel.generatedAt ?? Date(timeIntervalSince1970: 1_778_000_000) }
+
+    /// Pattern effectif de la cellule date (défaut si nil).
+    private func datePattern(_ cell: Binding<TemplateCell>) -> String {
+        let p = cell.wrappedValue.content.dateFormatPattern
+        return (p?.isEmpty == false) ? p! : LabelDateFormatter.defaultPattern
+    }
+
+    @ViewBuilder
+    private func dateFormatSection(_ cell: Binding<TemplateCell>) -> some View {
+        let current = datePattern(cell)
+        Section(NSLocalizedString("Format de la date", comment: "Date format")) {
+            // Presets prêts à l'emploi.
+            Picker(NSLocalizedString("Format", comment: "Date format preset"), selection: datePresetBinding(cell)) {
+                ForEach(LabelDateFormatter.presets) { preset in
+                    Text("\(preset.label)  ·  \(LabelDateFormatter.text(for: dateSample, pattern: preset.pattern))")
+                        .tag(preset.pattern)
+                }
+                // Entrée « personnalisé » : le pattern courant s'il ne correspond à aucun preset.
+                if !LabelDateFormatter.presets.contains(where: { $0.pattern == current }) {
+                    Text(NSLocalizedString("Personnalisé", comment: "Custom date format")).tag(current)
+                }
+            }
+            // Champ format personnalisé en tokens simples (JJ, MM, AAAA, HH, mm, ss).
+            VStack(alignment: .leading, spacing: 4) {
+                TextField(NSLocalizedString("Format personnalisé", comment: "Custom format field"),
+                          text: dateTokensBinding(cell))
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                Text(String(format: NSLocalizedString("Tokens : JJ MM AAAA HH mm ss  →  %@", comment: "Date tokens help"),
+                            LabelDateFormatter.text(for: dateSample, pattern: current)))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Binding du preset (pattern) : écrit directement le pattern sur la cellule date.
+    private func datePresetBinding(_ cell: Binding<TemplateCell>) -> Binding<String> {
+        Binding(
+            get: { datePattern(cell) },
+            set: { cell.wrappedValue.content = .dateGeneration($0) }
+        )
+    }
+
+    /// Binding du champ tokens : l'utilisateur tape « JJ/MM », traduit en pattern DateFormatter.
+    private func dateTokensBinding(_ cell: Binding<TemplateCell>) -> Binding<String> {
+        Binding(
+            get: { LabelDateFormatter.tokens(fromPattern: datePattern(cell)) },
+            set: { cell.wrappedValue.content = .dateGeneration(LabelDateFormatter.pattern(fromTokens: $0)) }
         )
     }
 
