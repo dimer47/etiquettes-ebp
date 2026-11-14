@@ -6,9 +6,9 @@ pour iPhone. L'impression sur la Pocket 5890 (SilverCrest / Tronic) ne change
 pas : elle reste le choix par défaut et passe toujours par la librairie
 PocketPrinter5890.
 
-Le volet Brother reprend [TD Print Studio](https://github.com/dimer47/BrotherTDPrintStudio),
-testé sur une TD-4550DNWB en BLE depuis un iPhone 16 Pro : même SDK, mêmes
-appels, mêmes réglages, mêmes contournements.
+Le volet Brother reprend TD Print Studio, testé sur une TD-4550DNWB en BLE
+depuis un iPhone 16 Pro : même SDK, mêmes appels, mêmes réglages, mêmes
+contournements.
 
 > Le SDK 4.13.2 est livré dans `Vendor/`, avec sa licence
 > (`Brother-SDK-EULA.pdf`) et l'autorisation de Brother de redistribuer les
