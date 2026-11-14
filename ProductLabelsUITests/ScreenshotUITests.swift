@@ -36,7 +36,8 @@ final class ScreenshotUITests: XCTestCase {
             snapshot("02-fiche-article")
 
             // 3) Onglet Impression : aperçu de l'étiquette.
-            let impression = app.buttons["Impression"].firstMatch
+            //    Ciblé par identifiant d'accessibilité (indépendant de la langue).
+            let impression = app.buttons["onglet-impression"].firstMatch
             if impression.waitForExistence(timeout: 5) {
                 impression.tap()
                 snapshot("03-apercu-etiquette")
@@ -47,11 +48,8 @@ final class ScreenshotUITests: XCTestCase {
             if back.exists { back.tap() }
         }
 
-        // 4) Réglages (bouton engrenage dans la barre d'outils du catalogue).
-        //    On tente par identifiant d'accessibilité, puis repli sur l'icône système.
-        let settings = app.buttons["reglages"].firstMatch.exists
-            ? app.buttons["reglages"].firstMatch
-            : app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'églage' OR label CONTAINS[c] 'gear'")).firstMatch
+        // 4) Réglages : bouton engrenage de la barre d'outils, ciblé par identifiant.
+        let settings = app.buttons["reglages"].firstMatch
         if settings.waitForExistence(timeout: 5) {
             settings.tap()
             snapshot("04-reglages")
