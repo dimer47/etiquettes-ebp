@@ -9,7 +9,7 @@ scheme("ProductLabels")
 #  - iPhone Duo (format du dernier iPhone)
 #  - iPad 13 pouces (obligatoire car l'app est compatible iPad)
 devices([
-  "iPhone 17 Pro Max",
+  "iPhone 18 Pro Max",
   "iPhone Duo",
   "iPad Pro 13-inch (M5)"
 ])

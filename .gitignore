@@ -48,3 +48,7 @@ fastlane/README.md
 fastlane/.env
 fastlane/*.p8
 AuthKey_*.p8
+
+# Ruby / bundler (dépendances installées localement)
+vendor/bundle/
+.bundle/
