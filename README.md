@@ -54,6 +54,6 @@ The app identifier is `com.idsynergy.ebp-tickets-prix` and the display name is *
 
 ## License and attribution
 
-Étiquettes EBP is under the [MIT License](LICENSE), copyright 2026 Dimitri Iachi. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package is also MIT-licensed and retains its attribution and license in its own repository.
+Étiquettes EBP is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE), copyright 2026 Dimitri Iachi. Any noncommercial use — personal, internal, modifications, hobby projects — is permitted; **any commercial use** (reselling the software or a derivative, bundling it into a paid offering, or running a competing version) requires the licensor's prior written consent — contact <https://id-synergy.tech/#contact>. The [PocketPrinter5890](https://github.com/dimer47/PocketPrinter5890) Swift package keeps its own license and attribution in its own repository.
 
 The Brother Print SDK in `Vendor/` belongs to Brother Industries and is under its own license ([`Vendor/Brother-SDK-EULA.pdf`](Vendor/Brother-SDK-EULA.pdf)); [`Vendor/Brother-SDK-Redist.txt`](Vendor/Brother-SDK-Redist.txt) allows redistribution of the files in the SDK `libs` folder. Brother and the model names are trademarks of Brother Industries; this project is neither affiliated with nor endorsed by Brother. EBP is a trademark of its owner; this project works with the EBP API but is not published or endorsed by EBP.
