@@ -27,3 +27,24 @@ __pycache__/
 *.xcodeproj/-Xcc/
 
 .build-number
+
+# fastlane — captures générées et artefacts régénérables
+fastlane/screenshots/
+fastlane/test_output/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/README.md
+
+# fastlane / signature — SECRETS, ne jamais publier (dépôt public)
+# Identifiants App Store Connect, clés, certificats, profils : tout reste local.
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
+fastlane/.env
+fastlane/*.p8
+AuthKey_*.p8

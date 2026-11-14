@@ -1,0 +1,58 @@
+# Fastfile — automatisation des captures d'écran App Store.
+#
+# PUBLIC-SAFE : ce fichier ne contient AUCUN identifiant de compte Apple
+# (ni Apple ID, ni clé API, ni certificat, ni chemin de clé privée).
+# Les éventuels secrets nécessaires à l'upload sont lus depuis l'environnement
+# (variables d'env ou fichier fastlane/.env, non commité — voir .env.example).
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Génère les captures d'écran App Store (fastlane snapshot) en local, sans rien envoyer."
+  desc "Usage : bundle exec fastlane screenshots"
+  lane :screenshots do
+    snapshot
+    UI.success("Captures générées dans fastlane/screenshots/ — relisez-les avant tout envoi.")
+    UI.message("Aperçu : ouvrez fastlane/screenshots/screenshots.html")
+  end
+
+  desc "Génère les captures PUIS les envoie sur App Store Connect (manuel, à la montée de version)."
+  desc "Nécessite des identifiants App Store Connect fournis par l'environnement (jamais commités) :"
+  desc "  APP_STORE_CONNECT_API_KEY_ID, APP_STORE_CONNECT_API_ISSUER_ID, APP_STORE_CONNECT_API_KEY_PATH"
+  desc "Usage : bundle exec fastlane upload_screenshots"
+  lane :upload_screenshots do
+    key_id    = ENV["APP_STORE_CONNECT_API_KEY_ID"]
+    issuer_id = ENV["APP_STORE_CONNECT_API_ISSUER_ID"]
+    key_path  = ENV["APP_STORE_CONNECT_API_KEY_PATH"]
+
+    if [key_id, issuer_id, key_path].any?(&:nil?)
+      UI.user_error!(
+        "Identifiants App Store Connect manquants. Renseignez-les dans fastlane/.env " \
+        "(copier .env.example), ils ne doivent jamais être commités."
+      )
+    end
+
+    api_key = app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_path
+    )
+
+    snapshot
+
+    # Envoie UNIQUEMENT les captures (ni binaire, ni métadonnées), en brouillon,
+    # sans soumettre pour vérification : on garde la main sur la publication.
+    deliver(
+      api_key: api_key,
+      screenshots_path: "./fastlane/screenshots",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_app_version_update: true,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      force: true
+    )
+
+    UI.success("Captures envoyées en brouillon sur App Store Connect. Rien n'a été soumis à la vérification.")
+  end
+end
