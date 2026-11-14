@@ -21,7 +21,7 @@ The interface is available in English and French.
 
 ## Pairing with the EBP gateway
 
-The app talks to an EBP gateway (a Laravel intermediation service, open source: [**gateway-for-ebp**](https://github.com/dimer47/gateway-for-ebp)). The administrator deploys the gateway, then generates a one-time pairing QR code from its back office; the app scans it, claims an application token (stored in the Keychain) and connects. The token is never embedded in the QR code. A manual connection (URL + token) is available as a fallback. For production, pairing requires HTTPS.
+The app talks to an EBP gateway (a Laravel intermediation service, open source: [**gateway-for-ebp**](https://github.com/id-synergy/gateway-for-ebp)). The administrator deploys the gateway, then generates a one-time pairing QR code from its back office; the app scans it, claims an application token (stored in the Keychain) and connects. The token is never embedded in the QR code. A manual connection (URL + token) is available as a fallback. For production, pairing requires HTTPS.
 
 ## Printing
 

@@ -21,7 +21,7 @@ L'interface est disponible en français et en anglais.
 
 ## Appairage avec la gateway EBP
 
-L'application dialogue avec une gateway EBP (service d'intermédiation Laravel, open source : [**gateway-for-ebp**](https://github.com/dimer47/gateway-for-ebp)). L'administrateur déploie la gateway, puis génère depuis son back-office un QR code d'appairage à usage unique ; l'application le scanne, réclame un jeton d'application (stocké dans le trousseau) et se connecte. Le jeton n'est jamais encodé dans le QR code. Une connexion manuelle (URL + jeton) reste disponible en secours. En production, l'appairage exige le HTTPS.
+L'application dialogue avec une gateway EBP (service d'intermédiation Laravel, open source : [**gateway-for-ebp**](https://github.com/id-synergy/gateway-for-ebp)). L'administrateur déploie la gateway, puis génère depuis son back-office un QR code d'appairage à usage unique ; l'application le scanne, réclame un jeton d'application (stocké dans le trousseau) et se connecte. Le jeton n'est jamais encodé dans le QR code. Une connexion manuelle (URL + jeton) reste disponible en secours. En production, l'appairage exige le HTTPS.
 
 ## Impression
 
