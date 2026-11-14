@@ -45,6 +45,15 @@ final class GatewaySettings: ObservableObject {
         }
         #endif
         self.hasToken = tokenPresent
+
+        // Génération automatique des captures (fastlane snapshot) : l'argument de lancement
+        // `--uitest-demo` démarre directement en mode démonstration, pour que les tests UI
+        // atteignent le catalogue sans passer par l'écran d'appairage. Éphémère : on force
+        // l'état en mémoire sans écrire dans UserDefaults, donc aucun effet sur l'app réelle.
+        if ProcessInfo.processInfo.arguments.contains("--uitest-demo") {
+            self.isDemo = true
+            self.pairedSince = Date()
+        }
     }
 
     /// L'app est-elle utilisable : appairée (URL + jeton + date) OU en mode démo.

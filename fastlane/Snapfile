@@ -1,0 +1,36 @@
+# Configuration fastlane snapshot — génération automatique des captures d'écran.
+# Aucune information de compte Apple ici : ce fichier est public-safe.
+
+# Schéma Xcode à lancer (cible app + cible de tests UI).
+scheme("ProductLabels")
+
+# Simulateurs cibles. Un par format utile pour l'App Store :
+#  - iPhone grand écran (captures iPhone de référence, Apple adapte les autres formats)
+#  - iPhone Duo (format du dernier iPhone)
+#  - iPad 13 pouces (obligatoire car l'app est compatible iPad)
+devices([
+  "iPhone 18 Pro Max",
+  "iPhone Duo",
+  "iPad Pro 13-inch (M5)"
+])
+
+# Langues de l'app.
+languages([
+  "fr-FR",
+  "en-US"
+])
+
+# Dossier de sortie (ignoré par git, régénérable).
+output_directory("./fastlane/screenshots")
+
+# Repart d'un dossier propre à chaque génération.
+clear_previous_screenshots(true)
+
+# Réattribue le statut bar propre (heure, batterie pleine, wifi) sur les captures.
+override_status_bar(true)
+
+# Arrête la génération au premier échec de test, pour ne pas produire de captures partielles.
+stop_after_first_error(true)
+
+# Nom de la cible de tests UI (à créer dans Xcode : voir fastlane/README interne).
+# test_target_name("ProductLabelsUITests")

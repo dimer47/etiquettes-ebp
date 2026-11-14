@@ -25,7 +25,9 @@ struct ArticleDetailView<Impression: View, Sheets: View>: View {
             // gérer sa propre hauteur de scroll, sans étirement de sa première section.
             Picker("", selection: $tab) {
                 Text(NSLocalizedString("Produit", comment: "Product tab")).tag(0)
+                    .accessibilityIdentifier("onglet-produit")
                 Text(NSLocalizedString("Impression", comment: "Printing tab")).tag(1)
+                    .accessibilityIdentifier("onglet-impression")
             }
             .pickerStyle(.segmented)
             .padding()

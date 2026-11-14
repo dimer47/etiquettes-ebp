@@ -313,6 +313,7 @@ struct ProductListView<Impression: View, Sheets: View>: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { onOpenSettings() } label: { Image(systemName: "gearshape") }
                         .accessibilityLabel(NSLocalizedString("Réglages", comment: "Settings"))
+                        .accessibilityIdentifier("reglages")
                 }
             }
             .safeAreaInset(edge: .bottom) {

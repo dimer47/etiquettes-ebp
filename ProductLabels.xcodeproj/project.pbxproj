@@ -11,19 +11,35 @@
 		0F84EF6A4D312FEDD83FD793 /* EAN13.swift in Sources */ = {isa = PBXBuildFile; fileRef = 516D0672BE4E8CAD47F01920 /* EAN13.swift */; };
 		13A4BF10CEF273B47EE2FF5E /* PrinterManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */; };
 		1699461663AF3457AD0E22F7 /* LabelRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9485C1DE846860B7012E33A /* LabelRenderer.swift */; };
+		2002CDD0786ADC1CDC3CE55D /* SnapshotHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 923BFA7E93530FA224B673B8 /* SnapshotHelper.swift */; };
 		24098E837ACC9BB9BFAADC28 /* ProductLabelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */; };
 		29F2F0199AB875A9E2AC90F1 /* MonochromeBitmap+Rotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */; };
 		423998305BE6E6DB90D59684 /* PocketPrinter5890Kit in Frameworks */ = {isa = PBXBuildFile; productRef = 6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */; };
 		5FC25D812E202FCCD26ACD7E /* PocketPrinter5890BLE in Frameworks */ = {isa = PBXBuildFile; productRef = 8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */; };
 		623DC584C67D81177CE2957F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */; };
-		EB0000000000000000000071 /* BatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000070 /* BatchStore.swift */; };
-		EB0000000000000000000073 /* BatchDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000072 /* BatchDetailView.swift */; };
-		EB0000000000000000000075 /* PrintQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000074 /* PrintQueue.swift */; };
-		EB0000000000000000000061 /* DemoHTTPSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000062 /* DemoHTTPSession.swift */; };
-		EB0000000000000000000041 /* ViewedProductStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000042 /* ViewedProductStore.swift */; };
-		EB0000000000000000000043 /* ViewedProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000044 /* ViewedProduct.swift */; };
-		EB0000000000000000000021 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000022 /* QRScannerView.swift */; };
-		EB0000000000000000000023 /* PairingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000024 /* PairingClient.swift */; };
+		768929E14B9C95B327364A35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
+		8DBB7DF46372A5AAD686EFCC /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0AC23F0AD60603FA3C196A95 /* Foundation.framework */; };
+		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
+		A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */; };
+		AA0000000000000000000004 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* InfoPlist.strings */; };
+		AA0000000000000000000008 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* Localizable.strings */; };
+		B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA14 /* CategoryLibrary.swift */; };
+		BB0000000000000000000001 /* PrintedLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* PrintedLabel.swift */; };
+		BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* LabelHistoryStore.swift */; };
+		CC0000000000000000000001 /* BrotherCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000002 /* BrotherCatalog.swift */; };
+		CC0000000000000000000003 /* LabelRasterGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000004 /* LabelRasterGeometry.swift */; };
+		CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* BrotherPrinterService.swift */; };
+		CC0000000000000000000007 /* PrinterSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* PrinterSetup.swift */; };
+		CC0000000000000000000009 /* PrinterSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* PrinterSelectionView.swift */; };
+		CC000000000000000000000B /* SystemReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* SystemReport.swift */; };
+		CC000000000000000000000D /* SystemReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000E /* SystemReportSheet.swift */; };
+		CC000000000000000000000F /* BrotherConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000010 /* BrotherConsoleView.swift */; };
+		CC0000000000000000000011 /* NetumPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* NetumPrinterService.swift */; };
+		CC0000000000000000000013 /* NetumSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000014 /* NetumSettingsView.swift */; };
+		CC0000000000000000000015 /* NetumPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000016 /* NetumPrinter.swift */; };
+		CC0000000000000000000017 /* WideLabelLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000018 /* WideLabelLayout.swift */; };
+		DD0000000000000000000002 /* BRLMPrinterKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* BRLMPrinterKit.xcframework */; };
+		DD0000000000000000000003 /* BRLMPrinterKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* BRLMPrinterKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		EB0000000000000000000001 /* KeychainToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000002 /* KeychainToken.swift */; };
 		EB0000000000000000000003 /* GatewaySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000004 /* GatewaySettings.swift */; };
 		EB0000000000000000000005 /* GatewaySettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000006 /* GatewaySettingsSection.swift */; };
@@ -36,40 +52,37 @@
 		EB0000000000000000000013 /* EBPProductMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000014 /* EBPProductMapper.swift */; };
 		EB0000000000000000000015 /* GatewayWhereCondition.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000016 /* GatewayWhereCondition.swift */; };
 		EB0000000000000000000017 /* GatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000018 /* GatewayClient.swift */; };
-		768929E14B9C95B327364A35 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3685E330EC5277A9DD5661C6 /* Assets.xcassets */; };
-		AA0000000000000000000004 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000001 /* InfoPlist.strings */; };
-		AA0000000000000000000008 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000005 /* Localizable.strings */; };
-		9415BCB66CB6770D13D77033 /* ThermalBitmapRotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */; };
-		A6B254F9702B497C9A0E8C51 /* LabelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */; };
-		B749FB7510124A76A786DA13 /* CategoryLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = B749FB7510124A76A786DA14 /* CategoryLibrary.swift */; };
-		BB0000000000000000000001 /* PrintedLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* PrintedLabel.swift */; };
-		BB0000000000000000000002 /* LabelHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* LabelHistoryStore.swift */; };
-		CC0000000000000000000001 /* BrotherCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000002 /* BrotherCatalog.swift */; };
-		CC0000000000000000000003 /* LabelRasterGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000004 /* LabelRasterGeometry.swift */; };
-		CC0000000000000000000005 /* BrotherPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000006 /* BrotherPrinterService.swift */; };
-		CC0000000000000000000007 /* PrinterSetup.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000008 /* PrinterSetup.swift */; };
-		CC0000000000000000000009 /* PrinterSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000A /* PrinterSelectionView.swift */; };
-		DD0000000000000000000002 /* BRLMPrinterKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* BRLMPrinterKit.xcframework */; };
-		DD0000000000000000000003 /* BRLMPrinterKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000001 /* BRLMPrinterKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		CC000000000000000000000B /* SystemReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000C /* SystemReport.swift */; };
-		CC000000000000000000000D /* SystemReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC000000000000000000000E /* SystemReportSheet.swift */; };
-		CC000000000000000000000F /* BrotherConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000010 /* BrotherConsoleView.swift */; };
-		CC0000000000000000000011 /* NetumPrinterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* NetumPrinterService.swift */; };
-		CC0000000000000000000013 /* NetumSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000014 /* NetumSettingsView.swift */; };
-		CC0000000000000000000015 /* NetumPrinter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000016 /* NetumPrinter.swift */; };
-		CC0000000000000000000017 /* WideLabelLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000018 /* WideLabelLayout.swift */; };
+		EB0000000000000000000021 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000022 /* QRScannerView.swift */; };
+		EB0000000000000000000023 /* PairingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000024 /* PairingClient.swift */; };
+		EB0000000000000000000041 /* ViewedProductStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000042 /* ViewedProductStore.swift */; };
+		EB0000000000000000000043 /* ViewedProduct.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000044 /* ViewedProduct.swift */; };
+		EB0000000000000000000061 /* DemoHTTPSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000062 /* DemoHTTPSession.swift */; };
+		EB0000000000000000000071 /* BatchStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000070 /* BatchStore.swift */; };
+		EB0000000000000000000073 /* BatchDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000072 /* BatchDetailView.swift */; };
+		EB0000000000000000000075 /* PrintQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0000000000000000000074 /* PrintQueue.swift */; };
+		EF334699D209D14DBA027F9E /* ScreenshotUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78881966F6DFE6469D68A341 /* ScreenshotUITests.swift */; };
 		FA0000000000000000000001 /* LabelTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000011 /* LabelTemplate.swift */; };
-		FA0000000000000000000006 /* QRCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000016 /* QRCode.swift */; };
 		FA0000000000000000000002 /* LabelTemplateLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000012 /* LabelTemplateLibrary.swift */; };
 		FA0000000000000000000003 /* LabelTemplateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000013 /* LabelTemplateStore.swift */; };
 		FA0000000000000000000004 /* LabelTemplateListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000014 /* LabelTemplateListView.swift */; };
 		FA0000000000000000000005 /* LabelTemplateEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000015 /* LabelTemplateEditorView.swift */; };
+		FA0000000000000000000006 /* QRCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000016 /* QRCode.swift */; };
 		FA0000000000000000000007 /* SharePayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000017 /* SharePayload.swift */; };
 		FA0000000000000000000008 /* ShareTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000018 /* ShareTransport.swift */; };
 		FA0000000000000000000009 /* ShareQRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000019 /* ShareQRView.swift */; };
 		FA000000000000000000000A /* ImportScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000001A /* ImportScanView.swift */; };
 		FA000000000000000000000B /* PrinterSettingsSharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000001B /* PrinterSettingsSharing.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2D7B4248F5322FAF2E3FE784 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 633579642D79D259F3001E4F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0E8A3AD980EC179856012B7E;
+			remoteInfo = ProductLabels;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		DD0000000000000000000004 /* Embed Frameworks */ = {
@@ -86,17 +99,40 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0AC23F0AD60603FA3C196A95 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		2C0E70AD05CC323F23DF0AD5 /* MonochromeBitmap+Rotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "MonochromeBitmap+Rotation.swift"; sourceTree = "<group>"; };
 		3685E330EC5277A9DD5661C6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4FE4B6DB2B1BCF52A96BC010 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		EB0000000000000000000062 /* DemoHTTPSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoHTTPSession.swift; sourceTree = "<group>"; };
-		EB0000000000000000000042 /* ViewedProductStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProductStore.swift; sourceTree = "<group>"; };
-		EB0000000000000000000070 /* BatchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchStore.swift; sourceTree = "<group>"; };
-		EB0000000000000000000072 /* BatchDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchDetailView.swift; sourceTree = "<group>"; };
-		EB0000000000000000000074 /* PrintQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintQueue.swift; sourceTree = "<group>"; };
-		EB0000000000000000000044 /* ViewedProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProduct.swift; sourceTree = "<group>"; };
-		EB0000000000000000000022 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
-		EB0000000000000000000024 /* PairingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingClient.swift; sourceTree = "<group>"; };
+		516D0672BE4E8CAD47F01920 /* EAN13.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EAN13.swift; sourceTree = "<group>"; };
+		78881966F6DFE6469D68A341 /* ScreenshotUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ScreenshotUITests.swift; path = ProductLabelsUITests/ScreenshotUITests.swift; sourceTree = "<group>"; };
+		7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrinterManager.swift; sourceTree = "<group>"; };
+		8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabelApp.swift; sourceTree = "<group>"; };
+		923BFA7E93530FA224B673B8 /* SnapshotHelper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SnapshotHelper.swift; path = ProductLabelsUITests/SnapshotHelper.swift; sourceTree = "<group>"; };
+		96D7BB88D5B521222552E447 /* ProductLabelsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ProductLabelsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelPresentation.swift; sourceTree = "<group>"; };
+		AA0000000000000000000002 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0000000000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		AA0000000000000000000006 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		AA0000000000000000000007 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B749FB7510124A76A786DA14 /* CategoryLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryLibrary.swift; sourceTree = "<group>"; };
+		BB0000000000000000000003 /* PrintedLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintedLabel.swift; sourceTree = "<group>"; };
+		BB0000000000000000000004 /* LabelHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelHistoryStore.swift; sourceTree = "<group>"; };
+		BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThermalBitmapRotation.swift; sourceTree = "<group>"; };
+		C9485C1DE846860B7012E33A /* LabelRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelRenderer.swift; sourceTree = "<group>"; };
+		CC0000000000000000000002 /* BrotherCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherCatalog.swift; sourceTree = "<group>"; };
+		CC0000000000000000000004 /* LabelRasterGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelRasterGeometry.swift; sourceTree = "<group>"; };
+		CC0000000000000000000006 /* BrotherPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherPrinterService.swift; sourceTree = "<group>"; };
+		CC0000000000000000000008 /* PrinterSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSetup.swift; sourceTree = "<group>"; };
+		CC000000000000000000000A /* PrinterSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSelectionView.swift; sourceTree = "<group>"; };
+		CC000000000000000000000C /* SystemReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReport.swift; sourceTree = "<group>"; };
+		CC000000000000000000000E /* SystemReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReportSheet.swift; sourceTree = "<group>"; };
+		CC0000000000000000000010 /* BrotherConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherConsoleView.swift; sourceTree = "<group>"; };
+		CC0000000000000000000012 /* NetumPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinterService.swift; sourceTree = "<group>"; };
+		CC0000000000000000000014 /* NetumSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumSettingsView.swift; sourceTree = "<group>"; };
+		CC0000000000000000000016 /* NetumPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinter.swift; sourceTree = "<group>"; };
+		CC0000000000000000000018 /* WideLabelLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WideLabelLayout.swift; sourceTree = "<group>"; };
+		DD0000000000000000000001 /* BRLMPrinterKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = BRLMPrinterKit.xcframework; sourceTree = "<group>"; };
+		E3B2F6A22DEB550C9E61C92D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EB0000000000000000000002 /* KeychainToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainToken.swift; sourceTree = "<group>"; };
 		EB0000000000000000000004 /* GatewaySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewaySettings.swift; sourceTree = "<group>"; };
 		EB0000000000000000000006 /* GatewaySettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewaySettingsSection.swift; sourceTree = "<group>"; };
@@ -109,46 +145,27 @@
 		EB0000000000000000000014 /* EBPProductMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EBPProductMapper.swift; sourceTree = "<group>"; };
 		EB0000000000000000000016 /* GatewayWhereCondition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayWhereCondition.swift; sourceTree = "<group>"; };
 		EB0000000000000000000018 /* GatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayClient.swift; sourceTree = "<group>"; };
-		516D0672BE4E8CAD47F01920 /* EAN13.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EAN13.swift; sourceTree = "<group>"; };
-		7C0ED84CFCD08FF2A362DE61 /* PrinterManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PrinterManager.swift; sourceTree = "<group>"; };
-		8B1D1019C8FCD02CB84143A2 /* ProductLabelApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabelApp.swift; sourceTree = "<group>"; };
-		BF4BFF6F608F2EA69D91E634 /* ThermalBitmapRotation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ThermalBitmapRotation.swift; sourceTree = "<group>"; };
-		A6B254F9702B497C9A0E8C52 /* LabelPresentation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelPresentation.swift; sourceTree = "<group>"; };
-		B749FB7510124A76A786DA14 /* CategoryLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CategoryLibrary.swift; sourceTree = "<group>"; };
-		BB0000000000000000000003 /* PrintedLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintedLabel.swift; sourceTree = "<group>"; };
-		BB0000000000000000000004 /* LabelHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelHistoryStore.swift; sourceTree = "<group>"; };
-		C9485C1DE846860B7012E33A /* LabelRenderer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelRenderer.swift; sourceTree = "<group>"; };
-		E3B2F6A22DEB550C9E61C92D /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		AA0000000000000000000002 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		AA0000000000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		AA0000000000000000000006 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
-		AA0000000000000000000007 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		EB0000000000000000000022 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
+		EB0000000000000000000024 /* PairingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingClient.swift; sourceTree = "<group>"; };
+		EB0000000000000000000042 /* ViewedProductStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProductStore.swift; sourceTree = "<group>"; };
+		EB0000000000000000000044 /* ViewedProduct.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewedProduct.swift; sourceTree = "<group>"; };
+		EB0000000000000000000062 /* DemoHTTPSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoHTTPSession.swift; sourceTree = "<group>"; };
+		EB0000000000000000000070 /* BatchStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchStore.swift; sourceTree = "<group>"; };
+		EB0000000000000000000072 /* BatchDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchDetailView.swift; sourceTree = "<group>"; };
+		EB0000000000000000000074 /* PrintQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintQueue.swift; sourceTree = "<group>"; };
 		F6C433ACAC2A27CC06A06258 /* ProductLabels.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProductLabels.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		FE99AF2776C04A5A8568E934 /* ProductLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabel.swift; sourceTree = "<group>"; };
-		CC0000000000000000000002 /* BrotherCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherCatalog.swift; sourceTree = "<group>"; };
-		CC0000000000000000000004 /* LabelRasterGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelRasterGeometry.swift; sourceTree = "<group>"; };
-		CC0000000000000000000006 /* BrotherPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherPrinterService.swift; sourceTree = "<group>"; };
-		CC0000000000000000000008 /* PrinterSetup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSetup.swift; sourceTree = "<group>"; };
-		CC000000000000000000000A /* PrinterSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSelectionView.swift; sourceTree = "<group>"; };
-		DD0000000000000000000001 /* BRLMPrinterKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = BRLMPrinterKit.xcframework; sourceTree = "<group>"; };
-		CC000000000000000000000C /* SystemReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReport.swift; sourceTree = "<group>"; };
-		CC000000000000000000000E /* SystemReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemReportSheet.swift; sourceTree = "<group>"; };
-		CC0000000000000000000010 /* BrotherConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrotherConsoleView.swift; sourceTree = "<group>"; };
-		CC0000000000000000000012 /* NetumPrinterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinterService.swift; sourceTree = "<group>"; };
-		CC0000000000000000000014 /* NetumSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumSettingsView.swift; sourceTree = "<group>"; };
-		CC0000000000000000000016 /* NetumPrinter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetumPrinter.swift; sourceTree = "<group>"; };
-		CC0000000000000000000018 /* WideLabelLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WideLabelLayout.swift; sourceTree = "<group>"; };
 		FA0000000000000000000011 /* LabelTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplate.swift; sourceTree = "<group>"; };
-		FA0000000000000000000016 /* QRCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCode.swift; sourceTree = "<group>"; };
 		FA0000000000000000000012 /* LabelTemplateLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateLibrary.swift; sourceTree = "<group>"; };
 		FA0000000000000000000013 /* LabelTemplateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateStore.swift; sourceTree = "<group>"; };
 		FA0000000000000000000014 /* LabelTemplateListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateListView.swift; sourceTree = "<group>"; };
 		FA0000000000000000000015 /* LabelTemplateEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelTemplateEditorView.swift; sourceTree = "<group>"; };
+		FA0000000000000000000016 /* QRCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCode.swift; sourceTree = "<group>"; };
 		FA0000000000000000000017 /* SharePayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharePayload.swift; sourceTree = "<group>"; };
 		FA0000000000000000000018 /* ShareTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareTransport.swift; sourceTree = "<group>"; };
 		FA0000000000000000000019 /* ShareQRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareQRView.swift; sourceTree = "<group>"; };
 		FA000000000000000000001A /* ImportScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportScanView.swift; sourceTree = "<group>"; };
 		FA000000000000000000001B /* PrinterSettingsSharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrinterSettingsSharing.swift; sourceTree = "<group>"; };
+		FE99AF2776C04A5A8568E934 /* ProductLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProductLabel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,15 +179,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6F7EDF4DB7186479DC70D583 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8DBB7DF46372A5AAD686EFCC /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		33AF659BB7656F66461516F8 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5B196DA2AB89D15E1737FF09 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		470FA31A382840E369A8C052 /* ProductLabelsUITests */ = {
+			isa = PBXGroup;
+			children = (
+				923BFA7E93530FA224B673B8 /* SnapshotHelper.swift */,
+				78881966F6DFE6469D68A341 /* ScreenshotUITests.swift */,
+			);
+			name = ProductLabelsUITests;
+			sourceTree = SOURCE_ROOT;
+		};
 		4AF17906B199BA689DB52BAD /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				F6C433ACAC2A27CC06A06258 /* ProductLabels.app */,
+				96D7BB88D5B521222552E447 /* ProductLabelsUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5B196DA2AB89D15E1737FF09 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				0AC23F0AD60603FA3C196A95 /* Foundation.framework */,
+			);
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		72B6EF474440C54744701B27 /* App */ = {
@@ -243,6 +294,14 @@
 			path = Sources/LabelCore;
 			sourceTree = "<group>";
 		};
+		DD0000000000000000000005 /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000001 /* BRLMPrinterKit.xcframework */,
+			);
+			path = Vendor;
+			sourceTree = "<group>";
+		};
 		DE06109890D26A134F724246 = {
 			isa = PBXGroup;
 			children = (
@@ -251,6 +310,8 @@
 				4AF17906B199BA689DB52BAD /* Products */,
 				A1A26EFF352157F586C3AE6F /* LabelCore */,
 				DD0000000000000000000005 /* Vendor */,
+				33AF659BB7656F66461516F8 /* Frameworks */,
+				470FA31A382840E369A8C052 /* ProductLabelsUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -263,14 +324,6 @@
 				AA0000000000000000000005 /* Localizable.strings */,
 			);
 			path = Resources;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000005 /* Vendor */ = {
-			isa = PBXGroup;
-			children = (
-				DD0000000000000000000001 /* BRLMPrinterKit.xcframework */,
-			);
-			path = Vendor;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -299,6 +352,24 @@
 			productReference = F6C433ACAC2A27CC06A06258 /* ProductLabels.app */;
 			productType = "com.apple.product-type.application";
 		};
+		2E7788EC5D92C78A6ED4238F /* ProductLabelsUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B18632081AD6D8537305D3DF /* Build configuration list for PBXNativeTarget "ProductLabelsUITests" */;
+			buildPhases = (
+				F43D77DE724DA67697F64651 /* Sources */,
+				6F7EDF4DB7186479DC70D583 /* Frameworks */,
+				A92359FE926C1846A8A14ED3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D661DF81E75212ADBC1250A9 /* PBXTargetDependency */,
+			);
+			name = ProductLabelsUITests;
+			productName = ProductLabelsUITests;
+			productReference = 96D7BB88D5B521222552E447 /* ProductLabelsUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -319,13 +390,14 @@
 			);
 			mainGroup = DE06109890D26A134F724246;
 			packageReferences = (
-				4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890.git" */,
+				4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */,
 			);
 			productRefGroup = 4AF17906B199BA689DB52BAD /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				0E8A3AD980EC179856012B7E /* ProductLabels */,
+				2E7788EC5D92C78A6ED4238F /* ProductLabelsUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -338,6 +410,13 @@
 				768929E14B9C95B327364A35 /* Assets.xcassets in Resources */,
 				AA0000000000000000000004 /* InfoPlist.strings in Resources */,
 				AA0000000000000000000008 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A92359FE926C1846A8A14ED3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,27 +440,6 @@
 			shellScript = "\"${SRCROOT}/Tools/bump_build_number.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		AA0000000000000000000001 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				AA0000000000000000000002 /* fr */,
-				AA0000000000000000000003 /* en */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
-		AA0000000000000000000005 /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				AA0000000000000000000006 /* fr */,
-				AA0000000000000000000007 /* en */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin PBXSourcesBuildPhase section */
 		E8C5E5BE4D4926E3ACC74ED8 /* Sources */ = {
@@ -446,7 +504,46 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F43D77DE724DA67697F64651 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2002CDD0786ADC1CDC3CE55D /* SnapshotHelper.swift in Sources */,
+				EF334699D209D14DBA027F9E /* ScreenshotUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D661DF81E75212ADBC1250A9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = ProductLabels;
+			target = 0E8A3AD980EC179856012B7E /* ProductLabels */;
+			targetProxy = 2D7B4248F5322FAF2E3FE784 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		AA0000000000000000000001 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AA0000000000000000000002 /* fr */,
+				AA0000000000000000000003 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000005 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AA0000000000000000000006 /* fr */,
+				AA0000000000000000000007 /* en */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		7CCC92E1540C3EC9700940A0 /* Release */ = {
@@ -459,6 +556,32 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		B30F724252C14C78EDC9264F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5D6QHL72QC;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.idsynergy.ebp-tickets-prix.uitests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ProductLabels;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -487,7 +610,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.idsynergy.ebp-tickets-prix;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.idsynergy.ebp-tickets-prix";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -495,6 +618,31 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E8A612A67A65BFCD00060336 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5D6QHL72QC;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.idsynergy.ebp-tickets-prix.uitests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = ProductLabels;
 			};
 			name = Debug;
 		};
@@ -542,7 +690,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.idsynergy.ebp-tickets-prix;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.idsynergy.ebp-tickets-prix";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -574,10 +722,19 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		B18632081AD6D8537305D3DF /* Build configuration list for PBXNativeTarget "ProductLabelsUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B30F724252C14C78EDC9264F /* Release */,
+				E8A612A67A65BFCD00060336 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890.git" */ = {
+		4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/dimer47/PocketPrinter5890.git";
 			requirement = {
@@ -590,12 +747,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		6B479A3C5043066466CE7E8D /* PocketPrinter5890Kit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890.git" */;
+			package = 4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */;
 			productName = PocketPrinter5890Kit;
 		};
 		8C132EDD44ABAC51A9CB8970 /* PocketPrinter5890BLE */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890.git" */;
+			package = 4FF15B936B8851E2CAA578B9 /* XCRemoteSwiftPackageReference "PocketPrinter5890" */;
 			productName = PocketPrinter5890BLE;
 		};
 /* End XCSwiftPackageProductDependency section */
