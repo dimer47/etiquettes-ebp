@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
+<!-- Aucun chiffrement non exempté (uniquement HTTPS/TLS standard) : évite la question
+     de conformité des exportations à chaque envoi de build. -->
+<key>ITSAppUsesNonExemptEncryption</key><false/>
 <key>CFBundleDisplayName</key><string>Étiquettes EBP</string>
 <key>CFBundleName</key><string>Étiquettes EBP</string>
 <key>NSBluetoothAlwaysUsageDescription</key><string>Connexion à votre imprimante Pocket 5890, Brother ou NETUM en Bluetooth pour imprimer les étiquettes.</string>
@@ -17,6 +20,9 @@
      À retirer / remplacer par du HTTPS avant toute gateway non-locale ou de production. -->
 <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
 <key>UILaunchScreen</key><dict/>
+<!-- L'app déclare des types de documents (.ebplabel / .ebpprinter) : indiquer qu'elle
+     ouvre les fichiers « sur place » (lève l'avertissement App Store 90737). -->
+<key>LSSupportsOpeningDocumentsInPlace</key><true/>
 <!-- Types de documents d'échange : l'app est proposée à la réception d'un .ebplabel / .ebpprinter
      (AirDrop, Messages, Fichiers…). Ouverture via onOpenURL. -->
 <key>CFBundleDocumentTypes</key>
